@@ -47,7 +47,29 @@ try {
         'SubagentStart' { $entry.action = 'start' }
         'SubagentStop' {
             $entry.action = 'finish'
-            $entry.result = Limit $e.last_assistant_message 800
+            $result = $e.last_assistant_message
+            $tp = [string]$e.agent_transcript_path
+            if ($tp) {
+                if ($tp.StartsWith('~')) { $tp = Join-Path $HOME $tp.Substring(1).TrimStart('\', '/') }
+                $entry.transcript = $tp
+            }
+            # Some Claude Code versions don't send last_assistant_message:
+            # fall back to the last assistant text in the subagent's transcript.
+            if (-not $result -and $tp) {
+                for ($i = 0; $i -lt 5 -and -not $result; $i++) {
+                    if (Test-Path $tp) {
+                        $lines = @(Get-Content -Path $tp -Encoding UTF8)
+                        for ($j = $lines.Count - 1; $j -ge 0 -and -not $result; $j--) {
+                            try { $msg = $lines[$j] | ConvertFrom-Json } catch { continue }
+                            if ($msg.type -ne 'assistant') { continue }
+                            $texts = @($msg.message.content | Where-Object { $_.type -eq 'text' } | ForEach-Object { $_.text })
+                            if ($texts.Count -gt 0) { $result = ($texts -join "`n") }
+                        }
+                    }
+                    if (-not $result) { Start-Sleep -Milliseconds 400 }
+                }
+            }
+            $entry.result = Limit $result 800
         }
         'PostToolUse' {
             $entry.action = 'tool'

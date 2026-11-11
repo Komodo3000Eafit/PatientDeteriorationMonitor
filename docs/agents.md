@@ -24,7 +24,7 @@ We use a team of custom **Claude Code subagents** with differentiated roles (gra
   Then ask it to implement the current story (e.g. *"Implement the story in specs/003-vitals-history using /speckit-implement"*). The orchestrator can delegate **only** to the five specialist agents.
 - **Spec Kit steps** (`/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`) run in a normal `claude` session or the VS Code panel.
 - **Manually:** in any Claude Code session, ask for one agent by name, e.g. *"Use the qa-tester agent to write tests for US-03"*.
-- Agents are loaded when a session starts. After adding or editing an agent file, restart Claude Code. Run `/agents` to list the available agents.
+- Agents are loaded when a session starts. After adding or editing an agent file, restart Claude Code. To check which agents are available, ask Claude: *"List the custom subagents available in this project"* (the old `/agents` command was removed from Claude Code).
 
 ### Who may change what
 

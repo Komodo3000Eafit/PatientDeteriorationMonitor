@@ -34,6 +34,14 @@ Install these **once per computer** (they are global tools, not project-specific
 | Node.js | LTS | Needed for the React frontend — <https://nodejs.org/> |
 | PostgreSQL | Version defined in the technical plan | Installation method (local install or Docker) will be confirmed in the technical user stories |
 
+### Allow local PowerShell scripts
+
+Windows blocks `.ps1` scripts by default. The project's helper scripts (e.g. `scripts/agent-report.ps1`) need them enabled for your user (no admin rights required):
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
 ### VS Code extensions
 
 - **Claude Code** (Anthropic)
@@ -134,7 +142,7 @@ We use a team of custom **Claude Code subagents** with differentiated roles (req
 
 - Agents live in `.claude/agents/`. Invoke them by asking Claude, e.g. *"Use the qa-tester agent to write tests for this story"*.
 - The **orchestrator** decides which agent works on each part of a story; agents can also be called manually.
-- After adding or editing an agent file, restart Claude Code or run `/agents` so it is loaded.
+- After adding or editing an agent file, restart Claude Code so it is loaded. To check, ask Claude: *"List the custom subagents available in this project"*.
 
 The list of agents, their roles and responsibilities is documented in [`docs/agents.md`](docs/agents.md).
 
@@ -176,4 +184,5 @@ Each student will be assigned a user story during the demo and must build it **f
 | `uv tool install` fails building `pyyaml` / asks for *Microsoft Visual C++* | You are on Python 3.15. Add `--python 3.13` to the install command, or install Python 3.13 |
 | `specify`, `uv` or `claude` is not recognized | Fully close and reopen VS Code (not just the terminal). If it still fails, run `uv tool update-shell` and reopen |
 | `No such option: --ai` | Spec Kit v1.x replaced `--ai` with `--integration`. You should not need `specify init` anyway (see section 3) |
+| `... la ejecución de scripts está deshabilitada en este sistema` / `running scripts is disabled on this system` | Run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` (see section 2) |
 | `/speckit-*` commands don't appear | Make sure VS Code / Claude Code is opened **in the project folder** |
