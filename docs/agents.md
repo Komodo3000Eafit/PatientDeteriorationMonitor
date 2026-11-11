@@ -1,6 +1,6 @@
 # AI Agent Team
 
-> **Status:** agreed design, **subject to change**. Agent files are created in roadmap step 9 (see [PROJECT_STATUS.md](PROJECT_STATUS.md)).
+> **Status:** agent files created in `.claude/agents/` (roadmap step 9). The design is still **subject to change** — edit the agent files and this page together.
 
 We use a team of custom **Claude Code subagents** with differentiated roles (grading Modality B). All agents live in `.claude/agents/`. Each agent gets only the tools its role needs (least privilege).
 
@@ -13,17 +13,47 @@ We use a team of custom **Claude Code subagents** with differentiated roles (gra
 | **frontend-dev** | `.claude/agents/frontend-dev.md` | React UI, Spanish by default with English switch, integration with the API | Read, edit, run |
 | **qa-tester** | `.claude/agents/qa-tester.md` | Automated tests on critical paths (triage scoring, prediction, API, security); runs them and reports failures back to the orchestrator | Read, edit, run tests |
 | **security-reviewer** | `.claude/agents/security-reviewer.md` | Input validation, secrets handling, dependency and OWASP checks. **Read-only**: reports findings, does not change code | Read, search |
-| *devops (optional)* | `.claude/agents/devops.md` | CI/CD pipeline and deployment | Read, edit, run |
+| **devops** | `.claude/agents/devops.md` | CI/CD pipeline and deployment | Read, edit, run |
 
 ## How agents are invoked
 
-- **Automatically:** the main Claude Code session (or the orchestrator) delegates to a subagent when a task matches the subagent's `description`. Clear descriptions matter.
-- **Manually:** ask for one by name, e.g. *"Use the qa-tester agent to write tests for US-03"*.
-- Subagents are loaded when a session starts. After adding or editing an agent file, restart Claude Code or run `/agents`.
+- **Orchestrated (recommended for implementing a story):** start Claude Code with the orchestrator as the main agent:
+  ```powershell
+  claude --agent orchestrator
+  ```
+  Then ask it to implement the current story (e.g. *"Implement the story in specs/003-vitals-history using /speckit-implement"*). The orchestrator can delegate **only** to the five specialist agents.
+- **Spec Kit steps** (`/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`) run in a normal `claude` session or the VS Code panel.
+- **Manually:** in any Claude Code session, ask for one agent by name, e.g. *"Use the qa-tester agent to write tests for US-03"*.
+- Agents are loaded when a session starts. After adding or editing an agent file, restart Claude Code. Run `/agents` to list the available agents.
+
+### Who may change what
+
+| Agent | Can edit | Runs commands |
+|---|---|---|
+| orchestrator | `tasks.md`, `agent-log.md`, `docs/` only | Yes (status checks) — never commits or pushes |
+| backend-dev, frontend-dev, devops | Application / pipeline files for their task | Yes |
+| qa-tester | Test files only — reports failures instead of fixing app code | Yes (runs tests) |
+| security-reviewer | Nothing (read-only) | No |
 
 ## Evidence of collaboration
 
-The assignment requires agents to **really** do the work. For every user story, record in the pull request description (or `docs/agents-log.md`) which agent did what:
+The assignment requires agents to **really** do the work, and declaring roles is not enough. We keep two kinds of evidence for every story:
+
+1. **Automatic activity log (tamper-resistant).** Claude Code hooks (`.claude/settings.json`) call `scripts/log-agent-activity.ps1` on every agent event and append one JSON line to `logs/agent-activity/<branch>.jsonl`:
+   - `delegate`: one agent hands a task to another (who → whom, task description)
+   - `start` / `finish`: an agent begins and ends its work (with its final report)
+   - `tool`: an agent edits or creates a file, or runs a command (e.g. tests)
+
+   The log is written by Claude Code itself, not by the agents, so the agents can't invent it. One file per branch avoids merge conflicts between stories. **Commit the log with the story.**
+2. **Human-readable summary.** The orchestrator keeps `specs/<feature>/agent-log.md` and generates `specs/<feature>/agent-report.md` from the automatic log:
+   ```powershell
+   .\scripts\agent-report.ps1 -Out specs\<feature>\agent-report.md
+   ```
+   The report shows the delegations, which files each agent changed, the commands it ran and its results. Paste it into the pull request description.
+
+Full conversation transcripts of every agent are also saved by Claude Code on the developer's computer (under the user's `.claude/projects/` folder). They're not committed, but they can be shown live during the demo as extra proof.
+
+Example of the summary:
 
 ```
 Story: US-03 — Show vital signs history

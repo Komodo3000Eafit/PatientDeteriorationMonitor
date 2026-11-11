@@ -80,9 +80,10 @@ Open the folder in VS Code (*File → Open Folder*). To confirm Spec Kit works, 
 .claude/
   skills/speckit-*/    Spec Kit commands for Claude Code (generated)
   agents/              Our custom Claude agents
-.github/
-  copilot-instructions.md   Project context for Copilot (kept for a possible future use)
-specs/                 One folder per user story: spec.md, plan.md, tasks.md, ...
+  settings.json        Shared Claude Code settings: hooks that log agent activity
+specs/                 One folder per user story: spec.md, plan.md, tasks.md, agent-log.md, agent-report.md
+logs/agent-activity/   Automatic agent activity log, one file per branch (commit it)
+scripts/               Helper scripts (agent activity logger and report)
 docs/
   PROJECT_STATUS.md    Current step, roadmap and onboarding checklist
   DECISIONS.md         Decision log (why things are the way they are)
@@ -141,7 +142,7 @@ The list of agents, their roles and responsibilities is documented in [`docs/age
 
 ## 7. Git workflow
 
-- `main` always contains working, reviewed code. **Never push directly to `main`.**
+- `main` always contains working, reviewed code. **Never push directly to `main`** (exception: setup steps during the solo dry run, see `docs/DECISIONS.md` D-20).
 - Work on the branch Spec Kit creates for your story (`/speckit-specify` creates it automatically).
 - Commit messages: short and descriptive, referencing the story ID, e.g. `US-03: add vital signs chart`.
 - Open a pull request to `main`; at least one teammate reviews it; CI tests must pass before merging.
