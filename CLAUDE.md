@@ -16,6 +16,7 @@ Academic team project (4 students, deadline 2026-11-24): a **digital twin of a t
 - **No code without a spec.** Every change comes from a user story run through the Spec Kit workflow (`/speckit-specify` → `/speckit-clarify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`).
 - **One user story = one Spec Kit feature** (one `specs/` folder, one branch, one PR). Technical stories (TS-xx) build the foundation; functional stories (US-xx) depend only on that foundation, never on each other.
 - All code, comments, specs and docs in **English**. The UI is **Spanish by default** with an English switch.
+- Edit files with Claude's file tools (Edit/Write), **not** with PowerShell commands: Windows PowerShell 5.1 corrupts non-ASCII characters (accents, dashes, emoji) when it rewrites files.
 - Never use or commit real patient data, secrets, tokens or `.env` files.
 - Triage scoring (NEWS2 for now) must stay behind a swappable module — it may be replaced by the Colombian triage regulation.
 - Record which agent did what in the PR description (see `docs/agents.md`).
