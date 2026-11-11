@@ -15,7 +15,6 @@ Every team member needs their **own** accounts. The live demo requires each stud
 | Account | Required | Cost | How to get it |
 |---|---|---|---|
 | GitHub account with access to this repository | Yes | Free | Ask the repo owner to add you as a collaborator |
-| GitHub Education (verified student) → **GitHub Copilot Student** | Yes | Free | Apply at [GitHub Education](https://education.github.com/), then activate Copilot from your GitHub settings ([guide](https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/enable-copilot/set-up-for-students)). Verification can take several days — **apply now** |
 | **Claude** plan with Claude Code (Pro or higher) | Yes, to run the Claude agents | Paid | [claude.ai](https://claude.ai) |
 
 ---
@@ -38,7 +37,8 @@ Install these **once per computer** (they are global tools, not project-specific
 ### VS Code extensions
 
 - **Claude Code** (Anthropic)
-- **GitHub Copilot** and **GitHub Copilot Chat** (GitHub)
+
+> GitHub Copilot is **not used for now** (see `docs/DECISIONS.md`, D-15).
 
 ### Verify your installation
 
@@ -53,7 +53,7 @@ claude --version
 node --version
 ```
 
-Then log in to Claude Code by running `claude` once and following the prompts (type `/exit` to leave), and sign in to GitHub Copilot from VS Code.
+Then log in to Claude Code by running `claude` once and following the prompts (type `/exit` to leave).
 
 ---
 
@@ -66,9 +66,9 @@ git config user.name "Your Name"
 git config user.email "your-github-email@example.com"
 ```
 
-> ⚠️ **Do not run `specify init`.** Spec Kit is already initialized and committed in the repository (`.specify/`, `.claude/`, `.github/`). Running it again can overwrite shared files.
+> ⚠️ **Do not run `specify init`.** Spec Kit is already initialized and committed in the repository (`.specify/`, `.claude/`). Running it again can overwrite shared files.
 
-Open the folder in VS Code (*File → Open Folder*). To confirm Spec Kit works, open Claude Code or Copilot Chat and type `/speckit` — the list of `speckit-*` commands should appear.
+Open the folder in VS Code (*File → Open Folder*). To confirm Spec Kit works, open Claude Code and type `/speckit` — the list of `speckit-*` commands should appear.
 
 ---
 
@@ -81,7 +81,7 @@ Open the folder in VS Code (*File → Open Folder*). To confirm Spec Kit works, 
   skills/speckit-*/    Spec Kit commands for Claude Code (generated)
   agents/              Our custom Claude agents
 .github/
-  agents/              Our custom Copilot agents (+ Spec Kit files for Copilot)
+  copilot-instructions.md   Project context for Copilot (kept for a possible future use)
 specs/                 One folder per user story: spec.md, plan.md, tasks.md, ...
 docs/
   PROJECT_STATUS.md    Current step, roadmap and onboarding checklist
@@ -93,7 +93,6 @@ frontend/              React application (created by the technical user stories)
 README.md              How to install and use the app
 DEVELOPMENT.md         This guide
 CLAUDE.md              Project context Claude Code reads automatically
-.github/copilot-instructions.md   Project context Copilot reads automatically
 ```
 
 ---
@@ -111,7 +110,7 @@ CLAUDE.md              Project context Claude Code reads automatically
 
 ### 5.2 Spec Kit workflow for each story
 
-Run these in Claude Code or Copilot Chat, from the project folder:
+Run these in Claude Code, from the project folder:
 
 | Step | Command | Output |
 |---|---|---|
@@ -130,11 +129,11 @@ Then run the tests, commit, push and open a pull request.
 
 ## 6. AI agents
 
-We use a team of custom agents with differentiated roles across Claude Code and GitHub Copilot (required for grading Modality B).
+We use a team of custom **Claude Code subagents** with differentiated roles (required for grading Modality B).
 
-- **Claude agents** live in `.claude/agents/`. Invoke them by asking Claude, e.g. *"Use the qa-tester agent to write tests for this story"*.
-- **Copilot agents** live in `.github/agents/`. Select them from the agent dropdown in Copilot Chat.
+- Agents live in `.claude/agents/`. Invoke them by asking Claude, e.g. *"Use the qa-tester agent to write tests for this story"*.
 - The **orchestrator** decides which agent works on each part of a story; agents can also be called manually.
+- After adding or editing an agent file, restart Claude Code or run `/agents` so it is loaded.
 
 The list of agents, their roles and responsibilities is documented in [`docs/agents.md`](docs/agents.md).
 
@@ -165,7 +164,7 @@ Each student will be assigned a user story during the demo and must build it **f
 - [ ] Run the app locally (backend, frontend and database)
 - [ ] Run the automated tests
 - [ ] Complete the full Spec Kit workflow for a small practice story
-- [ ] Invoke the agents in both Claude Code and Copilot
+- [ ] Invoke each agent in Claude Code
 
 ---
 

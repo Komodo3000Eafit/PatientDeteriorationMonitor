@@ -8,7 +8,7 @@ Add a new entry when a decision is made or changed. Don't delete old entries —
 | D-01 | 2026-11-09 | Use **GitHub Spec Kit v1.3.3**, pinned for the whole team | Assignment prefers Spec Kit; same version avoids template/command differences | Active |
 | D-02 | 2026-11-09 | Use **Python 3.13** (not 3.15) | `pyyaml` (Spec Kit dependency) has no Windows build for 3.15 and fails to compile without Visual C++ Build Tools | Active |
 | D-03 | 2026-11-09 | Spec Kit initialized with `--integration claude --script ps` | Team works on Windows; `--ai` flag was removed in v1.x | Active |
-| D-04 | 2026-11-09 | AI tools: **Claude Code + GitHub Copilot** | Multi-agent architecture across both tools; Copilot Student is free for verified students | Active (supersedes "Claude only") |
+| D-04 | 2026-11-09 | AI tools: **Claude Code + GitHub Copilot** | Multi-agent architecture across both tools; Copilot Student is free for verified students | Superseded by D-15 |
 | D-05 | 2026-11-09 | Grading **Modality B** (multi-agent, max grade 5.0) | Agents must really execute work and their collaboration must be demonstrable | Active |
 | D-06 | 2026-11-09 | Stack: **Python (FastAPI) backend, React frontend, PostgreSQL** | Python fits datasets and prediction logic | Active — details defined in technical stories |
 | D-07 | 2026-11-09 | Automated tests required on **critical paths** (triage scoring, prediction, API, security) | Required by the assignment; balances rigor and deadline | Active |
@@ -17,5 +17,8 @@ Add a new entry when a decision is made or changed. Don't delete old entries —
 | D-10 | 2026-11-09 | Language: everything in **English**, except the UI: **Spanish by default** with an English switch | Team convention; end users are Spanish speakers | Active |
 | D-11 | 2026-11-09 | User stories: Scrum format, short, independent. **Technical (TS-xx)** = architecture/foundation; **Functional (US-xx)** = app features. Functional stories depend only on the technical baseline, never on each other | Assignment requires 5 stories built concurrently in class without conflicts | Active |
 | D-12 | 2026-11-09 | **One user story = one Spec Kit feature** = one `specs/` folder, branch and PR | Each student specs and builds one story live in 5–10 minutes | Active |
-| D-13 | 2026-11-09 | Agent team: orchestrator + backend-dev + qa-tester (Claude), frontend-dev + security-reviewer (Copilot) | Differentiated roles across both tools; least-privilege tools | Active — may change (see [agents.md](agents.md)) |
+| D-13 | 2026-11-09 | Agent team: orchestrator + backend-dev + qa-tester (Claude), frontend-dev + security-reviewer (Copilot) | Differentiated roles across both tools; least-privilege tools | Superseded by D-16 |
 | D-14 | 2026-11-09 | Constitution drafted by one member, then reviewed and amended by the team via PR | Allows exploring Spec Kit before team agreement | Active |
+| D-15 | 2026-11-10 | AI tool: **Claude Code only**; GitHub Copilot on hold | Copilot Student license request was rejected. Multi-agent requirement is met with Claude Code subagents | Active — may change |
+| D-16 | 2026-11-10 | Agent team, all as Claude Code subagents in `.claude/agents/`: orchestrator, backend-dev, frontend-dev, qa-tester, security-reviewer (+ optional devops) | Same differentiated roles and least-privilege tools, now in a single tool | Active — may change (see [agents.md](agents.md)) |
+| D-17 | 2026-11-10 | One member does a **solo dry run** of the whole project before redoing it with the team | Learn the process and prepare resources first | Active |

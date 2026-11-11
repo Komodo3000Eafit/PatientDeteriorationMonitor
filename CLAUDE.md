@@ -7,7 +7,7 @@ Academic team project (4 students, deadline 2026-11-24): a **digital twin of a t
 1. `docs/PROJECT_STATUS.md` — current step and what comes next
 2. `.specify/memory/constitution.md` — project principles (mandatory)
 3. `docs/DECISIONS.md` — why things are the way they are
-4. `docs/agents.md` — the agent team and roles
+4. `docs/agents.md` — the agent team (Claude Code subagents in `.claude/agents/`)
 5. `docs/ASSIGNMENT.md` — course requirements and grading
 
 ## Working rules

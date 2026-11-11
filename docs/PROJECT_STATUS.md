@@ -3,11 +3,13 @@
 > **Read this first.** This file tells you where the project is right now and what comes next.
 > Whoever completes a step updates this file **in the same pull request** as the work.
 
-**Last updated:** 2026-11-09
+**Last updated:** 2026-11-10
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 7 — Project context documentation ✅ (this commit)
-**Next step:** Step 8 — Add the GitHub Copilot integration to Spec Kit
+**Current step:** Step 7 — Project context documentation ✅ (updated for Claude-only agents)
+**Next step:** Step 8 — Project constitution
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
+
+> **Solo dry run:** one member is building the project end to end first, to learn the process and prepare resources. The project will then be redone with the full team using these docs.
 
 ---
 
@@ -30,35 +32,33 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 |---|---|---|---|
 | 5 | Initialize Spec Kit: `specify init --here --integration claude --script ps` | ✅ | Committed to `main` |
 | 6 | Commit Spec Kit setup (`.specify/`, `.claude/skills/`) | ✅ | |
-| 7 | Project context docs (this file, DECISIONS, ASSIGNMENT, agents, DEVELOPMENT, CLAUDE.md, Copilot instructions) | ✅ | |
-| 8 | Add Copilot integration to Spec Kit | ⏭ | `specify integration install copilot` — verify flags against v1.3.3 |
-| 9 | Project constitution (`/speckit-constitution`) | ⬜ | Draft by one member, pending team review. Must include both AI tools, the agent team and the user story rules |
-| 10 | Create the agent team files (`.claude/agents/`, `.github/agents/`) | ⬜ | Design in [agents.md](agents.md) — subject to change |
-| 11 | Backlog: ~10 user stories (technical + functional) | ⬜ | 5 baseline + 5 for the live demo |
+| 7 | Project context docs (this file, DECISIONS, ASSIGNMENT, agents, DEVELOPMENT, CLAUDE.md) | ✅ | Updated: Claude-only agents (D-15) |
+| 8 | Project constitution (`/speckit-constitution`) | ⏭ | On branch `setup-constitution`. Draft by one member, pending team review. Must include the Claude agent team and the user story rules |
+| 9 | Create the agent team files in `.claude/agents/` | ⬜ | Design in [agents.md](agents.md) — subject to change |
+| 10 | Backlog: ~10 user stories (technical + functional) | ⬜ | 5 baseline + 5 for the live demo |
 
 ### Phase 2 — Baseline implementation (one Spec Kit feature per user story)
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 12 | Technical stories: database, FastAPI app, frontend ↔ backend, CI, deployment | ⬜ | Foundation for every functional story |
-| 13 | Functional baseline stories (5 total implemented) | ⬜ | Independent from each other |
+| 11 | Technical stories: database, FastAPI app, frontend ↔ backend, CI, deployment | ⬜ | Foundation for every functional story |
+| 12 | Functional baseline stories (5 total implemented) | ⬜ | Independent from each other |
 
 ### Phase 3 — Delivery and demo
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 14 | Evidence: tests, security controls, agent activity log, deployed URL | ⬜ | |
-| 15 | Each member rehearses building a story live from their own computer | ⬜ | 5–10 min per story |
-| 16 | Submit deliverables | ⬜ | Deadline 2026-11-24 18:00 |
+| 13 | Evidence: tests, security controls, agent activity log, deployed URL | ⬜ | |
+| 14 | Each member rehearses building a story live from their own computer | ⬜ | 5–10 min per story |
+| 15 | Submit deliverables | ⬜ | Deadline 2026-11-24 18:00 |
 
 ---
 
 ## Team onboarding checklist (each member)
 
-- [ ] Apply to GitHub Education and activate **Copilot Student** (verification can take days — do it now)
-- [ ] Get a Claude plan with Claude Code
+- [ ] Get a Claude plan that includes Claude Code (needed to run the agents)
 - [ ] Complete Phase 0 following [DEVELOPMENT.md](../DEVELOPMENT.md)
-- [ ] Clone the repo and confirm `/speckit` commands appear in Claude Code and Copilot Chat
+- [ ] Clone the repo and confirm `/speckit` commands appear in Claude Code
 
 ---
 
@@ -68,3 +68,4 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 - Public dataset to use for vital signs (or synthetic data).
 - Hosting provider for the free deployment.
 - Agent team composition may still change (see [agents.md](agents.md)).
+- GitHub Copilot as a second AI tool: on hold (D-15); can be reconsidered if a license becomes available.
