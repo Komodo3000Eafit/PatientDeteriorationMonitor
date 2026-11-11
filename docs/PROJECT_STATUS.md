@@ -34,7 +34,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 | 6 | Commit Spec Kit setup (`.specify/`, `.claude/skills/`) | ✅ | |
 | 7 | Project context docs (this file, DECISIONS, ASSIGNMENT, agents, DEVELOPMENT, CLAUDE.md) | ✅ | Updated: Claude-only agents (D-15) |
 | 8 | Project constitution (`/speckit-constitution`) | ✅ | v1.0.0 in `.specify/memory/constitution.md`. Draft by one member, pending team review (D-14, D-19) |
-| 9 | Create the agent team files in `.claude/agents/` + automatic activity log | ✅ | 6 agents (see [agents.md](agents.md)); hooks log agent activity to `logs/agent-activity/` (D-21) |
+| 9 | Create the agent team files in `.claude/agents/` + agent activity log | ✅ | 6 agents (see [agents.md](agents.md)); CSV activity log per story via `scripts/log-agent.ps1` (D-22) |
 | 10 | Align Spec Kit templates with the constitution, then write the backlog: ~10 user stories (technical + functional) | ⏭ | 5 baseline + 5 for the live demo |
 
 ### Phase 2 — Baseline implementation (one Spec Kit feature per user story)

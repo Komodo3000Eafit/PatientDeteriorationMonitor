@@ -12,6 +12,7 @@ Academic team project (4 students, deadline 2026-11-24): a **digital twin of a t
 
 ## Working rules
 
+- **Prefer the simplest solution that works. Do not over-engineer** (constitution Principle XII). Choose plain files, existing tools and small scripts over new services, frameworks or automation. If a simple approach is enough for the academic scope, use it.
 - **No code without a spec.** Every change comes from a user story run through the Spec Kit workflow (`/speckit-specify` → `/speckit-clarify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`).
 - **One user story = one Spec Kit feature** (one `specs/` folder, one branch, one PR). Technical stories (TS-xx) build the foundation; functional stories (US-xx) depend only on that foundation, never on each other.
 - All code, comments, specs and docs in **English**. The UI is **Spanish by default** with an English switch.

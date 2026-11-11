@@ -30,36 +30,37 @@ We use a team of custom **Claude Code subagents** with differentiated roles (gra
 
 | Agent | Can edit | Runs commands |
 |---|---|---|
-| orchestrator | `tasks.md`, `agent-log.md`, `docs/` only | Yes (status checks) — never commits or pushes |
+| orchestrator | `tasks.md`, `docs/` only | Yes (status checks and the log script) — never commits or pushes |
 | backend-dev, frontend-dev, devops | Application / pipeline files for their task | Yes |
 | qa-tester | Test files only — reports failures instead of fixing app code | Yes (runs tests) |
-| security-reviewer | Nothing (read-only) | No |
+| security-reviewer | Nothing (read-only; the orchestrator logs its work) | No |
 
 ## Evidence of collaboration
 
-The assignment requires agents to **really** do the work, and declaring roles is not enough. We keep two kinds of evidence for every story:
+The assignment requires agents to **really** do the work. Every story has an **agent activity log**: `specs/<feature>/agent-log.csv`, committed with the story. It opens in Excel or VS Code.
 
-1. **Automatic activity log (tamper-resistant).** Claude Code hooks (`.claude/settings.json`) call `scripts/log-agent-activity.ps1` on every agent event and append one JSON line to `logs/agent-activity/<branch>.jsonl`:
-   - `delegate`: one agent hands a task to another (who → whom, task description)
-   - `start` / `finish`: an agent begins and ends its work (with its final report)
-   - `tool`: an agent edits or creates a file, or runs a command (e.g. tests)
+Rows are added with one script, which fills in the timestamp and the story automatically (from the current branch):
 
-   The log is written by Claude Code itself, not by the agents, so the agents can't invent it. One file per branch avoids merge conflicts between stories. **Commit the log with the story.**
-2. **Human-readable summary.** The orchestrator keeps `specs/<feature>/agent-log.md` and generates `specs/<feature>/agent-report.md` from the automatic log:
-   ```powershell
-   .\scripts\agent-report.ps1 -Out specs\<feature>\agent-report.md
-   ```
-   The report shows the delegations, which files each agent changed, the commands it ran and its results. Paste it into the pull request description.
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/log-agent.ps1 -Agent backend-dev -Task T001 -Action done -Details "Created POST /vitals"
+```
 
-Full conversation transcripts of every agent are also saved by Claude Code on the developer's computer (under the user's `.claude/projects/` folder). They're not committed, but they can be shown live during the demo as extra proof.
+| Who | Logs |
+|---|---|
+| orchestrator | `assigned` before each delegation; `verified` or `rework` after checking a result; the security-reviewer's `done` and `finding` rows |
+| backend-dev, frontend-dev, qa-tester, devops | Their own `started` and `done` / `failed` rows |
 
-Example of the summary:
+Actions: `assigned`, `started`, `done`, `failed`, `finding`, `verified`, `rework`. Outside a story branch, rows go to `logs/agent-log.csv`.
+
+Example:
 
 ```
-Story: US-03 — Show vital signs history
-- orchestrator: split tasks T001–T006, assigned to agents
-- backend-dev: T001–T003 (endpoint + query)
-- frontend-dev: T004 (chart component)
-- qa-tester: T005 (API tests) — found 1 failure, fixed by backend-dev
-- security-reviewer: T006 (validation review) — no issues
+"Timestamp","Story","Agent","Task","Action","Details"
+"2026-11-12 10:02:11","003-vitals-history","orchestrator","T001","assigned","Assigned to backend-dev: endpoint GET /patients/{id}/vitals"
+"2026-11-12 10:02:15","003-vitals-history","backend-dev","T001","started",""
+"2026-11-12 10:04:40","003-vitals-history","backend-dev","T001","done","Added endpoint and query in backend/app/vitals.py"
+"2026-11-12 10:05:02","003-vitals-history","orchestrator","T001","verified","Meets AC1 and AC2"
+"2026-11-12 10:07:30","003-vitals-history","qa-tester","T005","failed","test_vitals_range fails; backend-dev to fix"
 ```
+
+At the end of the story the orchestrator summarizes the log for the pull request description. Claude Code also keeps every agent's full conversation on the developer's computer, which can be shown live during the demo as extra proof.

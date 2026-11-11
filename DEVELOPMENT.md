@@ -36,7 +36,7 @@ Install these **once per computer** (they are global tools, not project-specific
 
 ### Allow local PowerShell scripts
 
-Windows blocks `.ps1` scripts by default. The project's helper scripts (e.g. `scripts/agent-report.ps1`) need them enabled for your user (no admin rights required):
+Windows blocks `.ps1` scripts by default. The project's helper scripts (e.g. `scripts/log-agent.ps1`) need them enabled for your user (no admin rights required):
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
@@ -67,8 +67,10 @@ Then log in to Claude Code by running `claude` once and following the prompts (t
 
 ## 3. Get the project
 
+> **Clone outside OneDrive** (e.g. `C:\Users\<you>\Documents\GitProjects\`). OneDrive sync locks folders and can revert files inside a Git repo.
+
 ```powershell
-git clone https://github.com/<owner>/PatientDeteriorationMonitor.git
+git clone https://github.com/Komodo3000Eafit/PatientDeteriorationMonitor.git
 cd PatientDeteriorationMonitor
 git config user.name "Your Name"
 git config user.email "your-github-email@example.com"
@@ -88,10 +90,8 @@ Open the folder in VS Code (*File → Open Folder*). To confirm Spec Kit works, 
 .claude/
   skills/speckit-*/    Spec Kit commands for Claude Code (generated)
   agents/              Our custom Claude agents
-  settings.json        Shared Claude Code settings: hooks that log agent activity
-specs/                 One folder per user story: spec.md, plan.md, tasks.md, agent-log.md, agent-report.md
-logs/agent-activity/   Automatic agent activity log, one file per branch (commit it)
-scripts/               Helper scripts (agent activity logger and report)
+specs/                 One folder per user story: spec.md, plan.md, tasks.md, agent-log.csv
+scripts/               Helper scripts (log-agent.ps1: agent activity log)
 docs/
   PROJECT_STATUS.md    Current step, roadmap and onboarding checklist
   DECISIONS.md         Decision log (why things are the way they are)
@@ -185,4 +185,5 @@ Each student will be assigned a user story during the demo and must build it **f
 | `specify`, `uv` or `claude` is not recognized | Fully close and reopen VS Code (not just the terminal). If it still fails, run `uv tool update-shell` and reopen |
 | `No such option: --ai` | Spec Kit v1.x replaced `--ai` with `--integration`. You should not need `specify init` anyway (see section 3) |
 | `... la ejecución de scripts está deshabilitada en este sistema` / `running scripts is disabled on this system` | Run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` (see section 2) |
+| `Remove-Item` fails with *permission denied*, or files go back to an older version | The repo is inside OneDrive. Clone it to a folder outside OneDrive (see section 3) |
 | `/speckit-*` commands don't appear | Make sure VS Code / Claude Code is opened **in the project folder** |

@@ -26,28 +26,22 @@ You are the **orchestrator** (tech lead) of the PatientDeteriorationMonitor team
 6. Mark each completed task as `[X]` in `tasks.md`.
 
 ## Activity log (mandatory)
-Keep `specs/<feature>/agent-log.md` up to date. Use this format:
+Every story has an activity log at `specs/<feature>/agent-log.csv`, written with this command (one line):
 
 ```
-# Agent activity log — <story ID and title>
-
-| Task | Agent | Result | Notes |
-|---|---|---|---|
-| T001 | backend-dev | done | Created endpoint POST /vitals |
-| T005 | qa-tester | failed → fixed | 1 failing test, fixed by backend-dev, re-run green |
-| T006 | security-reviewer | no issues | |
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/log-agent.ps1 -Agent <agent> -Task <task ID> -Action <action> -Details "<one short sentence>"
 ```
 
-When the story is complete, also generate the automatic report from the hook logs (the tamper-resistant evidence of who did what):
+- Before delegating a task, log it as yourself: `-Agent orchestrator -Task T001 -Action assigned -Details "Assigned to backend-dev: create POST /vitals"`.
+- The specialist agents log their own `started` / `done` / `failed` rows. Remind them in every delegation.
+- After checking an agent's result: `-Action verified` if it meets the acceptance criteria, or `-Action rework` with what must be fixed.
+- **security-reviewer** is read-only, so you log its work for it: one `-Agent security-reviewer -Action done` row with the review summary, plus one `-Action finding` row per finding.
+- Never edit `agent-log.csv` by hand.
 
-```powershell
-.\scripts\agent-report.ps1 -Out specs\<feature>\agent-report.md
-```
-
-Check that `agent-log.md` and `agent-report.md` agree. Finish with a short summary the user can paste into the pull request description.
+When the story is complete, read `agent-log.csv` and finish with a short summary of who did what, for the user to paste into the pull request description.
 
 ## Rules
 - Follow the constitution. If a task conflicts with it, stop and explain the conflict to the user.
-- You may edit only `tasks.md`, `agent-log.md`, `agent-report.md` and files under `docs/`. Never edit or delete files in `logs/agent-activity/`. Application code is written by the specialist agents.
+- You may edit only `tasks.md` and files under `docs/`. Application code is written by the specialist agents.
 - Never commit, push or merge. Tell the user when the story is ready for a commit and pull request.
 - Keep the story independent: no changes to code owned by another functional story.

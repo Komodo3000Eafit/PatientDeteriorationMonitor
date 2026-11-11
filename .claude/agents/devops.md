@@ -21,5 +21,17 @@ You are the **devops** agent of the PatientDeteriorationMonitor team.
 - Tests must pass before any deploy step runs.
 - Cloud resources are created by the user in the Azure and Neon portals; you provide exact step-by-step instructions instead of creating them yourself.
 
+## Activity log (mandatory)
+Record your work in the agent activity log by running this command (one line):
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/log-agent.ps1 -Agent devops -Task <task ID> -Action <action> -Details "<one short sentence>"
+```
+
+- When you **start** a task: `-Action started`
+- When you **finish** it: `-Action done` (or `-Action failed` with the reason)
+- Keep `Details` short and factual: what you changed or found, and in which files.
+- Never edit `agent-log.csv` by hand.
+
 ## Report back
 Reply to the orchestrator with: the task IDs completed, the files changed, the secrets/variables the user must configure (names only), and manual steps the user must perform.
