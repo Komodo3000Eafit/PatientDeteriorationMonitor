@@ -5,8 +5,8 @@
 
 **Last updated:** 2026-11-10
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 7 — Project context documentation ✅ (updated for Claude-only agents)
-**Next step:** Step 8 — Project constitution
+**Current step:** Step 8 — Project constitution ✅ (v1.0.0 draft, pending team review)
+**Next step:** Step 9 — Create the agent team files in `.claude/agents/`
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
 
 > **Solo dry run:** one member is building the project end to end first, to learn the process and prepare resources. The project will then be redone with the full team using these docs.
@@ -33,8 +33,8 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 | 5 | Initialize Spec Kit: `specify init --here --integration claude --script ps` | ✅ | Committed to `main` |
 | 6 | Commit Spec Kit setup (`.specify/`, `.claude/skills/`) | ✅ | |
 | 7 | Project context docs (this file, DECISIONS, ASSIGNMENT, agents, DEVELOPMENT, CLAUDE.md) | ✅ | Updated: Claude-only agents (D-15) |
-| 8 | Project constitution (`/speckit-constitution`) | ⏭ | On branch `setup-constitution`. Draft by one member, pending team review. Must include the Claude agent team and the user story rules |
-| 9 | Create the agent team files in `.claude/agents/` | ⬜ | Design in [agents.md](agents.md) — subject to change |
+| 8 | Project constitution (`/speckit-constitution`) | ✅ | v1.0.0 in `.specify/memory/constitution.md`. Draft by one member, pending team review (D-14, D-19) |
+| 9 | Create the agent team files in `.claude/agents/` | ⏭ | Design in [agents.md](agents.md) — subject to change |
 | 10 | Backlog: ~10 user stories (technical + functional) | ⬜ | 5 baseline + 5 for the live demo |
 
 ### Phase 2 — Baseline implementation (one Spec Kit feature per user story)
@@ -66,6 +66,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 
 - Final triage scheme: NEWS2 for now; may be replaced by the official Colombian triage regulation (see DECISIONS D-08).
 - Public dataset to use for vital signs (or synthetic data).
-- Hosting provider for the free deployment.
+- Align Spec Kit templates with the constitution: spec template (TS-xx/US-xx story format), tasks template (critical-path tests mandatory), plan template (Constitution Check). Flagged by `/speckit-constitution`; to be done before writing the backlog.
+- Solo dry run: the "teammate review before merge" rule (constitution, workflow step 7) is self-reviewed until the team joins.
 - Agent team composition may still change (see [agents.md](agents.md)).
 - GitHub Copilot as a second AI tool: on hold (D-15); can be reconsidered if a license becomes available.
