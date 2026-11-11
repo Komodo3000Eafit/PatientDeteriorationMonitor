@@ -8,65 +8,35 @@
 
 **Input**: User description: "$ARGUMENTS"
 
-## User Scenarios & Testing *(mandatory)*
+## User Story *(mandatory)*
 
 <!--
-  IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
-  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
-  you should still have a viable MVP (Minimum Viable Product) that delivers value.
-
-  Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
-  Think of each story as a standalone slice of functionality that can be:
-  - Developed independently
-  - Tested independently
-  - Deployed independently
-  - Demonstrated to users independently
+  PROJECT RULES (constitution Principles II and III):
+  - ONE Spec Kit feature = ONE user story. Do not add more stories to this spec.
+  - Story ID: TS-xx for technical stories (architecture/foundation: database, FastAPI app,
+    frontend-backend connection, CI/CD, deployment) or US-xx for functional stories (app features).
+  - Functional stories may depend ONLY on technical stories, never on another functional story.
+  - Keep it small: one student must be able to specify and implement it in 5-10 minutes.
 -->
 
-### User Story 1 - [Brief Title] (Priority: P1)
+**Story ID**: [TS-xx or US-xx]
 
-[Describe this user journey in plain language]
+**Type**: [Technical | Functional]
 
-**Why this priority**: [Explain the value and why it has this priority level]
+**Story**: As a [role], I want [goal], so that [benefit].
 
-**Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
+**Depends on**: [Technical stories this needs, e.g. TS-01, TS-02 — or "None". Never a US-xx story.]
 
-**Acceptance Scenarios**:
+### Acceptance Criteria
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-2. **Given** [initial state], **When** [action], **Then** [expected outcome]
+<!-- Each criterion must be testable. qa-tester writes at least one test per criterion. -->
 
----
+1. **AC1**: **Given** [initial state], **When** [action], **Then** [expected outcome]
+2. **AC2**: **Given** [initial state], **When** [action], **Then** [expected outcome]
 
-### User Story 2 - [Brief Title] (Priority: P2)
+### Out of Scope
 
-[Describe this user journey in plain language]
-
-**Why this priority**: [Explain the value and why it has this priority level]
-
-**Independent Test**: [Describe how this can be tested independently]
-
-**Acceptance Scenarios**:
-
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-
----
-
-### User Story 3 - [Brief Title] (Priority: P3)
-
-[Describe this user journey in plain language]
-
-**Why this priority**: [Explain the value and why it has this priority level]
-
-**Independent Test**: [Describe how this can be tested independently]
-
-**Acceptance Scenarios**:
-
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-
----
-
-[Add more user stories as needed, each with an assigned priority]
+- [What this story deliberately does NOT do, to keep it small and independent]
 
 ### Edge Cases
 

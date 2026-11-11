@@ -40,7 +40,20 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Check each principle of `.specify/memory/constitution.md`. Any unchecked item must be justified in Complexity Tracking.
+
+- [ ] I. Spec-driven and traceable: every task traces to an acceptance criterion of the story
+- [ ] II. Small Scrum story: one story, implementable in 5-10 minutes
+- [ ] III. Independence: depends only on technical stories (TS-xx); does not modify another functional story's code
+- [ ] IV. Multi-agent: each task has an owner agent; work is logged in `agent-log.csv`
+- [ ] V. Clinical logic: triage scoring stays behind the replaceable module; alerts show which vitals and rules produced them
+- [ ] VI. Data privacy: only synthetic or public de-identified data; no secrets in code
+- [ ] VII. Tests: critical paths (scoring, prediction, API, security) have automated tests
+- [ ] VIII. Security baseline: input validation, authentication on clinical views, secrets in environment variables
+- [ ] IX. Deployable at low cost: Neon / Azure App Service / Azure Static Web Apps / GitHub Actions; no new paid services
+- [ ] X. Stack: Python (FastAPI), React, PostgreSQL
+- [ ] XI. Language: code and docs in English; UI in Spanish by default with English switch
+- [ ] XII. Simplicity: simplest solution that meets the spec; nothing added "for later"
 
 ## Project Structure
 
@@ -62,6 +75,7 @@ specs/[###-feature]/
   for this feature. Delete unused options and expand the chosen structure with
   real paths (e.g., apps/admin, packages/something). The delivered plan must
   not include Option labels.
+  THIS PROJECT uses Option 2 (web application: backend/ + frontend/).
 -->
 
 ```text

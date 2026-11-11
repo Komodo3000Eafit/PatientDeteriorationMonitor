@@ -5,8 +5,8 @@
 
 **Last updated:** 2026-11-10
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 9 — Agent team files ✅
-**Next step:** Step 10 — Align Spec Kit templates with the constitution, then write the backlog
+**Current step:** Step 10 — Templates aligned with the constitution ✅; backlog next
+**Next step:** Step 10 (cont.) — Write the backlog: ~10 user stories
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
 
 > **Solo dry run:** one member is building the project end to end first, to learn the process and prepare resources. The project will then be redone with the full team using these docs.
@@ -35,7 +35,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 | 7 | Project context docs (this file, DECISIONS, ASSIGNMENT, agents, DEVELOPMENT, CLAUDE.md) | ✅ | Updated: Claude-only agents (D-15) |
 | 8 | Project constitution (`/speckit-constitution`) | ✅ | v1.0.0 in `.specify/memory/constitution.md`. Draft by one member, pending team review (D-14, D-19) |
 | 9 | Create the agent team files in `.claude/agents/` + agent activity log | ✅ | 6 agents (see [agents.md](agents.md)); CSV activity log per story via `scripts/log-agent.ps1` (D-22) |
-| 10 | Align Spec Kit templates with the constitution, then write the backlog: ~10 user stories (technical + functional) | ⏭ | 5 baseline + 5 for the live demo |
+| 10 | Align Spec Kit templates with the constitution (✅, D-24), then write the backlog: ~10 user stories (technical + functional) | 🔄 | 5 baseline + 5 for the live demo |
 
 ### Phase 2 — Baseline implementation (one Spec Kit feature per user story)
 
