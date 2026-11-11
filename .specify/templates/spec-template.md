@@ -15,7 +15,8 @@
   - ONE Spec Kit feature = ONE user story. Do not add more stories to this spec.
   - Story ID: TS-xx for technical stories (architecture/foundation: database, FastAPI app,
     frontend-backend connection, CI/CD, deployment) or US-xx for functional stories (app features).
-  - Functional stories may depend ONLY on technical stories, never on another functional story.
+  - US-01 to US-05 may depend ONLY on technical stories. US-06 to US-10 may also depend on
+    US-01 to US-05 (already merged), but NEVER on each other. See docs/BACKLOG.md.
   - Keep it small: one student must be able to specify and implement it in 5-10 minutes.
 -->
 
@@ -25,7 +26,7 @@
 
 **Story**: As a [role], I want [goal], so that [benefit].
 
-**Depends on**: [Technical stories this needs, e.g. TS-01, TS-02 — or "None". Never a US-xx story.]
+**Depends on**: [Stories this needs, as listed in docs/BACKLOG.md, e.g. TS-03, US-04 — or "None"]
 
 ### Acceptance Criteria
 

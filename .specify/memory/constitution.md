@@ -1,6 +1,13 @@
 <!--
 Sync Impact Report
 ==================
+Version change: 1.0.0 → 1.1.0 (MINOR)
+Bump rationale: Principle III expanded — team-session stories (US-06 to US-10) may depend on
+merged baseline functional stories (US-01 to US-05), never on each other. Backlog lives in
+docs/BACKLOG.md (DECISIONS D-25).
+Templates: no further changes needed (D-24 edits already cover story IDs and dependencies).
+
+Previous report (1.0.0):
 Version change: (unversioned template) → 1.0.0
 Bump rationale: Initial ratification; all placeholders replaced with project-specific governance.
 
@@ -87,10 +94,13 @@ feasible and keep reviews focused.
 
 - **Technical stories (TS-xx)** set up the architecture (e.g. PostgreSQL database, FastAPI app,
   frontend–backend connection, CI/CD, deployment) and form the baseline foundation.
-- **Functional stories (US-xx)** add app features. They MAY depend only on the technical
-  baseline.
-- A functional story MUST NOT depend on, or modify code introduced by, another functional story.
-  Shared needs MUST be moved into a technical story first.
+- **Functional stories (US-xx)** add app features:
+  - **Baseline functional stories (US-01 to US-05)** MAY depend only on technical stories.
+  - **Team-session functional stories (US-06 to US-10)** MAY depend on technical stories and on
+    baseline functional stories already merged into `main`, but MUST NOT depend on each other.
+- A functional story MUST NOT modify code introduced by another functional story, except to
+  register a route or mount a component. Shared needs MUST be moved into a technical story first.
+- The backlog and each story's dependencies are kept in `docs/BACKLOG.md`.
 
 **Rationale:** functional stories must be buildable concurrently by different students without
 merge conflicts.
@@ -237,4 +247,4 @@ risk to delivery.
   run before implementation, and every pull request review MUST verify compliance with these
   principles.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-10 | **Last Amended**: 2026-11-10
+**Version**: 1.1.0 | **Ratified**: 2026-11-10 | **Last Amended**: 2026-11-10

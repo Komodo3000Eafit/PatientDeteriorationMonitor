@@ -5,8 +5,8 @@
 
 **Last updated:** 2026-11-10
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 10 — Templates aligned with the constitution ✅; backlog next
-**Next step:** Step 10 (cont.) — Write the backlog: ~10 user stories
+**Current step:** Step 10 — Templates aligned + backlog written ✅ (constitution v1.1.0)
+**Next step:** Step 11 — Build the technical stories TS-01 to TS-11 (see [BACKLOG.md](BACKLOG.md))
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
 
 > **Solo dry run:** one member is building the project end to end first, to learn the process and prepare resources. The project will then be redone with the full team using these docs.
@@ -33,16 +33,16 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 | 5 | Initialize Spec Kit: `specify init --here --integration claude --script ps` | ✅ | Committed to `main` |
 | 6 | Commit Spec Kit setup (`.specify/`, `.claude/skills/`) | ✅ | |
 | 7 | Project context docs (this file, DECISIONS, ASSIGNMENT, agents, DEVELOPMENT, CLAUDE.md) | ✅ | Updated: Claude-only agents (D-15) |
-| 8 | Project constitution (`/speckit-constitution`) | ✅ | v1.0.0 in `.specify/memory/constitution.md`. Draft by one member, pending team review (D-14, D-19) |
+| 8 | Project constitution (`/speckit-constitution`) | ✅ | v1.1.0 in `.specify/memory/constitution.md` (D-19, D-26). Draft by one member, pending team review (D-14) |
 | 9 | Create the agent team files in `.claude/agents/` + agent activity log | ✅ | 6 agents (see [agents.md](agents.md)); CSV activity log per story via `scripts/log-agent.ps1` (D-22) |
-| 10 | Align Spec Kit templates with the constitution (✅, D-24), then write the backlog: ~10 user stories (technical + functional) | 🔄 | 5 baseline + 5 for the live demo |
+| 10 | Align Spec Kit templates with the constitution, then write the backlog | ✅ | Templates: D-24. Backlog: [BACKLOG.md](BACKLOG.md) — 11 TS + 10 US (D-25) |
 
 ### Phase 2 — Baseline implementation (one Spec Kit feature per user story)
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories: database, FastAPI app, frontend ↔ backend, CI, deployment | ⬜ | Foundation for every functional story |
-| 12 | Functional baseline stories (5 total implemented) | ⬜ | Independent from each other |
+| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | ⏭ | Foundation for every functional story |
+| 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo
 

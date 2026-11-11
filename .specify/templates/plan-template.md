@@ -44,7 +44,7 @@ Check each principle of `.specify/memory/constitution.md`. Any unchecked item mu
 
 - [ ] I. Spec-driven and traceable: every task traces to an acceptance criterion of the story
 - [ ] II. Small Scrum story: one story, implementable in 5-10 minutes
-- [ ] III. Independence: depends only on technical stories (TS-xx); does not modify another functional story's code
+- [ ] III. Independence: dependencies match docs/BACKLOG.md; team-session stories don't depend on each other; no changes to another functional story's code (beyond registering a route or mounting a component)
 - [ ] IV. Multi-agent: each task has an owner agent; work is logged in `agent-log.csv`
 - [ ] V. Clinical logic: triage scoring stays behind the replaceable module; alerts show which vitals and rules produced them
 - [ ] VI. Data privacy: only synthetic or public de-identified data; no secrets in code
