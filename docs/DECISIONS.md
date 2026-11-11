@@ -22,15 +22,7 @@ Add a new entry when a decision is made or changed. Don't delete old entries —
 | D-15 | 2026-11-10 | AI tool: **Claude Code only**; GitHub Copilot on hold | Copilot Student license request was rejected. Multi-agent requirement is met with Claude Code subagents | Active — may change |
 | D-16 | 2026-11-10 | Agent team, all as Claude Code subagents in `.claude/agents/`: orchestrator, backend-dev, frontend-dev, qa-tester, security-reviewer (+ optional devops) | Same differentiated roles and least-privilege tools, now in a single tool | Active — may change (see [agents.md](agents.md)) |
 | D-17 | 2026-11-10 | One member does a **solo dry run** of the whole project before redoing it with the team | Learn the process and prepare resources first | Active |
-<<<<<<< Updated upstream
-| D-18 | 2026-11-10 | Hosting: **PostgreSQL on Neon** (free plan), **backend on Azure App Service**, **frontend on Azure Static Web Apps** (Azure for Students credit); **CI/CD on GitHub Actions** deploying via OIDC | Free database with no expiry; Azure student credit covers hosting; GitHub Actions is native to the repo and easy for test pipelines. Simulator runs only during tests/demos to save Neon compute hours | Active |
-| D-19 | 2026-11-10 | Constitution **v1.0.0** drafted (12 principles + product context, deployment constraints, workflow and governance) | Draft by one member, pending team review (D-14) | Active |
-=======
-<<<<<<< Updated upstream
-=======
 | D-18 | 2026-11-10 | Hosting: **PostgreSQL on Neon** (free plan), **backend on Azure App Service**, **frontend on Azure Static Web Apps** (Azure for Students credit); **CI/CD on GitHub Actions** deploying via OIDC | Free database with no expiry; Azure student credit covers hosting; GitHub Actions is native to the repo and easy for test pipelines. Simulator runs only during tests/demos to save Neon compute hours | Active |
 | D-19 | 2026-11-10 | Constitution **v1.0.0** drafted (12 principles + product context, deployment constraints, workflow and governance) | Draft by one member, pending team review (D-14) | Active |
 | D-20 | 2026-11-10 | Git flow: **setup steps** may be pushed directly to `main` during the solo dry run; **every user story** uses its own branch + pull request | Setup is one person's work; stories need PRs for CI, review and agent evidence. In the team phase, nothing is pushed directly to `main` | Active |
 | D-21 | 2026-11-10 | Agent evidence: Claude Code **hooks** log every delegation, agent start/finish, file change and command to `logs/agent-activity/<branch>.jsonl`; `scripts/agent-report.ps1` turns it into a Markdown report per story | Automatic log written by Claude Code, not by the agents, so it proves real collaboration (grading Modality B) | Active |
->>>>>>> Stashed changes
->>>>>>> Stashed changes
