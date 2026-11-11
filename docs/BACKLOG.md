@@ -12,7 +12,7 @@ Build these first, in order. Together they provide every resource the app needs.
 
 | ID | Story | Depends on | Spec | Status |
 |---|---|---|---|---|
-| TS-01 | **FastAPI app skeleton**: project structure in `backend/`, `/health` endpoint, pytest set up, runs locally | — | | ⬜ |
+| TS-01 | **FastAPI app skeleton**: project structure in `backend/`, `/health` endpoint, pytest set up, runs locally | — | [001-fastapi-app-skeleton](../specs/001-fastapi-app-skeleton/) | ✅ |
 | TS-02 | **Neon database connection**: create the Neon project; FastAPI connects through the `DATABASE_URL` environment variable; `/health` reports database status | TS-01 | | ⬜ |
 | TS-03 | **Database tables and migrations**: `users`, `patients`, `vital_signs`, `triage_events`, `alerts` | TS-02 | | ⬜ |
 | TS-04 | **React app skeleton**: project structure in `frontend/`, API client, shows backend `/health` status (CORS configured) | TS-01 | | ⬜ |

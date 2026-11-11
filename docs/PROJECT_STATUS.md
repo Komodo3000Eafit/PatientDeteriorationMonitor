@@ -3,10 +3,10 @@
 > **Read this first.** This file tells you where the project is right now and what comes next.
 > Whoever completes a step updates this file **in the same pull request** as the work.
 
-**Last updated:** 2026-11-10
+**Last updated:** 2026-11-11
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 10 — Templates aligned + backlog written ✅ (constitution v1.1.0)
-**Next step:** Step 11 — Build the technical stories TS-01 to TS-11 (see [BACKLOG.md](BACKLOG.md))
+**Current step:** Step 11 — Technical stories: TS-01 ✅
+**Next step:** TS-02 — Neon database connection (see [BACKLOG.md](BACKLOG.md))
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
 
 > **Solo dry run:** one member is building the project end to end first, to learn the process and prepare resources. The project will then be redone with the full team using these docs.
@@ -41,7 +41,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | ⏭ | Foundation for every functional story |
+| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). Next: TS-02 (Neon database connection) |
 | 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo

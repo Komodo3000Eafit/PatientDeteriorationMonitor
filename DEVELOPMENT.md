@@ -97,7 +97,7 @@ docs/
   DECISIONS.md         Decision log (why things are the way they are)
   ASSIGNMENT.md        English summary of the course assignment
   agents.md            Agent team: roles, tools, responsibilities
-backend/               FastAPI application (created by the technical user stories)
+backend/               FastAPI application (setup, run and test: backend/README.md)
 frontend/              React application (created by the technical user stories)
 README.md              How to install and use the app
 DEVELOPMENT.md         This guide
@@ -171,7 +171,7 @@ Each student will be assigned a user story during the demo and must build it **f
 
 - [ ] Run every command in section 2 ("Verify your installation") without errors
 - [ ] Run the app locally (backend, frontend and database)
-- [ ] Run the automated tests
+- [ ] Run the automated tests (see [backend/README.md](backend/README.md))
 - [ ] Complete the full Spec Kit workflow for a small practice story
 - [ ] Invoke each agent in Claude Code
 
