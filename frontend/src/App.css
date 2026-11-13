@@ -9,3 +9,39 @@ main {
   margin: 0 auto;
   padding: 2rem 1rem;
 }
+
+/* Shared page frame (TS-05): pinned disclaimer banner and ES/EN switch. */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: #fff4cc;
+  border-bottom: 1px solid #d9b84a;
+}
+
+.disclaimer {
+  margin: 0;
+  font-weight: 600;
+}
+
+.language-switch {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.language-switch button {
+  font: inherit;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+
+.language-switch button[aria-pressed="true"] {
+  font-weight: 700;
+  text-decoration: underline;
+}

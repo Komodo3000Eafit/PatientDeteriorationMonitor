@@ -5,12 +5,12 @@
 
 **Last updated:** 2026-11-13
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅
-**Next step:** TS-05 — Language and disclaimer (see [BACKLOG.md](BACKLOG.md))
+**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅
+**Next step:** TS-06 — Authentication (see [BACKLOG.md](BACKLOG.md))
 
-> **Where we left off (2026-11-13):** TS-01 to TS-03 are merged to `main`. TS-04 is implemented on branch `004-react-app-skeleton`. The frontend skeleton is in `frontend/`: Vite 8 + React 19 in plain JavaScript, one start page that shows the backend `/health` result, and one shared API client, `src/api/client.js` (D-33). The backend now allows browser requests only from the origins in `CORS_ORIGINS` (default `http://localhost:5173`). Locally `npm test` gives 12 passed, `npm run build` succeeds and `python -m pytest` gives 60 passed. **The manual browser check passed (AC11, quickstart steps 3–4).** With the backend on, the page showed `API: funcionando`, `Versión: 0.1.0` and `Base de datos: disponible`, with no CORS error and exactly one `/health` request. With the backend off, it showed `No se puede conectar con el servidor.` and the reload hint within 10 s. To resume:
-> 1. **Finish TS-04:** open the PR with the `npm test` and `pytest` output and the browser check result (D-27), and merge it. Each teammate installs **Node.js 26 LTS** and runs `npm install` in `frontend/`. The backend needs nothing new. Running the app locally is described in [DEVELOPMENT.md](../DEVELOPMENT.md#run-the-app-locally).
-> 2. From an up-to-date `main`, run `/speckit-specify` for TS-05 (language and disclaimer), then `/speckit-clarify`.
+> **Where we left off (2026-11-13):** TS-01 to TS-04 are merged to `main`. TS-05 is implemented on branch `005-language-disclaimer`. All UI texts are in `frontend/src/i18n/translations.js` (Spanish complete, English falls back to Spanish). An **ES / EN** switch changes every text without a reload or a new `/health` call, and the choice is remembered in `localStorage['pdm.language']`. `<html lang>` and the tab title follow the language. A pinned disclaimer banner (`Prototipo académico: no es un dispositivo médico certificado.`) is shown by the shared page frame `frontend/src/components/AppShell.jsx` around every screen (D-34). Locally `npm test` gives 37 passed (4 files, about 1 s), and `npm run build` succeeds. There are no new dependencies and no backend changes, so teammates need no new install. The security review had no findings to fix (2 info notes). The manual browser check ([quickstart.md](../specs/005-language-disclaimer/quickstart.md) step 2) was done by the user and passed: Spanish by default with the banner, the EN switch changes all texts, the banner and the tab title with no new `/health` request, a reload remembers English, Tab + Enter switches the language, and the banner stays pinned while scrolling. To resume:
+> 1. **Finish TS-05:** commit, then open the PR with the `npm test` output, the browser check result (D-27) and the agent log summary, and merge it. Set TS-05 to ✅ in [BACKLOG.md](BACKLOG.md) when it is merged.
+> 2. From an up-to-date `main`, run `/speckit-specify` for TS-06 (authentication), then `/speckit-clarify`. The login page must render inside `AppShell` and add its texts to `translations.js` in both languages.
 > 3. Continue as before: plan → tasks → analyze → `claude --agent orchestrator` → review → PR (paste local test output, D-27) → merge.
 > 4. Deferred to TS-09 (from the TS-02 to TS-04 security reviews): lock the indirect Python dependencies (including Mako and MarkupSafe) and run the vulnerability scan; optionally move pytest/httpx to a dev requirements file; run `npm test` and `npm audit` in CI (use `npm ci`).
 > 5. Notes for later stories:
@@ -52,7 +52,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). Next: TS-05 (language and disclaimer) |
+| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). Next: TS-06 (authentication) |
 | 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo
