@@ -29,7 +29,7 @@
 
 ### Acceptance Criteria
 
-1. **AC1**: **Given** a fresh clone with Node.js LTS installed, **When** a developer runs the documented commands in `frontend/` (`npm install`, then `npm run dev`), **Then** the start page opens in the browser at the documented local address; `npm run build` produces a production build without errors, and `npm test` runs the frontend tests.
+1. **AC1**: **Given** a fresh clone with Node.js LTS installed, **When** a developer runs the documented commands in `frontend/` (`npm install`, then `npm run dev`), **Then** the start page is served at the documented local address (`http://localhost:5173`); `npm run build` produces a production build without errors, and `npm test` runs the frontend tests.
 2. **AC2**: **Given** the backend is running and its database is reachable, **When** the start page loads, **Then** it first shows a "checking" message and then shows, in Spanish, that the API is working, the API version reported by the backend, and that the database is available.
 3. **AC3**: **Given** the backend is running but reports the database as `"unavailable"`, **When** the start page loads, **Then** it shows that the API is working, its version, and a clear Spanish message that the database is not available.
 4. **AC4**: **Given** the backend is not running, cannot be reached, returns an error status or an unexpected response, or does not answer within the timeout (10 seconds), **When** the start page loads, **Then** the "checking" message is replaced by a clear Spanish message that the backend cannot be reached, and the page never stays in the "checking" state indefinitely.

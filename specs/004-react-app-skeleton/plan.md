@@ -97,6 +97,7 @@ backend/
 │   └── test_cors.py             # NEW: AC6, AC7, AC9
 └── README.md                    # CHANGED: "Allowed frontend origins (CORS)" section
 
+.gitignore                       # CHANGED: build/, lib/, lib64/ anchored to the root (/build/, /lib/, /lib64/) so they don't hide frontend folders
 DEVELOPMENT.md                   # CHANGED: frontend prerequisites, running backend + frontend together, link to frontend/README.md
 docs/PROJECT_STATUS.md           # CHANGED: TS-04 done
 docs/BACKLOG.md                  # CHANGED: TS-04 spec link and status
