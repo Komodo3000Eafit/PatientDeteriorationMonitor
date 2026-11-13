@@ -5,14 +5,15 @@
 
 **Last updated:** 2026-11-13
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅
-**Next step:** TS-03 — Tables + migrations (see [BACKLOG.md](BACKLOG.md))
+**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅
+**Next step:** TS-04 — React app skeleton (see [BACKLOG.md](BACKLOG.md))
 
-> **Where we left off (2026-11-13):** TS-01 merged to `main`. TS-02 is implemented on branch `002-neon-db-connection`: the backend connects to Neon through `DATABASE_URL` with the pure-Python driver pg8000 (D-31), and `/health` reports `database: ok | unavailable` (D-30). To resume:
-> 1. **TS-02 is done:** merge its PR (with the local pytest output pasted in, D-27). Each teammate creates `backend/.env` following [backend/README.md](../backend/README.md#database-connection) and runs `pip install -r requirements.txt` again. **Reminder for TS-10:** don't point frequent automatic health probes at `/health`, because every call wakes the Neon database (D-30).
-> 2. From an up-to-date `main`, run `/speckit-specify` for TS-03 (tables + migrations; reuse `app.db.database_url()` and `get_engine()`), then `/speckit-clarify`.
+> **Where we left off (2026-11-13):** TS-01 and TS-02 merged to `main`. TS-03 is implemented on branch `003-db-tables-migrations`: the five tables (`users`, `patients`, `vital_signs`, `triage_events`, `alerts`) are defined in `backend/app/models.py` and versioned with Alembic (D-32). **The migration was applied to the Neon database (`neondb`) and verified**: it is at `0001_initial_schema (head)`, a second upgrade changes nothing, invalid rows are rejected, and downgrade + upgrade work. To resume:
+> 1. **TS-03 is done:** merge its PR (paste the local pytest output and the manual Neon outputs, D-27). Each teammate runs `pip install -r requirements.txt` again, and nothing else: the shared Neon database is already migrated. Schema commands are in [backend/README.md](../backend/README.md#database-migrations).
+> 2. From an up-to-date `main`, run `/speckit-specify` for TS-04 (React app skeleton), then `/speckit-clarify`.
 > 3. Continue as before: plan → tasks → analyze → `claude --agent orchestrator` → review → PR (paste local pytest output, D-27) → merge.
-> 4. Deferred to TS-09 from the TS-02 security review: lock the indirect dependencies and run the vulnerability scan; optionally move pytest/httpx to a dev requirements file.
+> 4. Deferred to TS-09 (from the TS-02 and TS-03 security reviews): lock the indirect dependencies (including Mako and MarkupSafe) and run the vulnerability scan; optionally move pytest/httpx to a dev requirements file.
+> 5. Notes for later stories (TS-03 security review): **TS-08** and the API stories must keep patient and user text fields synthetic (e.g. check the `PAT-NNN` identifier pattern); **TS-10** must never run `alembic downgrade` in CI/CD; and don't point frequent health probes at `/health` (D-30).
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
 
 > **Solo dry run:** one member is building the project end to end first, to learn the process and prepare resources. The project will then be redone with the full team using these docs.
@@ -47,7 +48,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). Next: TS-03 (tables + migrations) |
+| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). Next: TS-04 (React app skeleton) |
 | 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo
