@@ -38,7 +38,7 @@ alembic upgrade head
 alembic current
 ```
 
-Expected: `Running upgrade  -> 0001_initial_schema`, then `0001_initial_schema (head)`. If this fails with a pooling-related error (not a typo or network error), follow the fallback in [research.md](research.md) R3.
+Expected: `Running upgrade  -> 0001_initial_schema`, then `0001_initial_schema (head)`. If the first run reports a timeout (Neon waking up), run it again. If this fails with a pooling-related error (not a typo or network error), follow the fallback in [research.md](research.md) R3.
 
 ## 5. Run it again: nothing changes — AC2, SC-002
 
@@ -50,7 +50,11 @@ Expected: exit 0, no `Running upgrade` line.
 
 ## 6. List the tables — AC7, SC-005
 
-Either ask Claude Code to use the Neon MCP tool `get_database_tables` (project `patient-deterioration-monitor`, database `neondb`), or open Neon console → project → **Tables**.
+Either ask Claude Code to use the Neon MCP tool `get_database_tables` (project `patient-deterioration-monitor`, database `neondb`), or open Neon console → project → **Tables**. Without either, print only the names through `app.db`:
+
+```powershell
+"from sqlalchemy import text; from app.db import get_engine; c = get_engine().connect(); print([r[0] for r in c.execute(text(""SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name""))]); c.close()" | python -
+```
 
 Expected: `users`, `patients`, `vital_signs`, `triage_events`, `alerts` and `alembic_version`, nothing else from this story.
 

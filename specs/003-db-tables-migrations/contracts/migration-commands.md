@@ -5,7 +5,8 @@ The only interface this story adds is a set of command-line commands, run from `
 | Command | Effect | Success output / exit |
 |---|---|---|
 | `alembic upgrade head` | Brings the database in `DATABASE_URL` to the latest revision. Already up to date → does nothing. | Exit 0. On the first run Alembic logs `Running upgrade  -> 0001_initial_schema`; a second run logs no `Running upgrade` line. |
-| `alembic downgrade base` | Removes every revision; for TS-03, drops the five tables. | Exit 0, logs `Running downgrade 0001_initial_schema -> `. |
+| `alembic downgrade -1` | Goes back **one** revision (FR-003). From `0001_initial_schema`, drops the five tables. | Exit 0, logs `Running downgrade <current> -> <previous>`. |
+| `alembic downgrade base` | Removes **everything**: every revision, so every table they created (for TS-03, the five tables). | Exit 0, logs `Running downgrade 0001_initial_schema -> ` (one line per revision removed). |
 | `alembic current` | Shows the revision the database is at. | `0001_initial_schema (head)` after upgrade; empty after downgrade. |
 | `alembic upgrade head --sql` | Prints the upgrade SQL without connecting (offline mode). | SQL on standard output; needs no `DATABASE_URL` or network. |
 | `alembic downgrade head:base --sql` | Prints the downgrade SQL without connecting. | As above. |
@@ -21,6 +22,7 @@ The only interface this story adds is a set of command-line commands, run from `
 |---|---|---|
 | `DATABASE_URL` missing or empty (online commands) | `DATABASE_URL is not set` | non-zero |
 | Database unreachable, wrong password, TLS failure | `Could not connect to the database (<ErrorType>)` | non-zero |
+| Timeout on the first run (Neon waking up from scale-to-zero) | Same generic message, or a timeout error | non-zero; run the command again |
 | A statement fails during upgrade/downgrade | Alembic/SQLAlchemy error with the SQL; the transaction is rolled back, so the schema is unchanged | non-zero |
 
 No message ever contains the connection string, user name, host or password (FR-004).
