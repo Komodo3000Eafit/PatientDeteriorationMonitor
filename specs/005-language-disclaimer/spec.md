@@ -8,6 +8,13 @@
 
 **Input**: User description: "TS-05 — Language and disclaimer (technical story, depends on TS-04). As a clinician using the app, I want the interface in Spanish by default with a switch to English, and a clear notice that this is an academic prototype, so that I can read the app in my language and never mistake it for a certified medical tool. Acceptance criteria: All UI text (currently the TS-04 start page) comes from one place per language (Spanish and English); no visible text is hard-coded in components. Later screens add their texts the same way. Spanish is the default on first visit. A visible language switch (ES / EN) changes all visible text immediately, without reloading the page or calling the backend again. The chosen language is remembered in this browser for the next visit; if that storage isn't available, the app still works and falls back to Spanish. The page's language attribute (html lang) matches the selected language. A disclaimer banner is always visible on every page, in the selected language: Spanish "Prototipo académico: no es un dispositivo médico certificado." / English "Academic prototype: not a certified medical device." It cannot be closed or hidden. If a text is missing in English, the Spanish text is shown instead of a blank or a key name. Automated frontend tests (no backend, no network) cover: Spanish default, switching to English and back, the remembered choice, the html lang attribute, the banner in both languages, and the missing-text fallback. Existing TS-04 tests keep passing. frontend/README.md explains how to add or change texts. Out of scope: translating backend messages or API data, more languages, login (TS-06), deployment (TS-11). Keep it as simple as possible (D-23): prefer a small translations module over an i18n library unless the plan shows a clear need."
 
+## Clarifications
+
+### Session 2026-11-13
+
+- All assumptions in this spec are accepted as written (user, 2026-11-13).
+- Q: On long pages, should the disclaimer banner stay pinned at the top of the screen while scrolling, or scroll away with the content? → A: Pinned: it stays at the top of the screen while the page content scrolls below it.
+
 ## User Story *(mandatory)*
 
 **Story ID**: TS-05
@@ -46,6 +53,7 @@
 - The user clicks the language that is already selected: nothing changes.
 - A text missing in **both** languages (a developer mistake): the app does not crash; tests catch it because every text used must exist in Spanish (Spanish is the complete reference collection).
 - Texts with a value inserted (the API version): the value is shown unchanged in both languages.
+- A page taller than the screen: the banner stays pinned at the top while the content scrolls underneath, and it does not cover the page content when the page is scrolled to the top.
 
 ## Requirements *(mandatory)*
 
@@ -58,7 +66,7 @@
 - **FR-005**: Switching language MUST update all visible text immediately, without reloading the page and without calling the backend again; data already received (the `/health` result) MUST be kept.
 - **FR-006**: The selected language MUST be remembered in the browser and used on the next visit. If remembering or reading it fails, or the stored value is not `es` or `en`, the app MUST use Spanish and keep working without showing an error.
 - **FR-007**: The document's language attribute MUST be `es` or `en` to match the selected language, and the browser tab title MUST be in the selected language.
-- **FR-008**: A disclaimer banner MUST be shown at the top of every page, in every state, with exactly `Prototipo académico: no es un dispositivo médico certificado.` (Spanish) or `Academic prototype: not a certified medical device.` (English). It MUST NOT have a close or hide control and MUST NOT depend on the backend or on storage.
+- **FR-008**: A disclaimer banner MUST be shown at the top of every page, in every state, and MUST stay pinned at the top of the screen while the page content scrolls (it never scrolls out of view), with exactly `Prototipo académico: no es un dispositivo médico certificado.` (Spanish) or `Academic prototype: not a certified medical device.` (English). It MUST NOT have a close or hide control and MUST NOT depend on the backend or on storage.
 - **FR-009**: The banner and the switch MUST be part of one shared page frame that every screen is shown inside, so later screens get them without extra work.
 - **FR-010**: The TS-04 start page behaviour (one `/health` call per load, 10 s timeout, four states, reload hint) MUST NOT change; only its texts move into the collections and gain English versions.
 - **FR-011**: Automated frontend tests MUST cover AC2–AC7 without a running backend or network, and every existing TS-04 test MUST keep passing (updated only to read the texts from the same collections if needed).
