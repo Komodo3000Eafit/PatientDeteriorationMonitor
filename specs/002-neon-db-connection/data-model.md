@@ -6,7 +6,7 @@ No database tables in this story (TS-03 adds them). The only "data" is configura
 
 | Field | Source | Rules |
 |---|---|---|
-| `DATABASE_URL` | Environment variable. Locally loaded from the git-ignored `backend/.env`; in CI/CD from the GitHub secret `DATABASE_URL` (D-29); in Azure from App Service settings (TS-10) | Neon pooled string, `postgresql://...` (or `postgres://...`) with `sslmode` / `channel_binding` query params. Converted in code to `postgresql+psycopg://...` with the rest unchanged. Missing or empty = not configured. Never logged, returned or committed |
+| `DATABASE_URL` | Environment variable. Locally loaded from the git-ignored `backend/.env`; in CI/CD from the GitHub secret `DATABASE_URL` (D-29); in Azure from App Service settings (TS-10) | Neon pooled string, `postgresql://...` (or `postgres://...`) with `sslmode` / `channel_binding` query params. Converted in code to `postgresql+pg8000://...` with the `sslmode` and `channel_binding` params removed (pg8000 doesn't accept them) and the rest unchanged; TLS is turned on by the code through an SSL context. Missing or empty = not configured. Never logged, returned or committed |
 
 ## Health status (extends TS-01)
 

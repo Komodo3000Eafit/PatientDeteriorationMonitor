@@ -79,7 +79,7 @@
 
 ## Assumptions
 
-- The connection string is the **pooled** Neon string (D-29); it already includes the SSL settings Neon requires.
+- The connection string is the **pooled** Neon string (D-29); the code turns on TLS itself, and the libpq SSL parameters in the string (`sslmode`, `channel_binding`) are ignored.
 - `/health` returns HTTP 200 even when the database is unavailable, because `status` describes the app and the TS-01 contract stays backward compatible; cloud health probes that need a failure code are a concern for TS-10.
 - `/health` remains public (no authentication), as in TS-01; it reveals only `"ok"` / `"unavailable"`, nothing about the database.
 - One database check per `/health` request is acceptable at this scale; no caching of the result. Because each call wakes the database, frequent automatic callers of `/health` (e.g. cloud health probes) would keep Neon awake and use free compute hours (constitution, cost control); TS-10 must not configure such probes on `/health` unless it accepts that cost.

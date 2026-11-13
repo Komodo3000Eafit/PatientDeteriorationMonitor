@@ -15,7 +15,7 @@ cd backend
 python -m pip install -r requirements.txt
 ```
 
-**Expected**: SQLAlchemy, psycopg and python-dotenv install without a compiler or local PostgreSQL.
+**Expected**: SQLAlchemy, pg8000 and python-dotenv install without a compiler or local PostgreSQL. pg8000 is pure Python, so Windows Smart App Control doesn't block it (D-31).
 
 ## 2. Tests need no database (AC6)
 
@@ -25,14 +25,14 @@ The tests remove `DATABASE_URL` themselves, so they pass even if you have a `bac
 python -m pytest
 ```
 
-**Expected**: all tests pass in under 30 s (SC-003), with no `.env` and no network. Rename the file back afterwards.
+**Expected**: all tests pass in under 30 s (SC-003), with no `.env` and no network.
 
 ## 3. App with no `DATABASE_URL` (AC4)
 
-Set the variable to empty in this terminal. A variable that is already set wins over `backend/.env`, so your real `.env` doesn't need to be touched:
+Set the variable to a single space in this terminal. A variable that is already set wins over `backend/.env`, so your real `.env` doesn't need to be touched; the app strips the space and treats the value as empty. Don't use `""`: in Windows PowerShell 5.1 assigning an empty string **deletes** the variable, so the app would load `backend/.env` instead:
 
 ```powershell
-$env:DATABASE_URL = ""
+$env:DATABASE_URL = " "
 python -m uvicorn app.main:app --port 8000
 ```
 

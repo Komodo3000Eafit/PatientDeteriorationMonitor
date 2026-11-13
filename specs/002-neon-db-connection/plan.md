@@ -6,13 +6,13 @@
 
 ## Summary
 
-TS-02 connects the FastAPI backend to the Neon PostgreSQL database. A new module `backend/app/db.py` loads `backend/.env` if present, reads `DATABASE_URL`, converts the Neon `postgresql://` scheme to `postgresql+psycopg://`, and creates one SQLAlchemy Core engine lazily, on the first check. `check_database()` runs `SELECT 1` with 5 s connect and statement timeouts and returns `"ok"` or `"unavailable"`; any failure is logged only by error type. `GET /health` keeps `status` and `version` and adds `database`, getting the value through a FastAPI dependency so tests can replace it. Tests use `TestClient`, dependency overrides and a monkeypatched engine factory; a `conftest.py` fixture removes `DATABASE_URL` so no test reaches a real database. `backend/README.md` explains how to create `backend/.env` from the Neon console with placeholder values only, and `DEVELOPMENT.md` links to it.
+TS-02 connects the FastAPI backend to the Neon PostgreSQL database. A new module `backend/app/db.py` loads `backend/.env` if present, reads `DATABASE_URL`, converts the Neon `postgresql://` scheme to `postgresql+pg8000://` (dropping the libpq-only `sslmode` / `channel_binding` parameters and requiring TLS through an SSL context), and creates one SQLAlchemy Core engine lazily, on the first check. `check_database()` runs `SELECT 1` with 5 s connect and statement timeouts and returns `"ok"` or `"unavailable"`; any failure is logged only by error type. `GET /health` keeps `status` and `version` and adds `database`, getting the value through a FastAPI dependency so tests can replace it. Tests use `TestClient`, dependency overrides and a monkeypatched engine factory; a `conftest.py` fixture removes `DATABASE_URL` so no test reaches a real database. `backend/README.md` explains how to create `backend/.env` from the Neon console with placeholder values only, and `DEVELOPMENT.md` links to it.
 
 ## Technical Context
 
 **Language/Version**: Python 3.13
 
-**Primary Dependencies**: FastAPI 0.162.4 (existing); new: SQLAlchemy 2.1.8 (Core only), psycopg[binary] 3.3.9, python-dotenv 1.2.4
+**Primary Dependencies**: FastAPI 0.162.4 (existing); new, pinned with `==`: SQLAlchemy 2.1.8 (Core only), pg8000 1.31.6 (pure-Python driver; psycopg's compiled `.pyd` is blocked by Windows Smart App Control, D-31), python-dotenv 1.2.4
 
 **Storage**: PostgreSQL on Neon (project `patient-deterioration-monitor`, pooled connection, D-29); no tables in this story
 
@@ -77,7 +77,7 @@ backend/
 │   ├── conftest.py      # NEW: autouse fixture: remove DATABASE_URL, reset cached engine
 │   ├── test_db.py       # NEW: check_database() and URL conversion tests
 │   └── test_health.py   # CHANGED: expect "database"; ok / unavailable via dependency override
-├── requirements.txt     # CHANGED: + sqlalchemy, psycopg[binary], python-dotenv (pinned)
+├── requirements.txt     # CHANGED: + sqlalchemy, pg8000, python-dotenv (pinned)
 └── README.md            # CHANGED: "Database connection" section (backend/.env, placeholder only)
 
 DEVELOPMENT.md           # CHANGED: link to the README database section; .env never committed
@@ -87,7 +87,7 @@ DEVELOPMENT.md           # CHANGED: link to the README database section; .env ne
 
 ### Design notes
 
-- `db.py` public names: `database_url()` (reads and converts `DATABASE_URL`, returns `None` if missing or empty), `get_engine()` (creates the engine once with `connect_args={"connect_timeout": 5}` and `pool_pre_ping=True`), `check_database()` (returns `"ok"` / `"unavailable"`), and a small reset used by tests. Details in [research.md](research.md) R3–R7.
+- `db.py` public names: `database_url()` (reads `DATABASE_URL`, returns `None` if missing or empty, replaces a leading `postgresql://` / `postgres://` with `postgresql+pg8000://` and removes the `sslmode` and `channel_binding` query parameters, which pg8000 doesn't accept), `get_engine()` (creates the engine once with `connect_args={"ssl_context": ssl.create_default_context(), "timeout": 5}` — TLS with certificate checks, and pg8000's 5 s socket timeout — and `pool_pre_ping=True`), `check_database()` (returns `"ok"` / `"unavailable"`), and a small reset used by tests. Details in [research.md](research.md) R3–R7.
 - `/health` stays a sync endpoint, so FastAPI runs the blocking check in its thread pool.
 - Failure log line: `Database check failed (<ExceptionType>)`, level WARNING, never the message or URL.
 
@@ -99,7 +99,7 @@ DEVELOPMENT.md           # CHANGED: link to the README database section; .env ne
 | FR-002, AC4 | Lazy engine in `app/db.py`; `test_db.py` missing-URL test; `test_health.py` runs with no URL; quickstart step 3 |
 | FR-003, AC2 | `/health` in `app/main.py`; `test_health.py` with override `"ok"` |
 | FR-004, FR-005, AC3 | `check_database()` catches every error; `test_db.py` connection-error test; `test_health.py` with override `"unavailable"` (status 200) |
-| FR-006, SC-002 | `connect_timeout` + `SET LOCAL statement_timeout`; quickstart step 4 (timed by hand) |
+| FR-006, SC-002 | pg8000 `timeout` connect arg + `SET LOCAL statement_timeout`; quickstart step 4 (timed by hand) |
 | FR-007, AC5 | Log only the error type; `test_db.py` checks with `caplog` that no URL or password is logged; `test_health.py` exact key set |
 | FR-008, AC6 | `conftest.py` + overrides + monkeypatch; quickstart step 2 |
 | FR-009, AC7 | `backend/README.md` "Database connection" section + link in `DEVELOPMENT.md`; checked by hand (quickstart step 5) |
