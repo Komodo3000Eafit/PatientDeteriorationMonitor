@@ -24,8 +24,9 @@ Start the backend and the frontend as in TS-04 ([TS-04 quickstart](../004-react-
 4. **Back to Spanish**: click **ES**. Expected: everything back in Spanish, no reload.
 5. **Pinned banner**: make the window short (or zoom to 300%) so the page scrolls, then scroll down. Expected: the banner and switch stay at the top of the screen; at the top of the page they don't cover the title.
 6. **Not dismissible**: there is no close button or other control on the banner.
-7. **Backend off**: stop the backend (Ctrl+C), reload, switch languages. Expected: `No se puede conectar con el servidor.` / `Cannot connect to the server.` with the banner in each language.
+7. **Keyboard**: click in the page, press **Tab** until **EN** is focused and press **Enter**. Expected: the language changes to English (then Tab to **ES** + Enter changes it back).
+8. **Backend off**: stop the backend (Ctrl+C), reload, switch languages. Expected: `No se puede conectar con el servidor.` / `Cannot connect to the server.` with the banner in each language.
 
-Record steps 1–7 in the PR (one line each), plus the `npm test` output (D-27).
+Record steps 1–8 in the PR (one line each), plus the `npm test` output (D-27).
 
 To forget the remembered choice in a normal window: F12 → Console → `localStorage.removeItem('pdm.language')`, then reload.
