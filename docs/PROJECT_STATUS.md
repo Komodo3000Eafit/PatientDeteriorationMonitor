@@ -3,13 +3,13 @@
 > **Read this first.** This file tells you where the project is right now and what comes next.
 > Whoever completes a step updates this file **in the same pull request** as the work.
 
-**Last updated:** 2026-11-11 (00:30)
+**Last updated:** 2026-11-13
 **Current phase:** 1 — Spec Kit and team setup
 **Current step:** Step 11 — Technical stories: TS-01 ✅
 **Next step:** TS-02 — Neon database connection (see [BACKLOG.md](BACKLOG.md))
 
-> **Where we left off (2026-11-11):** TS-01 merged to `main`. TS-02 not started yet. To resume:
-> 1. **Manual prerequisite:** create a free Neon account and the project `patient-deterioration-monitor`, and copy its connection string. Keep it private: it will go only in the git-ignored `backend/.env`.
+> **Where we left off (2026-11-13):** TS-01 merged to `main`. TS-02 not started yet, but its Neon prerequisites are done (D-28, D-29): the Neon project `patient-deterioration-monitor` exists (aws-us-east-1), its connection string is the GitHub secret `DATABASE_URL`, and Neon skills + MCP server are set up for Claude Code in this repo. To resume:
+> 1. **Local setup:** copy the pooled connection string from the Neon console (project → Connect) into the git-ignored `backend/.env`. Restart Claude Code and run `/mcp` to sign in to the Neon MCP server.
 > 2. From an up-to-date `main`, run `/speckit-specify` for TS-02 (Neon connection via `DATABASE_URL`; `/health` reports database status; tests must not need a real database), then `/speckit-clarify`.
 > 3. Continue as with TS-01: plan → tasks → analyze → `claude --agent orchestrator` → review → PR (paste local pytest output, D-27) → merge.
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
