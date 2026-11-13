@@ -15,7 +15,7 @@ Build these first, in order. Together they provide every resource the app needs.
 | TS-01 | **FastAPI app skeleton**: project structure in `backend/`, `/health` endpoint, pytest set up, runs locally | — | [001-fastapi-app-skeleton](../specs/001-fastapi-app-skeleton/) | ✅ |
 | TS-02 | **Neon database connection**: create the Neon project; FastAPI connects through the `DATABASE_URL` environment variable; `/health` reports database status | TS-01 | [002-neon-db-connection](../specs/002-neon-db-connection/) | ✅ |
 | TS-03 | **Database tables and migrations**: `users`, `patients`, `vital_signs`, `triage_events`, `alerts` | TS-02 | [003-db-tables-migrations](../specs/003-db-tables-migrations/) | ✅ |
-| TS-04 | **React app skeleton**: project structure in `frontend/`, API client, shows backend `/health` status (CORS configured) | TS-01 | | ⬜ |
+| TS-04 | **React app skeleton**: project structure in `frontend/`, API client, shows backend `/health` status (CORS configured) | TS-01 | [004-react-app-skeleton](../specs/004-react-app-skeleton/) | ✅ |
 | TS-05 | **Language and disclaimer**: Spanish by default with English switch; banner "academic prototype, not a certified medical device" | TS-04 | | ⬜ |
 | TS-06 | **Authentication**: seeded demo users, login endpoint, protected API routes, login page | TS-03, TS-04 | | ⬜ |
 | TS-07 | **Clinical scoring module**: replaceable scoring interface with a NEWS2 implementation that returns the score and the reason for each point | TS-01 | | ⬜ |

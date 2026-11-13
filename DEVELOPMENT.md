@@ -31,7 +31,7 @@ Install these **once per computer** (they are global tools, not project-specific
 | uv | Latest | `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
 | Specify CLI (GitHub Spec Kit) | **v1.3.3** (pinned — everyone must use the same version) | `uv tool install specify-cli --python 3.13 --from git+https://github.com/github/spec-kit.git@v1.3.3` |
 | Claude Code | Latest | `irm https://claude.ai/install.ps1 \| iex` |
-| Node.js | LTS | Needed for the React frontend — <https://nodejs.org/> |
+| Node.js | **26 LTS** | Needed for the React frontend (check with `node -v`) — <https://nodejs.org/> |
 | PostgreSQL | Version defined in the technical plan | Installation method (local install or Docker) will be confirmed in the technical user stories |
 
 ### Allow local PowerShell scripts
@@ -98,7 +98,7 @@ docs/
   ASSIGNMENT.md        English summary of the course assignment
   agents.md            Agent team: roles, tools, responsibilities
 backend/               FastAPI application (setup, run and test: backend/README.md)
-frontend/              React application (created by the technical user stories)
+frontend/              React application, Vite (setup, run and test: frontend/README.md)
 README.md              How to install and use the app
 DEVELOPMENT.md         This guide
 CLAUDE.md              Project context Claude Code reads automatically
@@ -170,10 +170,35 @@ The list of agents, their roles and responsibilities is documented in [`docs/age
 Each student will be assigned a user story during the demo and must build it **from their own computer** in roughly 5–10 minutes. Before demo day, make sure you can:
 
 - [ ] Run every command in section 2 ("Verify your installation") without errors
-- [ ] Run the app locally (backend, frontend and database) — database setup: [backend/README.md](backend/README.md#database-connection)
+- [ ] Run the app locally (backend, frontend and database, see "Run the app locally" below) — details: [backend/README.md](backend/README.md) (database setup: [Database connection](backend/README.md#database-connection)) and [frontend/README.md](frontend/README.md)
 - [ ] Run the automated tests (see [backend/README.md](backend/README.md))
 - [ ] Complete the full Spec Kit workflow for a small practice story
 - [ ] Invoke each agent in Claude Code
+
+### Run the app locally
+
+Use two terminals, both starting from the repository root.
+
+Terminal 1 — backend (API at `http://localhost:8000`):
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+Terminal 2 — frontend:
+
+```powershell
+cd frontend
+npm install        # first time only
+npm run dev
+```
+
+Then open **http://localhost:5173** (use `localhost`, not `127.0.0.1`). The page shows whether the API and the database are working.
+
+- `CORS_ORIGINS` (backend): the default (`http://localhost:5173`) is fine locally — see [backend/README.md](backend/README.md#allowed-frontend-origins-cors).
+- `VITE_API_BASE_URL` (frontend): the default (`http://localhost:8000`) is fine locally — see [frontend/README.md](frontend/README.md#configuration).
 
 ---
 

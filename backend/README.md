@@ -55,6 +55,24 @@ Notes:
 - Never print `DATABASE_URL` or paste it in a chat. Connection errors show only the error type.
 - Don't use `--verbose` with `alembic current`, `history` or `heads` when sharing output: it shows the database host and user (the password is masked). Never paste that output in a PR or chat.
 
+## Allowed frontend origins (CORS)
+
+The backend accepts browser requests only from the origins listed in the `CORS_ORIGINS` environment variable: a comma-separated list of origins (scheme, host and port, no path), for example:
+
+```text
+CORS_ORIGINS=http://localhost:5173,https://<your-app>.azurestaticapps.net
+```
+
+Set it in the terminal or as a line in `backend/.env`, like `DATABASE_URL`; a value set in the terminal wins over the file.
+
+- When `CORS_ORIGINS` is unset or blank, the default is `http://localhost:5173` (the local frontend).
+- Spaces around entries and a trailing `/` are ignored.
+- Setting `CORS_ORIGINS` **replaces** the default: include `http://localhost:5173` in the list if you still need it.
+- `*` is not allowed. With a `*` entry the app stops at startup with `CORS_ORIGINS must not contain '*'; list the allowed origins explicitly`.
+- Only `GET` requests are allowed, and no cookies or credentials are sent.
+- `CORS_ORIGINS` is not a secret. The production origins are set in TS-10/TS-11.
+- In PowerShell, `$env:CORS_ORIGINS = ""` deletes the variable (the default then applies). To remove it explicitly, use `Remove-Item Env:CORS_ORIGINS`.
+
 ## Run
 
 ```powershell

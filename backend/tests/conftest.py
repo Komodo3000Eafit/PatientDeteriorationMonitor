@@ -7,6 +7,13 @@ it drops the engine again and clears FastAPI dependency overrides
 (FR-008, AC6; research R8).
 """
 
+import os
+
+# TS-04: build the app with the default CORS origin during tests; python-dotenv
+# (override=False) won't replace a variable that already exists, so a developer's
+# backend/.env can't change it (research R7).
+os.environ["CORS_ORIGINS"] = ""
+
 import pytest
 
 import app.db
