@@ -5,15 +5,19 @@
 
 **Last updated:** 2026-11-13
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅
-**Next step:** TS-04 — React app skeleton (see [BACKLOG.md](BACKLOG.md))
+**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅
+**Next step:** TS-05 — Language and disclaimer (see [BACKLOG.md](BACKLOG.md))
 
-> **Where we left off (2026-11-13):** TS-01 and TS-02 merged to `main`. TS-03 is implemented on branch `003-db-tables-migrations`: the five tables (`users`, `patients`, `vital_signs`, `triage_events`, `alerts`) are defined in `backend/app/models.py` and versioned with Alembic (D-32). **The migration was applied to the Neon database (`neondb`) and verified**: it is at `0001_initial_schema (head)`, a second upgrade changes nothing, invalid rows are rejected, and downgrade + upgrade work. To resume:
-> 1. **TS-03 is done:** merge its PR (paste the local pytest output and the manual Neon outputs, D-27). Each teammate runs `pip install -r requirements.txt` again, and nothing else: the shared Neon database is already migrated. Schema commands are in [backend/README.md](../backend/README.md#database-migrations).
-> 2. From an up-to-date `main`, run `/speckit-specify` for TS-04 (React app skeleton), then `/speckit-clarify`.
-> 3. Continue as before: plan → tasks → analyze → `claude --agent orchestrator` → review → PR (paste local pytest output, D-27) → merge.
-> 4. Deferred to TS-09 (from the TS-02 and TS-03 security reviews): lock the indirect dependencies (including Mako and MarkupSafe) and run the vulnerability scan; optionally move pytest/httpx to a dev requirements file.
-> 5. Notes for later stories (TS-03 security review): **TS-08** and the API stories must keep patient and user text fields synthetic (e.g. check the `PAT-NNN` identifier pattern); **TS-10** must never run `alembic downgrade` in CI/CD; and don't point frequent health probes at `/health` (D-30).
+> **Where we left off (2026-11-13):** TS-01 to TS-03 are merged to `main`. TS-04 is implemented on branch `004-react-app-skeleton`. The frontend skeleton is in `frontend/`: Vite 8 + React 19 in plain JavaScript, one start page that shows the backend `/health` result, and one shared API client, `src/api/client.js` (D-33). The backend now allows browser requests only from the origins in `CORS_ORIGINS` (default `http://localhost:5173`). Locally `npm test` gives 12 passed, `npm run build` succeeds and `python -m pytest` gives 60 passed. **The manual browser check passed (AC11, quickstart steps 3–4).** With the backend on, the page showed `API: funcionando`, `Versión: 0.1.0` and `Base de datos: disponible`, with no CORS error and exactly one `/health` request. With the backend off, it showed `No se puede conectar con el servidor.` and the reload hint within 10 s. To resume:
+> 1. **Finish TS-04:** open the PR with the `npm test` and `pytest` output and the browser check result (D-27), and merge it. Each teammate installs **Node.js 26 LTS** and runs `npm install` in `frontend/`. The backend needs nothing new. Running the app locally is described in [DEVELOPMENT.md](../DEVELOPMENT.md#run-the-app-locally).
+> 2. From an up-to-date `main`, run `/speckit-specify` for TS-05 (language and disclaimer), then `/speckit-clarify`.
+> 3. Continue as before: plan → tasks → analyze → `claude --agent orchestrator` → review → PR (paste local test output, D-27) → merge.
+> 4. Deferred to TS-09 (from the TS-02 to TS-04 security reviews): lock the indirect Python dependencies (including Mako and MarkupSafe) and run the vulnerability scan; optionally move pytest/httpx to a dev requirements file; run `npm test` and `npm audit` in CI (use `npm ci`).
+> 5. Notes for later stories:
+>    - **TS-08** and the API stories must keep patient and user text fields synthetic, e.g. by checking the `PAT-NNN` identifier pattern (TS-03 review).
+>    - **TS-10** must never run `alembic downgrade` in CI/CD, and must not point frequent health probes at `/health` (D-30).
+>    - **TS-10/TS-11** (from the TS-04 review): reject `null` and malformed entries in `CORS_ORIGINS`, and add HTTP security headers (CSP, `X-Content-Type-Options`, frame-ancestors).
+>    - **TS-06** and the clinical stories must require login on every clinical view.
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
 
 > **Solo dry run:** one member is building the project end to end first, to learn the process and prepare resources. The project will then be redone with the full team using these docs.
@@ -48,7 +52,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). Next: TS-04 (React app skeleton) |
+| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). Next: TS-05 (language and disclaimer) |
 | 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo

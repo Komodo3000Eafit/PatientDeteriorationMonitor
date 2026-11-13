@@ -1,0 +1,78 @@
+# PatientDeteriorationMonitor — Frontend
+
+React app (Vite, plain JavaScript) for the PatientDeteriorationMonitor prototype. This is the
+TS-04 skeleton: one start page that shows whether the backend API and its database are working.
+The UI is in Spanish; the Spanish/English language switch is added in TS-05.
+
+## Prerequisites
+
+- **Node.js 26 LTS** (check with `node -v`).
+- The backend running locally, as described in [backend/README.md](../backend/README.md)
+  (by default at `http://localhost:8000`).
+
+## Commands
+
+Run these from the `frontend/` folder:
+
+| Command | What it does |
+|---|---|
+| `npm install` | Installs the dependencies (first time, or after `package.json` changes). |
+| `npm run dev` | Starts the development server at **http://localhost:5173**. |
+| `npm run build` | Builds the production files into `dist/` (git-ignored). |
+| `npm test` | Runs the automated tests once. No backend or network is needed. |
+
+Notes on `npm run dev`:
+
+- Open the page at `http://localhost:5173`, **not** `http://127.0.0.1:5173`. For the browser
+  they are different origins, and the backend only allows `http://localhost:5173` by default
+  (CORS).
+- The port is fixed: if 5173 is already in use, `npm run dev` fails instead of moving to
+  another port. Stop the other process and try again.
+
+## Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `VITE_API_BASE_URL` | `http://localhost:8000` | Base URL of the backend API. |
+
+- The default works for local development, so no configuration is needed.
+- To override it, copy `.env.example` to `.env` in `frontend/` and edit the value. `.env` is
+  git-ignored; only `.env.example` is committed.
+- The value is read when `npm run dev` or `npm run build` starts. Restart `npm run dev` after
+  changing it.
+- It is **not a secret**: it ends up in the built JavaScript that every visitor downloads. Never
+  put secrets in frontend configuration.
+
+## API client
+
+All calls to the backend go through one module: [`src/api/client.js`](src/api/client.js). It
+holds the base URL, a 10-second timeout and the error handling.
+
+**Rule:** screens and components never build backend URLs or call `fetch` directly. They call a
+function from `src/api/client.js` (add a new one there, or use `apiGet(path)`).
+
+## What the start page shows
+
+The page checks the backend's `GET /health` once when it loads:
+
+| Situation | Page shows |
+|---|---|
+| While checking | `Comprobando la conexión con el servidor…` |
+| API and database working | `API: funcionando`, `Versión: <version>`, `Base de datos: disponible` |
+| API working, database not available | `API: funcionando`, `Versión: <version>`, `Base de datos: no disponible`, `Recarga la página para volver a comprobar.` |
+| Backend cannot be reached (not running, error, or no answer within 10 s) | `No se puede conectar con el servidor.`, `Recarga la página para volver a comprobar.` |
+
+The page does not retry on its own: **reload the page** to check again.
+
+## Troubleshooting
+
+**The page shows "No se puede conectar con el servidor."**
+
+- The backend is not running: start it as in [backend/README.md](../backend/README.md) and
+  reload the page.
+- Or the backend's `CORS_ORIGINS` doesn't include the page's origin (for example, you opened
+  `http://127.0.0.1:5173`, or set `CORS_ORIGINS` without `http://localhost:5173`). The browser
+  console (F12) then shows a CORS error. Open `http://localhost:5173`, or see the
+  "Allowed frontend origins (CORS)" section of [backend/README.md](../backend/README.md).
+- Or `VITE_API_BASE_URL` points to the wrong address: check `frontend/.env` (if any) and restart
+  `npm run dev`.
