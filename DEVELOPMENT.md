@@ -160,7 +160,7 @@ The list of agents, their roles and responsibilities is documented in [`docs/age
 ### Never commit
 
 - Real patient data (use only public de-identified datasets or synthetic data)
-- Passwords, API keys, tokens or `.env` files
+- Passwords, API keys, tokens or `.env` files (e.g. `backend/.env` with `DATABASE_URL`)
 - Personal tool settings such as `.claude/settings.local.json`
 
 ---
@@ -170,7 +170,7 @@ The list of agents, their roles and responsibilities is documented in [`docs/age
 Each student will be assigned a user story during the demo and must build it **from their own computer** in roughly 5–10 minutes. Before demo day, make sure you can:
 
 - [ ] Run every command in section 2 ("Verify your installation") without errors
-- [ ] Run the app locally (backend, frontend and database)
+- [ ] Run the app locally (backend, frontend and database) — database setup: [backend/README.md](backend/README.md#database-connection)
 - [ ] Run the automated tests (see [backend/README.md](backend/README.md))
 - [ ] Complete the full Spec Kit workflow for a small practice story
 - [ ] Invoke each agent in Claude Code

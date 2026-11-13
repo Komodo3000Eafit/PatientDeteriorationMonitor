@@ -15,6 +15,24 @@ py -3.13 -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
+## Database connection
+
+The backend reads the database connection string from the `DATABASE_URL` environment variable, and from nowhere else. Locally it is loaded from the file `backend/.env`. That file is git-ignored: **never commit it and never paste its contents in a chat**.
+
+1. Open the Neon console, go to the project `patient-deterioration-monitor` and click **Connect**.
+2. Choose the **pooled** connection string and copy it unchanged (the code adapts the `postgresql://` prefix for the driver).
+3. Create the file `backend/.env` with one line, using your copied value in place of this placeholder:
+
+   ```text
+   DATABASE_URL=postgresql://<user>:<password>@ep-xxxx-pooler.<region>.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+   ```
+
+Notes:
+
+- A `DATABASE_URL` already set in the terminal wins over the file.
+- The app still starts without `DATABASE_URL`; `/health` then shows `database: unavailable`.
+- In CI/CD the value comes from the GitHub secret `DATABASE_URL` (DECISIONS D-29).
+
 ## Run
 
 ```powershell
@@ -30,12 +48,12 @@ In a second terminal:
 Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
-Expected output:
+Expected output (with a working `backend/.env`):
 
 ```text
-status version
------- -------
-ok     0.1.0
+status version database
+------ ------- --------
+ok     0.1.0   ok
 ```
 
 ## Test
@@ -43,6 +61,8 @@ ok     0.1.0
 ```powershell
 python -m pytest
 ```
+
+The tests need no database, no `backend/.env` and no network access.
 
 ## Version
 

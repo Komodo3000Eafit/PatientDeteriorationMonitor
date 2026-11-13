@@ -5,13 +5,14 @@
 
 **Last updated:** 2026-11-13
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 11 — Technical stories: TS-01 ✅
-**Next step:** TS-02 — Neon database connection (see [BACKLOG.md](BACKLOG.md))
+**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅
+**Next step:** TS-03 — Tables + migrations (see [BACKLOG.md](BACKLOG.md))
 
-> **Where we left off (2026-11-13):** TS-01 merged to `main`. TS-02 not started yet, but its Neon prerequisites are done (D-28, D-29): the Neon project `patient-deterioration-monitor` exists (aws-us-east-1), its connection string is the GitHub secret `DATABASE_URL`, and Neon skills + MCP server are set up for Claude Code in this repo. To resume:
-> 1. **Local setup:** copy the pooled connection string from the Neon console (project → Connect) into the git-ignored `backend/.env`. Restart Claude Code and run `/mcp` to sign in to the Neon MCP server.
-> 2. From an up-to-date `main`, run `/speckit-specify` for TS-02 (Neon connection via `DATABASE_URL`; `/health` reports database status; tests must not need a real database), then `/speckit-clarify`.
-> 3. Continue as with TS-01: plan → tasks → analyze → `claude --agent orchestrator` → review → PR (paste local pytest output, D-27) → merge.
+> **Where we left off (2026-11-13):** TS-01 merged to `main`. TS-02 is implemented on branch `002-neon-db-connection`: the backend connects to Neon through `DATABASE_URL` with the pure-Python driver pg8000 (D-31), and `/health` reports `database: ok | unavailable` (D-30). To resume:
+> 1. **TS-02 is done:** merge its PR (with the local pytest output pasted in, D-27). Each teammate creates `backend/.env` following [backend/README.md](../backend/README.md#database-connection) and runs `pip install -r requirements.txt` again. **Reminder for TS-10:** don't point frequent automatic health probes at `/health`, because every call wakes the Neon database (D-30).
+> 2. From an up-to-date `main`, run `/speckit-specify` for TS-03 (tables + migrations; reuse `app.db.database_url()` and `get_engine()`), then `/speckit-clarify`.
+> 3. Continue as before: plan → tasks → analyze → `claude --agent orchestrator` → review → PR (paste local pytest output, D-27) → merge.
+> 4. Deferred to TS-09 from the TS-02 security review: lock the indirect dependencies and run the vulnerability scan; optionally move pytest/httpx to a dev requirements file.
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
 
 > **Solo dry run:** one member is building the project end to end first, to learn the process and prepare resources. The project will then be redone with the full team using these docs.
@@ -46,7 +47,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). Next: TS-02 (Neon database connection) |
+| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). Next: TS-03 (tables + migrations) |
 | 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo
