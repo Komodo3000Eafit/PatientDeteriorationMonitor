@@ -16,7 +16,7 @@ Build these first, in order. Together they provide every resource the app needs.
 | TS-02 | **Neon database connection**: create the Neon project; FastAPI connects through the `DATABASE_URL` environment variable; `/health` reports database status | TS-01 | [002-neon-db-connection](../specs/002-neon-db-connection/) | ✅ |
 | TS-03 | **Database tables and migrations**: `users`, `patients`, `vital_signs`, `triage_events`, `alerts` | TS-02 | [003-db-tables-migrations](../specs/003-db-tables-migrations/) | ✅ |
 | TS-04 | **React app skeleton**: project structure in `frontend/`, API client, shows backend `/health` status (CORS configured) | TS-01 | [004-react-app-skeleton](../specs/004-react-app-skeleton/) | ✅ |
-| TS-05 | **Language and disclaimer**: Spanish by default with English switch; banner "academic prototype, not a certified medical device" | TS-04 | | ⬜ |
+| TS-05 | **Language and disclaimer**: Spanish by default with English switch; banner "academic prototype, not a certified medical device" | TS-04 | [005-language-disclaimer](../specs/005-language-disclaimer/) | ✅ |
 | TS-06 | **Authentication**: seeded demo users, login endpoint, protected API routes, login page | TS-03, TS-04 | | ⬜ |
 | TS-07 | **Clinical scoring module**: replaceable scoring interface with a NEWS2 implementation that returns the score and the reason for each point | TS-01 | | ⬜ |
 | TS-08 | **Vital signs simulator**: generates synthetic readings for each patient every 5 minutes (faster in demo mode). Runs only during tests and demos | TS-03 | | ⬜ |

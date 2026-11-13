@@ -2,7 +2,7 @@
 
 React app (Vite, plain JavaScript) for the PatientDeteriorationMonitor prototype. This is the
 TS-04 skeleton: one start page that shows whether the backend API and its database are working.
-The UI is in Spanish; the Spanish/English language switch is added in TS-05.
+The UI is in Spanish by default, with an **ES / EN** switch to English (see "How to add or change texts").
 
 ## Prerequisites
 
@@ -51,6 +51,30 @@ holds the base URL, a 10-second timeout and the error handling.
 **Rule:** screens and components never build backend URLs or call `fetch` directly. They call a
 function from `src/api/client.js` (add a new one there, or use `apiGet(path)`).
 
+## How to add or change texts
+
+All visible texts live in [`src/i18n/translations.js`](src/i18n/translations.js), one entry per
+key in `es` (the complete reference) and in `en`.
+
+- To add a text, add the same key to both `es` and `en`. Then, in a component:
+
+  ```jsx
+  import { useLanguage } from './i18n/LanguageContext.jsx'
+
+  const { t } = useLanguage()
+  return <p>{t('area.name')}</p>
+  ```
+
+- To insert a value, write `{name}` in the text and call `t('area.name', { name })`.
+- A key missing in English shows the Spanish text. A test fails if English has a key that Spanish
+  doesn't.
+- **Never write visible text directly in a component.**
+- New screens are rendered inside `AppShell` (in `src/App.jsx`), so they get the disclaimer banner
+  and the language switch.
+- The language choice is remembered in the browser under the `localStorage` key `pdm.language`
+  (`es` or `en`). When nothing valid is stored, the page is in Spanish. To reset it, run
+  `localStorage.removeItem('pdm.language')` in the browser console.
+
 ## What the start page shows
 
 The page checks the backend's `GET /health` once when it loads:
@@ -61,6 +85,9 @@ The page checks the backend's `GET /health` once when it loads:
 | API and database working | `API: funcionando`, `Versión: <version>`, `Base de datos: disponible` |
 | API working, database not available | `API: funcionando`, `Versión: <version>`, `Base de datos: no disponible`, `Recarga la página para volver a comprobar.` |
 | Backend cannot be reached (not running, error, or no answer within 10 s) | `No se puede conectar con el servidor.`, `Recarga la página para volver a comprobar.` |
+
+The page is in Spanish by default, with an **ES / EN** switch at the top next to the pinned
+disclaimer banner; the English texts are in [`src/i18n/translations.js`](src/i18n/translations.js).
 
 The page does not retry on its own: **reload the page** to check again.
 
