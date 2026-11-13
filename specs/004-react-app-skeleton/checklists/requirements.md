@@ -32,4 +32,5 @@
 ## Notes
 
 - Technical story (TS-04): the audience is developers, so React, npm commands, `/health`, CORS and local addresses appear by necessity (they are in the story itself), as in TS-01 to TS-03. Build tool, test runner, setting names and file layout are left to the plan (Vite expected, per the user's note).
-- No clarification markers; defaults chosen and recorded in Assumptions/Requirements: 10 s timeout (above the backend's 5 s DB limits), a `*` entry is ignored rather than failing startup, blank setting falls back to the local default, no credentials in CORS, `GET` only for now, one `/health` call per page load (no polling, D-30). Good candidates to confirm in `/speckit-clarify`.
+- No clarification markers; defaults chosen and recorded in Assumptions/Requirements: blank setting falls back to the local default, no credentials in CORS, `GET` only for now, one `/health` call per page load (no polling, D-30).
+- `/speckit-clarify` 2026-11-13 (4 questions): `*` in the origins setting stops backend startup; 10 s timeout confirmed; manual browser check recorded in the PR (AC11); no retry button, reload instead.
