@@ -33,6 +33,28 @@ Notes:
 - The app still starts without `DATABASE_URL`; `/health` then shows `database: unavailable`.
 - In CI/CD the value comes from the GitHub secret `DATABASE_URL` (DECISIONS D-29).
 
+## Database migrations
+
+The database schema is versioned with [Alembic](https://alembic.sqlalchemy.org/). The migration scripts live in `backend/migrations/`, and the tables they create are described by the models in `app/models.py`.
+
+Run the commands from `backend/` with the virtual environment active. They use the same `DATABASE_URL` as the app (environment variable or `backend/.env`); `alembic.ini` holds no URL.
+
+| Command | What it does |
+|---|---|
+| `alembic upgrade head` | Creates the tables, or upgrades them to the latest version. Safe to run twice: an up-to-date database is left unchanged. |
+| `alembic current` | Shows which version the database is at. |
+| `alembic downgrade -1` | Goes back one version. |
+| `alembic downgrade base` | Removes everything: all versions and their tables **and data**. |
+| `alembic upgrade head --sql` | Prints the upgrade SQL without connecting (no database needed). |
+
+Notes:
+
+- If the first run reports a timeout (Neon waking up), run it again.
+- To verify the tables, open the Neon console → project `patient-deterioration-monitor` → **Tables**, or use the Neon MCP `get_database_tables` tool.
+- A new schema change means a new hand-written revision in `migrations/versions/`, matching the change in `app/models.py`.
+- Never print `DATABASE_URL` or paste it in a chat. Connection errors show only the error type.
+- Don't use `--verbose` with `alembic current`, `history` or `heads` when sharing output: it shows the database host and user (the password is masked). Never paste that output in a PR or chat.
+
 ## Run
 
 ```powershell
@@ -62,7 +84,7 @@ ok     0.1.0   ok
 python -m pytest
 ```
 
-The tests need no database, no `backend/.env` and no network access.
+The tests need no database, no `backend/.env` and no network access. They also check the schema (the models) and the migrations (the offline upgrade and downgrade SQL) without a database.
 
 ## Version
 

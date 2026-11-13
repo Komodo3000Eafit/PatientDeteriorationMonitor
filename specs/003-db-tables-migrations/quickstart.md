@@ -53,7 +53,17 @@ Expected: exit 0, no `Running upgrade` line.
 Either ask Claude Code to use the Neon MCP tool `get_database_tables` (project `patient-deterioration-monitor`, database `neondb`), or open Neon console → project → **Tables**. Without either, print only the names through `app.db`:
 
 ```powershell
-"from sqlalchemy import text; from app.db import get_engine; c = get_engine().connect(); print([r[0] for r in c.execute(text(""SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name""))]); c.close()" | python -
+@'
+from sqlalchemy import text
+from app.db import get_engine
+
+try:
+    conn = get_engine().connect()
+except Exception as exc:
+    raise SystemExit(f"Could not connect to the database ({type(exc).__name__})") from None
+with conn:
+    print([r[0] for r in conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name"))])
+'@ | python -
 ```
 
 Expected: `users`, `patients`, `vital_signs`, `triage_events`, `alerts` and `alembic_version`, nothing else from this story.
@@ -70,7 +80,11 @@ checks = {
     "triage level 6": "INSERT INTO patients (identifier, name, age, sex, triage_level) VALUES ('CHECK-001', 'Check Patient', 40, 'other', 6)",
     "unknown role": "INSERT INTO users (username, password_hash, full_name, role) VALUES ('check_user', 'not-a-real-hash', 'Check User', 'admin')",
 }
-with get_engine().connect() as conn:
+try:
+    conn = get_engine().connect()
+except Exception as exc:
+    raise SystemExit(f"Could not connect to the database ({type(exc).__name__})") from None
+with conn:
     for name, sql in checks.items():
         trans = conn.begin()
         try:
@@ -131,4 +145,4 @@ Expected: `backend/.env` is not listed; `git grep` finds only placeholder hosts 
 
 ## 11. Record the result
 
-Paste the outputs of steps 2, 4–8 into the PR description (they contain no secrets), and note in `docs/PROJECT_STATUS.md` that the migration was applied to Neon and verified (FR-012).
+Paste the outputs of steps 2, 4–8 into the PR description (they contain no secrets; don't add `--verbose` to `alembic current`, `history` or `heads`, because it shows the database host and user, and never paste such output), and note in `docs/PROJECT_STATUS.md` that the migration was applied to Neon and verified (FR-012).
