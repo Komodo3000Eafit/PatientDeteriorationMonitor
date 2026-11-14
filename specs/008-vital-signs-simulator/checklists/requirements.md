@@ -33,3 +33,4 @@
 
 - Technical story: names of existing project pieces (TS-03 tables, TS-07 accepted limits and validation, Ctrl+C, README) are kept because they are the story's contract, not implementation choices. No framework or library is prescribed.
 - Defaults chosen without asking (see Assumptions): each run restarts scenarios from the beginning; demo interval 15 s; 2 stable / 2 slow / 2 rapid patients; re-running the demo-patient command leaves existing patients unchanged; demo patients get an "initial" triage event. Good candidates to confirm in `/speckit-clarify`.
+- After `/speckit-clarify` (2026-11-13): runs now continue (step = saved readings), a confirmed reset option limited to PAT-001 to PAT-006 was added (FR-017, AC11), and the other defaults were accepted. All items still pass.
