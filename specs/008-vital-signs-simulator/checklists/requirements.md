@@ -1,0 +1,36 @@
+# Specification Quality Checklist: Vital Signs Simulator
+
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-11-13
+**Feature**: [spec.md](../spec.md)
+
+## Content Quality
+
+- [x] No implementation details (languages, frameworks, APIs)
+- [x] Focused on user value and business needs
+- [x] Written for non-technical stakeholders
+- [x] All mandatory sections completed
+
+## Requirement Completeness
+
+- [x] No [NEEDS CLARIFICATION] markers remain
+- [x] Requirements are testable and unambiguous
+- [x] Success criteria are measurable
+- [x] Success criteria are technology-agnostic (no implementation details)
+- [x] All acceptance scenarios are defined
+- [x] Edge cases are identified
+- [x] Scope is clearly bounded
+- [x] Dependencies and assumptions identified
+
+## Feature Readiness
+
+- [x] All functional requirements have clear acceptance criteria
+- [x] User scenarios cover primary flows
+- [x] Feature meets measurable outcomes defined in Success Criteria
+- [x] No implementation details leak into specification
+
+## Notes
+
+- Technical story: names of existing project pieces (TS-03 tables, TS-07 accepted limits and validation, Ctrl+C, README) are kept because they are the story's contract, not implementation choices. No framework or library is prescribed.
+- Defaults chosen without asking (see Assumptions): each run restarts scenarios from the beginning; demo interval 15 s; 2 stable / 2 slow / 2 rapid patients; re-running the demo-patient command leaves existing patients unchanged; demo patients get an "initial" triage event. Good candidates to confirm in `/speckit-clarify`.
+- After `/speckit-clarify` (2026-11-13): runs now continue (step = saved readings), a confirmed reset option limited to PAT-001 to PAT-006 was added (FR-017, AC11), and the other defaults were accepted. All items still pass.

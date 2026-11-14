@@ -19,7 +19,7 @@ Build these first, in order. Together they provide every resource the app needs.
 | TS-05 | **Language and disclaimer**: Spanish by default with English switch; banner "academic prototype, not a certified medical device" | TS-04 | [005-language-disclaimer](../specs/005-language-disclaimer/) | ✅ |
 | TS-06 | **Authentication**: seeded demo users, login endpoint, protected API routes, login page | TS-03, TS-04 | [006-authentication](../specs/006-authentication/) | ✅ |
 | TS-07 | **Clinical scoring module**: replaceable scoring interface with a NEWS2 implementation that returns the score and the reason for each point | TS-01 | [007-clinical-scoring-module](../specs/007-clinical-scoring-module/) | ✅ |
-| TS-08 | **Vital signs simulator**: generates synthetic readings for each patient every 5 minutes (faster in demo mode). Runs only during tests and demos | TS-03 | | ⬜ |
+| TS-08 | **Vital signs simulator**: generates synthetic readings for each patient every 5 minutes (faster in demo mode). Runs only during tests and demos | TS-03 | [008-vital-signs-simulator](../specs/008-vital-signs-simulator/) | ✅ |
 | TS-09 | **CI pipeline**: GitHub Actions runs backend and frontend tests and a dependency check on every pull request | TS-01, TS-04 | | ⬜ |
 | TS-10 | **Backend deployment**: Azure App Service settings (environment variables, Neon connection) and automatic deploy from GitHub Actions using OIDC | TS-03, TS-09 | | ⬜ |
 | TS-11 | **Frontend deployment**: Azure Static Web Apps settings (production API URL) and automatic deploy; end-to-end check that the deployed frontend reaches the deployed backend | TS-05, TS-10 | | ⬜ |
