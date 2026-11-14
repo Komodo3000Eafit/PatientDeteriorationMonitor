@@ -8,6 +8,13 @@
 
 **Input**: User description: "TS-07 — Clinical scoring module (technical story, depends on TS-01). As a clinician, I want each set of vital signs scored with a standard early-warning score that explains every point, so that I can trust and challenge the patient's risk level. Acceptance criteria: A replaceable scoring interface in the backend: given one set of vital signs (respiratory rate, SpO2, on supplemental oxygen, systolic BP, heart rate, consciousness ACVPU, temperature — the TS-03 fields), it returns the total score, a risk band, and for each parameter the value, the points and the rule that gave them. No code outside the module may depend on NEWS2 rules (constitution V, D-08), so the Colombian scheme can replace it later. NEWS2 is the implementation, SpO2 Scale 1 only (Scale 2 for hypercapnic patients needs a per-patient flag that doesn't exist yet — out of scope, noted for later): Respiratory rate: ≤8 → 3; 9–11 → 1; 12–20 → 0; 21–24 → 2; ≥25 → 3. SpO2: ≤91 → 3; 92–93 → 2; 94–95 → 1; ≥96 → 0. Supplemental oxygen: yes → 2; no (air) → 0. Systolic BP: ≤90 → 3; 91–100 → 2; 101–110 → 1; 111–219 → 0; ≥220 → 3. Heart rate: ≤40 → 3; 41–50 → 1; 51–90 → 0; 91–110 → 1; 111–130 → 2; ≥131 → 3. Consciousness: A → 0; C, V, P or U → 3. Temperature (°C): ≤35.0 → 3; 35.1–36.0 → 1; 36.1–38.0 → 0; 38.1–39.0 → 1; ≥39.1 → 2. Risk band: total 0–4 → low; any single parameter scoring 3 (with total ≤4) → low-medium; 5–6 → medium; ≥7 → high. (Verify these against the official RCP NEWS2 chart in research.) Reasons are returned as structured data (parameter, value, points, range), not as sentences, so the UI can show them in Spanish or English later. Invalid input (missing parameter, impossible value such as SpO2 > 100, unknown consciousness code) is rejected with a clear error, never scored. Automated tests cover every range boundary of every parameter (both sides of each threshold), each risk band including the 'single 3' rule, a few full worked examples, and invalid input. No database, network or API needed. backend/README.md explains the interface and how a different scoring system would be plugged in. Out of scope: storing scores or calling the module from an endpoint (US-03), escalating triage levels and creating alerts (US-04), mapping the risk band to triage levels or alert severity (US-04), any UI, SpO2 Scale 2. Keep it as simple as possible (D-23): pure Python, no new dependencies."
 
+## Clarifications
+
+### Session 2026-11-13
+
+- The three spec decisions are accepted as written: the accepted value ranges, strict input types, and the band identifiers `low`, `low-medium`, `medium`, `high` (user, 2026-11-13).
+- Q: How does the API story (US-03) validate input with the same limits? → A: The module exports the accepted value ranges as public, generic data (per parameter: lower and upper limit, or allowed values) that US-03 reuses; the numbers are defined once, in the module (FR-011).
+
 ## User Story *(mandatory)*
 
 **Story ID**: TS-07
@@ -78,12 +85,14 @@
 - **FR-008**: The module MUST use only Python and its standard library (plus what the backend already uses); no new dependencies (D-23).
 - **FR-009**: Automated tests MUST cover: both sides of every threshold of every parameter in FR-003; every band in FR-004 including a single 3 with total ≤4, a single 3 with total ≥5, and totals 4/5 and 6/7; at least three full worked examples checked by hand (total, band and every entry); every invalid-input case in FR-005 and the edge cases above; and a check that the result's total is the sum of the entries. They MUST run without database, network or API, and all existing backend tests MUST keep passing.
 - **FR-010**: `backend/README.md` MUST document the scoring interface (input fields and accepted values, result fields, band identifiers, errors) and the steps to plug in a different scoring system. `docs/PROJECT_STATUS.md` and `docs/BACKLOG.md` MUST be updated when the story is done, and SpO2 Scale 2 MUST be recorded as a note for a later story.
+- **FR-011**: The module MUST export the accepted value ranges (see Assumptions) as public data available through the generic interface: for each parameter, its lower and upper limit, or its allowed values (yes/no, the ACVPU codes), and for temperature the one-decimal rule. The validation in FR-005 MUST use this same data, so the limits are defined in exactly one place, and later API code (US-03) MUST validate input with it instead of repeating the numbers. These limits describe plausible input, not NEWS2 scoring rules, so using them outside the module does not break FR-006. A test MUST check that every exported limit is accepted and that one step beyond it is rejected.
 
 ### Key Entities
 
 - **Vital signs set (input)**: the seven parameters of one reading, matching the TS-03 `vital_signs` columns: respiratory rate, SpO2, on supplemental oxygen, systolic BP, heart rate, consciousness, temperature. No patient identity or time; the module scores values only.
 - **Score result**: scoring system name (e.g. `NEWS2`), total score, risk band, and the ordered list of explanation entries. Its total and the triggering parameters are what US-03 will store and US-04 will turn into an alert reason.
 - **Explanation entry**: parameter identifier, value, points, and the range (bounds or category) that gave the points.
+- **Accepted value ranges**: per parameter, the lower and upper limit (or allowed values) of plausible input; exported by the module and reused by US-03 (FR-011).
 - **Risk band**: one of `low`, `low-medium`, `medium`, `high`.
 - **Scoring system**: any implementation of the generic interface; NEWS2 is the only one now, the Colombian triage scheme may be added later.
 
@@ -101,7 +110,7 @@
 ## Assumptions
 
 - The input uses the TS-03 field names and units: respiratory rate in breaths/min, SpO2 in %, systolic BP in mmHg, heart rate in beats/min, temperature in °C with one decimal, consciousness as a single ACVPU letter, on supplemental oxygen as yes/no.
-- Accepted ranges (anything outside is "impossible" and rejected): respiratory rate 0–80, SpO2 0–100, systolic BP 0–300, heart rate 0–300, temperature 25.0–45.0 °C. These are generous plausibility limits for a synthetic-data prototype, consistent with the TS-03 database checks (non-negative, SpO2 0–100); exact limits are confirmed in the plan.
+- Accepted ranges (anything outside is "impossible" and rejected): respiratory rate 0–80, SpO2 0–100, systolic BP 0–300, heart rate 0–300, temperature 25.0–45.0 °C. These are generous plausibility limits for a synthetic-data prototype, consistent with the TS-03 database checks (non-negative, SpO2 0–100). Confirmed in Clarifications; the module exports them for US-03 (FR-011).
 - The NEWS2 table and bands given in the story match the RCP NEWS2 (2017) chart, as far as known when writing this spec; the plan's research confirms it (FR-003).
 - The module is plain backend code called directly as a function (no endpoint in this story); US-03 calls it when saving a reading and US-04 uses the band.
 - The errors are for developers and later API code (US-03 turns them into HTTP 422); they do not need to be translated.
