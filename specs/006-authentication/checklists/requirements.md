@@ -32,5 +32,5 @@
 ## Notes
 
 - This is a technical story (TS-06), so the spec names the contracts the user's acceptance criteria require (`GET /me`, `GET /health`, HTTP 401, the `Authorization` header, CORS, `backend/.env`, the TS-03 `users` table, the TS-05 `AppShell`), as earlier TS specs did. Token format, hashing algorithm, libraries and file layout are left to the plan.
-- No clarification markers: reasonable defaults are recorded in Assumptions. The main default worth confirming in `/speckit-clarify` is where the browser keeps the session (tab session storage: survives reload, cleared when the tab closes).
+- No clarification markers: reasonable defaults are recorded in Assumptions. `/speckit-clarify` (2026-11-13) accepted all of them, including tab session storage, and added FR-018 (existing tests keep passing with a dummy secret).
 - Validation passed on the first iteration.
