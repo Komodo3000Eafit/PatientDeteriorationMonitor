@@ -92,6 +92,6 @@ Every request goes through one internal `request(method, path, { body, token })`
 |---|---|
 | Load with a stored session | `user` = stored user at once; one `getMe()` call. 200 → user refreshed and saved. 401 → signed out, `sessionExpired = true`. Other errors → nothing changes. |
 | Load without a session | `user = null`, `sessionExpired = false`, no backend call |
-| `signIn` | `login()` → `getMe(token)` → `saveSession({ token, user })` → `user` set, `sessionExpired = false`. It rethrows errors for `LoginPage` to map. |
+| `signIn` | `login()` → `getMe(token)` → `saveSession({ token, user })` → `user` set, `sessionExpired = false`. Errors from `login()` are rethrown unchanged for `LoginPage` to map (401 → wrong credentials). Any failure of the `getMe` call, even a 401, is rethrown as a plain non-`ApiError` error, so `LoginPage` shows `login.unreachable`; nothing is saved. |
 | `signOut` | `clearSession()`; `user = null`; `sessionExpired = false`; the language is unchanged |
 | Any later 401 (handler) | `user = null`; `sessionExpired = true` |

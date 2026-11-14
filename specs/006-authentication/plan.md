@@ -135,6 +135,7 @@ backend/
 │   ├── seed_demo_users.py         # NEW: DEMO_USERS, read_demo_passwords, upsert_demo_users, main() (python -m app.seed_demo_users)
 │   └── main.py                    # CHANGED: include auth router, 422 no-echo handler, CORS methods/headers
 └── tests/
+    ├── constants.py               # NEW: TEST_AUTH_SECRET, OTHER_TEST_SECRET (fake values for tests only)
     ├── conftest.py                # CHANGED: fake AUTH_SECRET and blank ACCESS_TOKEN_MINUTES / DEMO_* before importing the app
     ├── test_cors.py               # CHANGED: subprocess test passes the fake secret; new preflight tests for POST + Authorization
     ├── test_passwords.py          # NEW: format, verify ok/wrong, unique salts, malformed hashes → False
@@ -178,7 +179,7 @@ docs/DECISIONS.md                  # CHANGED: D-35
 ### Design notes
 
 - **`app/auth.py` order**: `load_dotenv` runs first, then `SETTINGS = load_auth_settings(os.environ)`. A `RuntimeError` here stops the import of `app.main`. `router = APIRouter()` holds `POST /auth/login` and `GET /me`, with response models `TokenResponse(access_token, token_type, expires_in)` and `MeResponse(username, full_name, role)`.
-- **`get_user_lookup`** is a generator dependency: it uses `with Session(get_engine()) as session: yield DbUserLookup(session)`. `DbUserLookup` methods catch `SQLAlchemyError`, log only `type(exc).__name__`, and raise a 503.
+- **`get_user_lookup`** is a generator dependency that never raises and never connects: it yields a lazy `DbUserLookup()` and closes it afterwards. `DbUserLookup` opens its session on first use. Its methods raise a new 503 (through a small function) when `database_url()` is `None` or on `SQLAlchemyError`, and log only `type(exc).__name__`. A missing or bad token therefore gets 401 even without a database (research R4).
 - **`get_current_user`** takes `credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False))`. The token is decoded before `users.by_id` is called. It raises a 401 with `WWW-Authenticate: Bearer`.
 - **`main.py`**:
   - `app.include_router(auth.router)`.

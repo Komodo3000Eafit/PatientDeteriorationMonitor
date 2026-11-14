@@ -30,7 +30,7 @@ An unknown username still runs one full password verification against a dummy ha
 |---|---|---|
 | Valid token, account exists | 200 | `{"username": "demo.nurse", "full_name": "Enf. Luis Demo", "role": "nurse"}` (exactly these 3 fields) |
 | No header, other scheme (e.g. `Basic`), empty token, malformed, wrong signature, tampered, expired, missing claim, non-integer `sub`, account deleted | 401 + `WWW-Authenticate: Bearer` | `{"detail": "Not authenticated"}` |
-| Valid token but database not configured or failing | 503 | `{"detail": "Service unavailable"}` |
+| Valid token but database not configured or failing | 503 | `{"detail": "Service unavailable"}` (a missing or invalid token is still 401 in this situation) |
 
 ## Protection pattern for later endpoints
 
@@ -42,7 +42,7 @@ from app.models import User
 def list_patients(user: User = Depends(get_current_user)): ...
 ```
 
-`get_current_user` gives the same 401 as `/me` in every failure case. The token is checked before any database access.
+`get_current_user` gives the same 401 as `/me` in every failure case. The token is checked before any database access. A missing or bad token gets 401 even when the database is not configured or is down. A 503 can only come from a lookup with a valid token, or from the login lookup.
 
 ## GET /health
 

@@ -50,7 +50,7 @@ With the backend running, start the frontend: `cd frontend; npm run dev`. Then o
 
 1. **Login page.** You see it with the banner and the ES/EN switch, all in Spanish, and no server status. DevTools → Network shows no `/health` request.
 2. **Wrong password.** Expected: `Usuario o contraseña incorrectos.`, the username is kept and the password field is cleared. Switch to EN: the message becomes `Incorrect username or password.`
-3. **Sign in as the doctor.** The start page shows the server status. The header shows `Dra. Ana Demo`, `Médico` (EN: `Doctor`) and a logout button.
+3. **Sign in as the doctor.** Within 2 s of clicking the button (SC-005), the start page shows the server status. The header shows `Dra. Ana Demo`, `Médico` (EN: `Doctor`) and a logout button.
 4. **Reload.** You are still signed in. Network shows one `/me` and one `/health` request, both carrying `Authorization: Bearer …`. There are no cookies under DevTools → Application.
 5. **Logout.** You are back on the login page, and `sessionStorage['pdm.session']` is gone. The language choice is kept.
 6. **Sign in as the nurse.** The header shows `Enf. Luis Demo`, `Enfermero(a)` (EN: `Nurse`).

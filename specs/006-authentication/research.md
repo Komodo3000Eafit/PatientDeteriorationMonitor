@@ -38,11 +38,12 @@ The main tech choices came with the `/speckit-plan` input (standard-library pass
 ## R4. User lookup and the protection check
 
 - **Decision**: in `app/auth.py`:
-  - `class DbUserLookup` wraps a SQLAlchemy `Session` and has two methods, `by_username(username) -> User | None` (exact match, `select(User).where(User.username == username)`) and `by_id(user_id) -> User | None` (`session.get(User, user_id)`). If a database error happens, it logs only the error type (as `check_database` does) and raises `HTTPException(503, "Service unavailable")`.
-  - The FastAPI dependency `get_user_lookup()` raises the same 503 when `database_url()` is `None`. Otherwise it yields `DbUserLookup(Session(get_engine()))` and closes the session afterwards. It reuses `app.db` (URL conversion, TLS, timeouts from TS-02).
+  - `class DbUserLookup` is **lazy**: it opens a SQLAlchemy `Session(get_engine())` only on its first lookup. It has two methods, `by_username(username) -> User | None` (exact match, `select(User).where(User.username == username)`) and `by_id(user_id) -> User | None` (`session.get(User, user_id)`). On first use, if `database_url()` is `None`, it raises 503. If a database error happens, it logs only the error type (as `check_database` does) and raises 503. Each 503 is a new `HTTPException(503, "Service unavailable")` from a small function, never one shared instance.
+  - The FastAPI dependency `get_user_lookup()` **never raises and never connects**. It yields a `DbUserLookup()` and closes its session, if one was opened, afterwards. It reuses `app.db` (URL conversion, TLS, timeouts from TS-02).
+  - **Why lazy (found by `/speckit-analyze`, I1)**: FastAPI resolves every dependency before `get_current_user` runs. If `get_user_lookup` raised 503 when there is no database, a missing or bad token would get 503 instead of the 401 that AC4 requires.
   - The reusable check is `get_current_user(credentials = Depends(HTTPBearer(auto_error=False)), users = Depends(get_user_lookup)) -> User`. If credentials are missing, the scheme isn't `bearer`, the token doesn't decode (R2) or `users.by_id(...)` is `None`, it raises `HTTPException(401, "Not authenticated", headers={"WWW-Authenticate": "Bearer"})`. Later clinical endpoints add `user: User = Depends(get_current_user)` (FR-006, FR-014).
 - **Why `auto_error=False`**: `HTTPBearer` already returns 401 in FastAPI 0.162.4 (checked), but older versions returned 403. Raising our own 401 gives one fixed body for every failure case.
-- **Order of checks**: the token is checked first. A request with a bad token gets 401 without touching the database, and only a valid token leads to `by_id`.
+- **Order of checks**: the token is checked first. A request with a missing or bad token gets 401 without touching the database, **even when no database is configured or it is down**. Only a valid token leads to `by_id`, which is the first point where a 503 can happen.
 - **Tests** override `get_user_lookup` with a small in-memory fake (two users), so no API test needs a database (R7).
 - **Alternatives considered**:
   - A FastAPI dependency yielding a raw `Session`: tests would need a fake session or SQLite.
@@ -107,7 +108,7 @@ The main tech choices came with the `/speckit-plan` input (standard-library pass
   - `frontend/src/auth/AuthContext.jsx`: `AuthProvider` + `useAuth()` → `{ user, signIn, signOut, sessionExpired }`.
     - `user` starts from `getSession()?.user`.
     - On mount with a stored session, it calls `getMe()` once to check the token and refresh the name and role. A 401 → signed out with `sessionExpired = true`. Network errors keep the stored user, so the start page still shows its own "cannot connect" state.
-    - `signIn(username, password)` calls `login()`, then `getMe(token)`, saves the session, then sets `user` and clears `sessionExpired`.
+    - `signIn(username, password)` calls `login()`, then `getMe(token)`, saves the session, then sets `user` and clears `sessionExpired`. A `getMe` failure after a successful login, even a 401, is rethrown as a plain error, so the login page shows "cannot connect", never "incorrect username or password".
     - `signOut()` clears the session and sets `user = null`.
     - It registers the `onUnauthorized` handler in an effect and removes it on unmount.
   - `frontend/src/auth/RequireAuth.jsx`: `user ? children : <LoginPage />`. This is the guard every later clinical screen is wrapped in (FR-011, FR-014).

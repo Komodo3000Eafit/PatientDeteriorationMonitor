@@ -14,6 +14,7 @@
 
 - All assumptions in this spec are accepted as written, including keeping the browser session in the tab's session storage (user, 2026-11-13).
 - Q: How must existing tests behave once the signing secret is required at startup? → A: They keep passing: the backend tests set a dummy test secret, and the TS-04 `*` CORS startup subprocess test passes one to the subprocess too, so it still fails only because of `*` (FR-018).
+- `/speckit-analyze` fixes (2026-11-13): the token lifetime is 1–1440 minutes (FR-005), and the TS-05 "banner cannot be dismissed" test may also expect the logout button (FR-018).
 - Q: The TS-04/TS-05 frontend tests expect the `/health` status right after the app loads, but it is now shown only after sign-in. How do they keep passing? → A: They may be changed only so they start from a signed-in session (stored session plus a mocked `/me`); what they check stays the same (FR-018).
 
 ## User Story *(mandatory)*
@@ -61,7 +62,7 @@
 - `Authorization` header with a different scheme (e.g. `Basic ...`) or an empty value: 401.
 - The user switches language on the login page or after an error: all texts, including the error message already shown, change language without losing what was typed in the username field.
 - The user double-clicks the sign-in button: only one login request is sent while one is in progress.
-- The token lifetime setting is not a positive whole number: the backend refuses to start with a fixed message naming the setting.
+- The token lifetime setting is not a whole number of minutes from 1 to 1440: the backend refuses to start with a fixed message naming the setting. If it is unset or blank, 480 is used.
 - The demo-user command is run without a database connection: it stops with a clear message and no secret or connection string is printed.
 - A stored session in the browser that cannot be read (storage blocked or corrupted): treated as signed out, no error shown.
 
@@ -73,7 +74,7 @@
 - **FR-002**: One documented command MUST create or update the demo accounts: at least one doctor and one nurse with synthetic usernames and full names fixed in the code, and passwords read only from environment settings (or `backend/.env`). Running it again MUST NOT create duplicates and MUST update the stored hash to the current password. If a password setting is missing or shorter than 8 characters, the command MUST stop before changing anything and name the setting, never its value.
 - **FR-003**: A login endpoint MUST accept a username and a password, validate them (both required, non-empty, with maximum lengths matching the `users` table for the username and a reasonable limit such as 128 characters for the password), and on success return an access token, its type and its expiry.
 - **FR-004**: Unknown username and wrong password MUST give the same HTTP 401 status and identical body, and the system SHOULD take a similar time in both cases so response time does not reveal whether a username exists.
-- **FR-005**: Access tokens MUST be signed with a secret, carry the account identity and an expiry, and expire after a lifetime set by an environment setting, defaulting to 8 hours (480 minutes).
+- **FR-005**: Access tokens MUST be signed with a secret, carry the account identity and an expiry, and expire after a lifetime set by an environment setting, a whole number of minutes from 1 to 1440 (24 hours), defaulting to 8 hours (480 minutes).
 - **FR-006**: A reusable protection check MUST reject requests with a missing, malformed, wrongly signed, tampered, expired or unknown-account token with HTTP 401 and a generic body. Every later clinical endpoint MUST use this same check.
 - **FR-007**: `GET /me` MUST use the protection check and return only the signed-in account's username, full name and role.
 - **FR-008**: `GET /health` MUST stay public and unchanged.
@@ -86,7 +87,7 @@
 - **FR-015**: Automated tests MUST cover AC1–AC10 without a real database or network, as listed in AC11, and all existing backend and frontend tests MUST keep passing.
 - **FR-016**: `backend/README.md`, `backend/.env.example` (placeholders only) and `frontend/README.md` MUST document the new settings, the demo-user command and the sign-in pattern. `docs/PROJECT_STATUS.md` MUST be updated when the story is done, and the PR MUST record a one-time manual check against Neon (demo users created, login and `/me` work) and in the browser (login, wrong password, logout, both languages).
 - **FR-017**: New dependencies MUST be the minimum needed and MUST run with Windows Smart App Control on (pure Python or standard library preferred, D-31); the plan MUST justify each one (D-23).
-- **FR-018**: Requiring the signing secret MUST NOT break existing tests. The backend test setup MUST provide a dummy, clearly fake test secret (never a real one) so every existing test keeps passing, and the TS-04 `*` CORS startup subprocess test MUST pass a valid dummy secret to the subprocess so it still fails for the `*` reason only. Existing frontend tests MAY be changed only to start from a signed-in session (a stored session plus a mocked `/me`); the behaviour they check MUST stay the same.
+- **FR-018**: Requiring the signing secret MUST NOT break existing tests. The backend test setup MUST provide a dummy, clearly fake test secret (never a real one) so every existing test keeps passing, and the TS-04 `*` CORS startup subprocess test MUST pass a valid dummy secret to the subprocess so it still fails for the `*` reason only. Existing frontend tests MAY be changed only to start from a signed-in session (a stored session plus a mocked `/me`); the behaviour they check MUST stay the same. One exception: the TS-05 test "banner cannot be dismissed" MAY also expect the logout button in the header, because logout is not a control of the banner. The test still checks that there is no close, hide or dismiss control.
 
 ### Key Entities
 

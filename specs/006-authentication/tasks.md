@@ -75,13 +75,17 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
      - `create_access_token(user_id: int, *, now: datetime | None = None) -> tuple[str, int]`: `now = now or datetime.now(timezone.utc)`, `exp = now + timedelta(minutes=SETTINGS.token_minutes)`, `jwt.encode({"sub": str(user_id), "iat": now, "exp": exp}, SETTINGS.secret, algorithm="HS256")`. Returns `(token, SETTINGS.token_minutes * 60)`.
      - `decode_access_token(token: str) -> int | None`: `jwt.decode(token, SETTINGS.secret, algorithms=["HS256"], options={"require": ["exp", "iat", "sub"]})`. Returns `None` on any `jwt.PyJWTError`, or when `sub` doesn't match `^[1-9]\d*$`; otherwise `int(sub)` (research R2, data-model "Access token").
   4. **Errors**:
-     - `SERVICE_UNAVAILABLE = HTTPException(503, "Service unavailable")`.
+     - `def _service_unavailable() -> HTTPException: return HTTPException(503, "Service unavailable")`. It creates a new exception each time; never raise one shared instance.
      - `def _unauthorized(detail)` → `HTTPException(401, detail, headers={"WWW-Authenticate": "Bearer"})`.
      - Use `"Incorrect username or password"` for login and `"Not authenticated"` for the token check.
-  5. **User lookup**:
-     - `class DbUserLookup` takes `__init__(self, session)`, plus `by_username(self, username) -> User | None` (`self.session.scalars(select(User).where(User.username == username)).first()`) and `by_id(self, user_id) -> User | None` (`self.session.get(User, user_id)`).
-     - Both catch `SQLAlchemyError` as `exc`, `logger.warning("User lookup failed (%s)", type(exc).__name__)` and `raise SERVICE_UNAVAILABLE`.
-     - `def get_user_lookup()` is a generator dependency: if `database_url() is None`, `raise SERVICE_UNAVAILABLE`; then `with Session(get_engine()) as session: yield DbUserLookup(session)`. Import `database_url`, `get_engine` from `app.db` and `User` from `app.models` (research R4).
+  5. **User lookup (lazy: the database is touched only on first use)**:
+     - `class DbUserLookup` has `__init__(self, session_factory=None)`, which stores the factory (default: `lambda: Session(get_engine())`) and sets `self._session = None`.
+     - `def _get_session(self)`: if `database_url() is None`, `raise _service_unavailable()`. Otherwise it creates `self._session = self._session_factory()` on the first call and returns it.
+     - `by_username(self, username) -> User | None` returns `self._get_session().scalars(select(User).where(User.username == username)).first()`, and `by_id(self, user_id) -> User | None` returns `self._get_session().get(User, user_id)`.
+     - Both catch `SQLAlchemyError` as `exc`, `logger.warning("User lookup failed (%s)", type(exc).__name__)` and `raise _service_unavailable()`.
+     - `def close(self)` closes `self._session` if it was created.
+     - `def get_user_lookup()` is a generator dependency that **never raises and never connects**: `lookup = DbUserLookup()`, then `try: yield lookup` / `finally: lookup.close()`. As a result, a missing or bad token gets 401 from `get_current_user` even when there is no database, and only a real lookup can give 503.
+     - Import `database_url`, `get_engine` from `app.db` and `User` from `app.models` (research R4).
   6. **Protection check**: `bearer = HTTPBearer(auto_error=False)` and `def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer), users: DbUserLookup = Depends(get_user_lookup)) -> User`.
      - If `credentials is None`, or `credentials.scheme.lower() != "bearer"`, or `decode_access_token(credentials.credentials)` is `None` → `raise _unauthorized("Not authenticated")`.
      - Decode **before** calling `users.by_id(user_id)`. If that returns `None`, raise the same 401.
@@ -182,7 +186,9 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
     - If `getSession()` exists, call `getMe()`.
     - On success, update the stored session with the fresh user (`saveSession({ ...getSession(), user: me })`, only if a session still exists) and `setUser(me)`.
     - On error, do nothing: a 401 is already handled by the handler, and network errors keep the stored user. Use a `cancelled` flag as in `StartPage`.
-  - `const signIn = useCallback(async (username, password) => { const { access_token } = await login(username, password); const me = await getMe(access_token); saveSession({ token: access_token, user: me }); setUser(me); setSessionExpired(false) }, [])`. Errors propagate.
+  - `const signIn = useCallback(async (username, password) => { const { access_token } = await login(username, password); let me; try { me = await getMe(access_token) } catch { throw new Error('Profile check failed') } saveSession({ token: access_token, user: me }); setUser(me); setSessionExpired(false) }, [])`.
+    - Errors from `login` propagate unchanged, so a 401 there means wrong credentials.
+    - **Any** failure of the `/me` call after a successful login, including a 401, becomes a plain non-`ApiError` error, so `LoginPage` shows `login.unreachable` and never `login.invalidCredentials` (contracts/auth-ui.md, U2). Nothing is saved in that case.
   - `const signOut = useCallback(() => { clearSession(); setUser(null); setSessionExpired(false) }, [])`.
   - Provide `useMemo(() => ({ user, signIn, signOut, sessionExpired }), [...])`.
   - `export function useAuth()` throws `new Error('useAuth must be used inside AuthProvider')` when the context is `null`.
@@ -234,14 +240,15 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
 
 - [ ] T018 [TS-06] Edit `backend/tests/conftest.py` and `backend/tests/test_cors.py`, which depend on T005.
   - **In `conftest.py`**, next to the existing `os.environ["CORS_ORIGINS"] = ""` and **before** `import app.main`, add:
-    - `os.environ["AUTH_SECRET"] = "test-only-secret-not-for-real-use-0123456789"`
+    - `os.environ["AUTH_SECRET"] = TEST_AUTH_SECRET` (the value from `constants.py`, below)
     - `os.environ["ACCESS_TOKEN_MINUTES"] = ""`
     - `os.environ["DEMO_DOCTOR_PASSWORD"] = ""`
     - `os.environ["DEMO_NURSE_PASSWORD"] = ""`
 
-    Add a comment explaining that python-dotenv (`override=False`) can't replace these, so a developer's `.env` never changes the tests (TS-06 FR-018, research R7). Export the value as `TEST_AUTH_SECRET` (a module constant).
+    Add a comment explaining that python-dotenv (`override=False`) can't replace these, so a developer's `.env` never changes the tests (TS-06 FR-018, research R7).
+  - **Create `backend/tests/constants.py`** with `TEST_AUTH_SECRET = "test-only-secret-not-for-real-use-0123456789"` and `OTHER_TEST_SECRET = "another-secret-for-tests-only-0123456789"` (docstring: fake values for tests only). `conftest.py` sets `os.environ["AUTH_SECRET"] = TEST_AUTH_SECRET` from it. `backend/tests/` has no `__init__.py`, so pytest puts `tests/` on `sys.path`. Every file, `conftest.py` included, uses `from constants import TEST_AUTH_SECRET, OTHER_TEST_SECRET`, never `from conftest import ...` (U4).
   - **In `test_cors.py`**:
-    - In `test_wildcard_stops_startup`, set `env["AUTH_SECRET"] = "test-only-secret-not-for-real-use-0123456789"` and `env["ACCESS_TOKEN_MINUTES"] = ""` before `subprocess.run`. Add a docstring line: the subprocess still fails only because of `*` (FR-018).
+    - In `test_wildcard_stops_startup`, set `env["AUTH_SECRET"] = TEST_AUTH_SECRET` (from `constants.py`) and `env["ACCESS_TOKEN_MINUTES"] = ""` before `subprocess.run`. Add a docstring line: the subprocess still fails only because of `*` (FR-018).
     - Add `test_preflight_post_with_authorization_allowed`: `client.options("/auth/login", headers={"Origin": DEFAULT_ORIGIN, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "authorization, content-type"})` → 200. `access-control-allow-origin` equals `DEFAULT_ORIGIN`, `access-control-allow-headers` (lower-cased) contains `authorization` and `content-type`, and `access-control-allow-credentials` is not `true`.
     - Add `test_preflight_other_origin_not_allowed`: the same request from `http://evil.example` → no `access-control-allow-origin`.
     - Add `test_preflight_delete_not_allowed`: from the default origin with `Access-Control-Request-Method: DELETE` → status 400, and `DELETE` is not in `access-control-allow-methods`.
@@ -280,7 +287,8 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `test_username_exact_match`: `"Demo.Doctor"` and `" demo.doctor"` → 401.
   - `@pytest.mark.parametrize` `test_login_invalid_input_422` over: a missing password, `username=""`, `password=""`, a 51-character username, a 129-character password, `password=123` and a non-JSON body. Each gives 422, and the response text contains neither the submitted password value nor `"input"` (AC3, research R6).
   - `test_login_without_database_503`: no override and no `DATABASE_URL` (conftest) → 503 `{"detail":"Service unavailable"}`.
-  - `test_db_error_gives_503`: `DbUserLookup(session)` with a fake session whose `scalars` raises `OperationalError("x", {}, Exception())` → `by_username` raises an `HTTPException` with status 503.
+  - `test_db_error_gives_503`: monkeypatch `app.auth.database_url` to return `"postgresql+pg8000://fake"`. Then `DbUserLookup(session_factory=lambda: FailingSession())`, where the fake session's `scalars` raises `OperationalError("x", {}, Exception())` → `by_username` raises an `HTTPException` with status 503. Also check that two such calls raise two different exception objects (U3).
+  - `test_lookup_is_lazy`: `DbUserLookup(session_factory=spy)` with `database_url` monkeypatched to non-`None` → the spy is not called until the first `by_username`, and it is called only once for two lookups.
 
   **/me** (AC4, SC-002):
   - `test_me_valid_token`: 200, exactly `{"username": "demo.nurse", "full_name": "Enf. Luis Demo", "role": "nurse"}`.
@@ -289,7 +297,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
     - `Authorization: Basic abc`;
     - `Authorization: Bearer`;
     - `Bearer not-a-jwt`;
-    - a token signed with `"another-secret-for-tests-only-0123456789"`;
+    - a token signed with `OTHER_TEST_SECRET`;
     - a tampered token (valid token with the payload segment replaced by base64url of `{"sub":"2",...}`);
     - an expired token from `create_access_token(1, now=datetime.now(timezone.utc) - timedelta(days=2))`;
     - a token without `exp` (`jwt.encode({"sub": "1", "iat": ...}, TEST_AUTH_SECRET)`);
@@ -298,6 +306,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `test_me_deleted_account`: a valid token for id 99 → 401.
   - `test_me_bad_token_does_not_touch_database`: the override's `by_id` spy is not called for a bad token.
   - `test_me_valid_token_without_database_503`: no override → 503.
+  - `test_me_missing_token_without_database_401`: **no override and no `DATABASE_URL`** (conftest). `GET /me` without a token, and with `Bearer not-a-jwt`, gives 401 `{"detail":"Not authenticated"}`, **not** 503. The token is checked before any database access (AC4, I1).
 
   **Health and leaks**:
   - `test_health_still_public`: override `check_database` → 200 `{"status": "ok", ...}` without a token (AC5).
@@ -366,6 +375,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `AC8 nurse role is translated`: `me` returns `NURSE` → `Enfermero(a)`, and EN → `Nurse`.
   - `AC8 wrong credentials`: `login` returns 401 → the alert is `Usuario o contraseña incorrectos.`, the username input keeps its value and the password input is `''`. Click EN → `Incorrect username or password.`, and the username is still kept.
   - `AC8 server unreachable`: `login` rejects with `TypeError` → `No se puede conectar con el servidor. Inténtalo de nuevo.`, and EN → `Cannot connect to the server. Please try again.` A 503 gives the same message.
+  - `edge case: login ok but /me fails shows cannot connect`: `login` returns 200, and `me` returns 401 (in a second test, `me` rejects with `TypeError`) → the alert is `No se puede conectar con el servidor. Inténtalo de nuevo.` (not the wrong-credentials text), `sessionStorage.getItem('pdm.session') === null` and the login page is still shown (U2).
   - `edge case: double submit sends one request`: `login` returns a pending promise. Click submit twice → the button is disabled with `Entrando…`, and `callsTo(mock, '/auth/login')` has length 1.
   - `AC9 logout`: `signInForTest()`, render, click `Cerrar sesión` → the login page is shown, `sessionStorage.getItem('pdm.session') === null` and there is no `login.sessionExpired` text. If English was selected before, it stays English.
   - `AC9 reload keeps the session`: `signInForTest()` → render shows `Dra. Ana Demo` without the login page, and `/me` is called once with `Bearer test-token`.
@@ -385,7 +395,18 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - A Grep of `frontend/src` `.jsx` files (excluding tests and `translations.js`) for `>[^<{}\s][^<{}]*<` finds no visible text (TS-05 SC-003).
 
   If a check fails, fix it in the owning task (qa-tester)
-- [ ] T027 [TS-06] Review these files read-only: `backend/app/passwords.py`, `backend/app/auth.py`, `backend/app/seed_demo_users.py`, `backend/app/main.py`, `backend/.env.example`, `backend/requirements.txt`, `frontend/src/auth/*`, `frontend/src/api/client.js`, `frontend/src/LoginPage.jsx`, `frontend/src/components/AppShell.jsx`, and both READMEs. Check:
+- [ ] T027 [TS-06] **USER ACTION — done by the user, not an agent.** The orchestrator **stops here and waits for the user to confirm** before T029 or anything else that starts the real backend or runs the seed command. Agents must **not** create, read or edit `backend/.env`. The orchestrator shows the user these steps and waits:
+  1. In `backend/` with the virtual environment active, run `python -m pip install -r requirements.txt` (installs PyJWT).
+  2. Run `python -c "import secrets; print(secrets.token_urlsafe(48))"` and copy the printed value.
+  3. Open `backend/.env` (copy `backend/.env.example` if it doesn't exist yet) and add these lines, keeping the existing `DATABASE_URL`:
+     - `AUTH_SECRET=<the printed value>`
+     - `DEMO_DOCTOR_PASSWORD=<one password, at least 8 characters>`
+     - `DEMO_NURSE_PASSWORD=<another password, at least 8 characters>`
+  4. Save the file. Never commit it, and never paste its contents in a chat or the PR.
+  5. Tell the orchestrator "done".
+
+  This is the same as [quickstart.md](quickstart.md) step 0 (FR-009, FR-016) (user)
+- [ ] T028 [TS-06] Review these files read-only: `backend/app/passwords.py`, `backend/app/auth.py`, `backend/app/seed_demo_users.py`, `backend/app/main.py`, `backend/.env.example`, `backend/requirements.txt`, `frontend/src/auth/*`, `frontend/src/api/client.js`, `frontend/src/LoginPage.jsx`, `frontend/src/components/AppShell.jsx`, and both READMEs. Check:
   - PBKDF2 parameters, and the constant-time compare;
   - the dummy-hash path for unknown users;
   - identical 401 bodies;
@@ -400,7 +421,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - the seed command touches nothing on bad input.
 
   Record accepted risks: stateless logout, no rate limiting (TS-10), and tokens readable by page scripts in `sessionStorage`. Report findings; don't change code (constitution VI, VIII) (security-reviewer)
-- [ ] T028 [TS-06] Run the manual checks in [quickstart.md](quickstart.md), steps 2 (Neon) and 3 (browser), after T026. They need a human with a browser and a real `backend/.env`. If the agent can't do a step, report it as **pending for the user** with the exact commands, and don't mark it done. Record one line per step (2.1–2.5, 3.1–3.10) for the PR, without any secret, password, token or connection string (AC1, AC6–AC10, SC-001, FR-016) (orchestrator)
+- [ ] T029 [TS-06] Run the manual checks in [quickstart.md](quickstart.md), steps 2 (Neon) and 3 (browser), after T026 and **only after the user confirmed T027**. They need a human with a browser and the `backend/.env` the user prepared in T027. If the agent can't do a step, report it as **pending for the user** with the exact commands, and don't mark it done. Record one line per step (2.1–2.5, 3.1–3.10) for the PR, without any secret, password, token or connection string (AC1, AC6–AC10, SC-001, FR-016) (orchestrator)
 
 **Checkpoint**: TS-06 is complete. Every later clinical endpoint uses `Depends(get_current_user)`, and every clinical screen is rendered inside `<RequireAuth>`.
 
@@ -408,8 +429,8 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
 
 ## Phase 4: Polish
 
-- [ ] T029 [P] Edit `DEVELOPMENT.md` "Run the app locally". Before "Terminal 1", add a one-time step: copy `backend/.env.example` to `backend/.env`, then set `AUTH_SECRET` (generation command), `DEMO_DOCTOR_PASSWORD` and `DEMO_NURSE_PASSWORD`, and run `python -m app.seed_demo_users` after `alembic upgrade head`. After "Then open http://localhost:5173", add: sign in as `demo.doctor` or `demo.nurse` with the password from your `.env`. Add one bullet linking `backend/README.md#authentication`. In "Never commit", make sure `backend/.env` is listed (orchestrator)
-- [ ] T030 Edit the project docs, after T026–T029:
+- [ ] T030 [P] Edit `DEVELOPMENT.md` "Run the app locally". Before "Terminal 1", add a one-time step: copy `backend/.env.example` to `backend/.env`, then set `AUTH_SECRET` (generation command), `DEMO_DOCTOR_PASSWORD` and `DEMO_NURSE_PASSWORD`, and run `python -m app.seed_demo_users` after `alembic upgrade head`. After "Then open http://localhost:5173", add: sign in as `demo.doctor` or `demo.nurse` with the password from your `.env`. Add one bullet linking `backend/README.md#authentication`. In "Never commit", make sure `backend/.env` is listed (orchestrator)
+- [ ] T031 Edit the project docs, after T026–T030:
   - **`docs/PROJECT_STATUS.md`**:
     - Set "Last updated" to the current date. In step 11's notes, mark TS-06 ✅ and set "Next: TS-07 (scoring module)"; set "Next step" to match.
     - Rewrite the "Where we left off" note: TS-06 is done (`/auth/login`, `/me`, `get_current_user`, `RequireAuth`, `sessionStorage['pdm.session']`, demo users created with `python -m app.seed_demo_users`), plus the local `pytest`/`npm test` results and the manual check results (or that they are pending for the user).
@@ -430,8 +451,8 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
 - **Tests**:
   - T018 depends on T005. T019 depends on T003. T020 depends on T004, T005 and T018. T021 depends on T006.
   - T022 depends on T009. T023 depends on T015 and T022. T024 depends on T010 and T022. T025 depends on T008–T016 and T022.
-- **Checks**: T026 depends on all of T001–T025. T027 depends on T026. T028 depends on T026 (human).
-- **Polish**: T029 can run any time after T006. T030 runs last.
+- **Checks**: T026 depends on all of T001–T025. T027 (user action) depends on T026, and the orchestrator waits for the user there. T028 depends on T026. T029 depends on T026 **and T027** (human).
+- **Polish**: T030 can run any time after T006. T031 runs last.
 - **Story dependencies**: TS-03 and TS-04 (merged), plus the TS-05 frame (merged), per `docs/BACKLOG.md`.
 
 ## Parallel Example
@@ -448,7 +469,7 @@ frontend-dev: T010 (client.js) → T011 (AuthContext) → T012 (LoginPage), T014
 # Round 3 (qa-tester), in parallel after their dependencies:
 T018 → T020; T019; T021; T022 → T023, T024, T025
 
-# Round 4: T026 → T027 (security-reviewer) and T028 (human) → T029, T030 (orchestrator)
+# Round 4: T026 → T027 (user prepares backend/.env; orchestrator waits) → T028 (security-reviewer) and T029 (human) → T030, T031 (orchestrator)
 ```
 
 ## Implementation Strategy
@@ -457,10 +478,10 @@ TS-06 is the whole MVP:
 
 1. The backend first: T001–T007. These tasks can be checked on their own with `/docs` and pytest.
 2. Then the frontend: T008–T017.
-3. Then the tests (T018–T025), the checks (T026), the review (T027) and the manual checks (T028).
-4. Then the docs (T029–T030).
+3. Then the tests (T018–T025), the checks (T026), the user's `.env` step (T027), the review (T028) and the manual checks (T029).
+4. Then the docs (T030–T031).
 
-After T030, commit (`TS-06: authentication`), push and open the PR. Until TS-09 adds CI, paste the local `python -m pytest`, `npm test` and `npm run build` output and the manual check results into the PR description (D-27). The PR also includes the agent activity log (`specs/006-authentication/agent-log.csv`, written through `scripts/log-agent.ps1`).
+After T031, commit (`TS-06: authentication`), push and open the PR. Until TS-09 adds CI, paste the local `python -m pytest`, `npm test` and `npm run build` output and the manual check results into the PR description (D-27). The PR also includes the agent activity log (`specs/006-authentication/agent-log.csv`, written through `scripts/log-agent.ps1`).
 
 ## Notes
 
