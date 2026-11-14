@@ -3,9 +3,12 @@
 import os
 
 from fastapi import Depends, FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app import __version__
+from app import auth  # importing app.auth runs the AUTH_SECRET startup check
 from app.db import check_database
 
 DEFAULT_CORS_ORIGINS = ["http://localhost:5173"]
@@ -32,12 +35,28 @@ def parse_cors_origins(value: str | None) -> list[str]:
 
 
 app = FastAPI(title="PatientDeteriorationMonitor API", version=__version__)
+app.include_router(auth.router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=parse_cors_origins(os.environ.get("CORS_ORIGINS")),
     allow_credentials=False,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request, exc):
+    """Validation errors never echo submitted values (TS-06 research R6)."""
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": [
+                {"type": e["type"], "loc": list(e["loc"]), "msg": e["msg"]}
+                for e in exc.errors()
+            ]
+        },
+    )
 
 
 @app.get("/health")

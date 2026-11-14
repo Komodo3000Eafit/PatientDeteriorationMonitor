@@ -25,8 +25,8 @@ description: "Task list for TS-06 authentication"
 
 ## Phase 1: Setup
 
-- [ ] T001 [TS-06] Edit `backend/requirements.txt`: add the line `PyJWT==2.15.1` after `python-dotenv==1.2.4`. Do not add `cryptography` or any extra. Then run `python -m pip install -r requirements.txt` in `backend/.venv` and confirm `python -c "import jwt; print(jwt.__version__)"` prints `2.15.1` (pure-Python wheel `py3-none-any`; research R2, FR-017, D-31) (backend-dev)
-- [ ] T002 [P] [TS-06] Create `backend/.env.example` with **placeholders only**. Add a comment line at the top: `# Copy to backend/.env (git-ignored) and fill in real values. Never commit backend/.env.` Then add one commented explanation line before each of these lines:
+- [X] T001 [TS-06] Edit `backend/requirements.txt`: add the line `PyJWT==2.15.1` after `python-dotenv==1.2.4`. Do not add `cryptography` or any extra. Then run `python -m pip install -r requirements.txt` in `backend/.venv` and confirm `python -c "import jwt; print(jwt.__version__)"` prints `2.15.1` (pure-Python wheel `py3-none-any`; research R2, FR-017, D-31) (backend-dev)
+- [X] T002 [P] [TS-06] Create `backend/.env.example` with **placeholders only**. Add a comment line at the top: `# Copy to backend/.env (git-ignored) and fill in real values. Never commit backend/.env.` Then add one commented explanation line before each of these lines:
   - `DATABASE_URL=postgresql://<user>:<password>@<host>/neondb?sslmode=require`
   - `CORS_ORIGINS=http://localhost:5173`
   - `AUTH_SECRET=<generate: python -c "import secrets; print(secrets.token_urlsafe(48))">`
@@ -52,7 +52,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
 
 ### Backend implementation
 
-- [ ] T003 [P] [TS-06] Create `backend/app/passwords.py`. Module docstring: "Password hashing (TS-06): PBKDF2-HMAC-SHA256 from the standard library; see specs/006-authentication/research.md R1." It contains:
+- [X] T003 [P] [TS-06] Create `backend/app/passwords.py`. Module docstring: "Password hashing (TS-06): PBKDF2-HMAC-SHA256 from the standard library; see specs/006-authentication/research.md R1." It contains:
   - `SCHEME = "pbkdf2_sha256"` and `DEFAULT_ITERATIONS = 600_000`.
   - `hash_password(password: str, *, iterations: int = DEFAULT_ITERATIONS) -> str`: `salt = secrets.token_bytes(16)`, `dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)`. Returns `f"{SCHEME}${iterations}${b64(salt)}${b64(dk)}"`, using `base64.b64encode(...).decode("ascii")`.
   - `verify_password(password: str, stored: str) -> bool`: returns `False`, without raising, when any of these fail:
@@ -65,7 +65,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
     Otherwise it recomputes the hash with the stored salt and iterations and returns `hmac.compare_digest(computed, expected)`.
 
   No logging and no printing in this module (FR-001, data-model "Password hash") (backend-dev)
-- [ ] T004 [TS-06] Create `backend/app/auth.py`, which depends on T001 and T003. Module docstring: "Authentication (TS-06): settings, access tokens, user lookup, the reusable get_current_user dependency and the /auth/login and /me routes. Contract: specs/006-authentication/contracts/auth-api.md." Contents, in this order:
+- [X] T004 [TS-06] Create `backend/app/auth.py`, which depends on T001 and T003. Module docstring: "Authentication (TS-06): settings, access tokens, user lookup, the reusable get_current_user dependency and the /auth/login and /me routes. Contract: specs/006-authentication/contracts/auth-api.md." Contents, in this order:
   1. **Load `.env`**: `load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=False)` (as in `app/db.py`), then `logger = logging.getLogger(__name__)`.
   2. **Settings**: `@dataclass(frozen=True) class AuthSettings: secret: str; token_minutes: int` and `def load_auth_settings(environ) -> AuthSettings`.
      - `secret = (environ.get("AUTH_SECRET") or "").strip()`. If `len(secret) < 32` → `raise RuntimeError("AUTH_SECRET must be set to a random value of at least 32 characters")`.
@@ -100,13 +100,13 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
      - `@router.get("/me", response_model=MeResponse) def me(user: User = Depends(get_current_user))` returns `MeResponse(username=user.username, full_name=user.full_name, role=user.role)`.
 
   Never log the username, password, token or secret (FR-003–FR-007, research R5) (backend-dev)
-- [ ] T005 [TS-06] Edit `backend/app/main.py`, which depends on T004:
+- [X] T005 [TS-06] Edit `backend/app/main.py`, which depends on T004:
   - Add `from fastapi.exceptions import RequestValidationError`, `from fastapi.responses import JSONResponse` and `from app import auth`. The import of `app.auth` runs the startup check.
   - After `app = FastAPI(...)`, add `app.include_router(auth.router)`.
   - Add `@app.exception_handler(RequestValidationError) async def validation_error(request, exc)` returning `JSONResponse(status_code=422, content={"detail": [{"type": e["type"], "loc": list(e["loc"]), "msg": e["msg"]} for e in exc.errors()]})`. Docstring: "Validation errors never echo submitted values (TS-06 research R6)."
   - In `CORSMiddleware`, set `allow_methods=["GET", "POST"]` and add `allow_headers=["Authorization", "Content-Type"]`. Keep `allow_origins=parse_cors_origins(...)` and `allow_credentials=False` unchanged.
   - Leave `/health` and `parse_cors_origins` unchanged (FR-008, FR-010, research R6, R8).
-- [ ] T006 [P] [TS-06] Create `backend/app/seed_demo_users.py`, which depends on T003. Module docstring: "Create or update the demo accounts (TS-06). Run from backend/: python -m app.seed_demo_users. Passwords come only from DEMO_DOCTOR_PASSWORD / DEMO_NURSE_PASSWORD (environment or backend/.env)."
+- [X] T006 [P] [TS-06] Create `backend/app/seed_demo_users.py`, which depends on T003. Module docstring: "Create or update the demo accounts (TS-06). Run from backend/: python -m app.seed_demo_users. Passwords come only from DEMO_DOCTOR_PASSWORD / DEMO_NURSE_PASSWORD (environment or backend/.env)."
   - It uses `from app.db import database_url, get_engine` (importing `app.db` loads `backend/.env`; module-level names let tests monkeypatch them), `from app.models import User` and `from app.passwords import hash_password`. It does **not** import `app.auth` or `app.main`, so no `AUTH_SECRET` is needed.
   - `DEMO_USERS = [("demo.doctor", "Dra. Ana Demo", "doctor", "DEMO_DOCTOR_PASSWORD"), ("demo.nurse", "Enf. Luis Demo", "nurse", "DEMO_NURSE_PASSWORD")]` (data-model "Demo accounts").
   - `read_demo_passwords(environ) -> tuple[dict[str, str], list[str]]`: for each entry, `value = (environ.get(var) or "").strip()`. If `len(value) < 8`, add the error `f"{var} must be set to at least 8 characters"`; otherwise store `passwords[username] = value`.
@@ -121,7 +121,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
     - On `SQLAlchemyError as exc` → `session.rollback()` (handled by the context manager), print `f"Could not update the demo users ({type(exc).__name__})"` to stderr and return 1.
   - Under `if __name__ == "__main__":` → `raise SystemExit(main())`.
   - It never prints passwords, hashes or the URL (FR-002, AC1, contracts/auth-api.md "Demo-user command") (backend-dev)
-- [ ] T007 [P] [TS-06] Edit `backend/README.md`: add a section `## Authentication` after "Allowed frontend origins (CORS)". It covers:
+- [X] T007 [P] [TS-06] Edit `backend/README.md`: add a section `## Authentication` after "Allowed frontend origins (CORS)". It covers:
   1. The settings table (`AUTH_SECRET` required, at least 32 characters; `ACCESS_TOKEN_MINUTES` default 480, range 1–1440; `DEMO_DOCTOR_PASSWORD` / `DEMO_NURSE_PASSWORD`, at least 8 characters, used only by the command). They go in `backend/.env` (copy `backend/.env.example`), never committed and never pasted in a chat.
   2. How to generate the secret: `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
   3. The app refuses to start without a valid secret, and the message names the setting only.
@@ -134,7 +134,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
 
 ### Frontend implementation
 
-- [ ] T008 [P] [TS-06] Edit `frontend/src/i18n/translations.js`: add these 12 keys to **both** `es` and `en`, exactly as the [contracts/auth-ui.md](contracts/auth-ui.md) "Texts" table, keeping the existing ten keys unchanged. Use the real `…` (U+2026) in `login.submitting`.
+- [X] T008 [P] [TS-06] Edit `frontend/src/i18n/translations.js`: add these 12 keys to **both** `es` and `en`, exactly as the [contracts/auth-ui.md](contracts/auth-ui.md) "Texts" table, keeping the existing ten keys unchanged. Use the real `…` (U+2026) in `login.submitting`.
 
   | Key | es | en |
   |---|---|---|
@@ -152,7 +152,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   | `role.nurse` | `Enfermero(a)` | `Nurse` |
 
   (FR-011, SC-006) (frontend-dev)
-- [ ] T009 [P] [TS-06] Create `frontend/src/auth/session.js`. Top comment: "Browser session (TS-06): token + user in sessionStorage['pdm.session'] (one tab), with an in-memory copy for blocked storage." It contains:
+- [X] T009 [P] [TS-06] Create `frontend/src/auth/session.js`. Top comment: "Browser session (TS-06): token + user in sessionStorage['pdm.session'] (one tab), with an in-memory copy for blocked storage." It contains:
   - `export const SESSION_KEY = 'pdm.session'` and `let memory = null`.
   - `function isValid(s)`: `s` is an object, `s.token` is a non-empty string, and `s.user` is an object whose `username`, `full_name` and `role` are non-empty strings.
   - `export function getSession()`:
@@ -163,7 +163,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `export function clearSession()`: sets `memory = null`, then `try { sessionStorage.removeItem(SESSION_KEY) } catch {}`.
 
   No visible text (data-model "Browser session", research R9) (frontend-dev)
-- [ ] T010 [TS-06] Edit `frontend/src/api/client.js`, which depends on T009. Keep `API_BASE_URL`, `REQUEST_TIMEOUT_MS` and `getHealth()` exactly as they are. Add:
+- [X] T010 [TS-06] Edit `frontend/src/api/client.js`, which depends on T009. Keep `API_BASE_URL`, `REQUEST_TIMEOUT_MS` and `getHealth()` exactly as they are. Add:
   - `export class ApiError extends Error { constructor(status) { super(\`HTTP ${status}\`); this.name = 'ApiError'; this.status = status } }`.
   - `let unauthorizedHandler = null` and `export function onUnauthorized(handler) { unauthorizedHandler = handler; return () => { if (unauthorizedHandler === handler) unauthorizedHandler = null } }`.
   - `async function request(method, path, { body, token } = {})`:
@@ -178,7 +178,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `export async function login(username, password)` → `apiPost('/auth/login', { username, password })`.
   - `export async function getMe(token)` → `apiGet('/me', token ? { token } : undefined)`.
   - The token never goes in the URL. Update the top comment to mention TS-06 (contracts/auth-ui.md "API client", research R9) (frontend-dev)
-- [ ] T011 [TS-06] Create `frontend/src/auth/AuthContext.jsx`, which depends on T009 and T010. Top comment: "Signed-in user (TS-06): React Context with { user, signIn, signOut, sessionExpired }." It contains:
+- [X] T011 [TS-06] Create `frontend/src/auth/AuthContext.jsx`, which depends on T009 and T010. Top comment: "Signed-in user (TS-06): React Context with { user, signIn, signOut, sessionExpired }." It contains:
   - `const AuthContext = createContext(null)`.
   - `export function AuthProvider({ children })` with `const [user, setUser] = useState(() => getSession()?.user ?? null)` and `const [sessionExpired, setSessionExpired] = useState(false)`.
   - `useEffect(() => onUnauthorized(() => { setUser(null); setSessionExpired(true) }), [])`.
@@ -194,7 +194,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `export function useAuth()` throws `new Error('useAuth must be used inside AuthProvider')` when the context is `null`.
 
   No visible text (FR-012, FR-013, contracts/auth-ui.md "AuthContext") (frontend-dev)
-- [ ] T012 [TS-06] Create `frontend/src/LoginPage.jsx`, which depends on T008 and T011. Top comment: "Login page (TS-06), shown inside AppShell while signed out. All texts from src/i18n/translations.js." It contains:
+- [X] T012 [TS-06] Create `frontend/src/LoginPage.jsx`, which depends on T008 and T011. Top comment: "Login page (TS-06), shown inside AppShell while signed out. All texts from src/i18n/translations.js." It contains:
   - State: `username`, `password`, `submitting` (false) and `errorKey` (null).
   - `const { signIn, sessionExpired } = useAuth()` and `const { t } = useLanguage()`.
   - `shownKey = errorKey ?? (sessionExpired ? 'login.sessionExpired' : null)`.
@@ -211,15 +211,15 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
       - `{shownKey && <p role="alert">{t(shownKey)}</p>}`;
       - `<button type="submit" disabled={submitting}>{t(submitting ? 'login.submitting' : 'login.submit')}</button>`.
   - No visible text written directly (FR-011, AC7, AC8, contracts/auth-ui.md "LoginPage") (frontend-dev)
-- [ ] T013 [TS-06] Create `frontend/src/auth/RequireAuth.jsx`, which depends on T011 and T012. Top comment: "Guard for protected screens (TS-06): wrap every clinical screen in <RequireAuth>; signed out shows the login page." It exports `export default function RequireAuth({ children }) { const { user } = useAuth(); return user ? children : <LoginPage /> }` (FR-011, FR-014) (frontend-dev)
-- [ ] T014 [TS-06] Edit `frontend/src/components/AppShell.jsx`, which depends on T008 and T011. Use `const { user, signOut } = useAuth()`. Inside `<header className="app-header">`, between the disclaimer `<p>` and the language-switch `<div>`, render `{user && (...)}` as `<div className="user-block" role="group" aria-label={t('auth.signedInAs')}>` containing:
+- [X] T013 [TS-06] Create `frontend/src/auth/RequireAuth.jsx`, which depends on T011 and T012. Top comment: "Guard for protected screens (TS-06): wrap every clinical screen in <RequireAuth>; signed out shows the login page." It exports `export default function RequireAuth({ children }) { const { user } = useAuth(); return user ? children : <LoginPage /> }` (FR-011, FR-014) (frontend-dev)
+- [X] T014 [TS-06] Edit `frontend/src/components/AppShell.jsx`, which depends on T008 and T011. Use `const { user, signOut } = useAuth()`. Inside `<header className="app-header">`, between the disclaimer `<p>` and the language-switch `<div>`, render `{user && (...)}` as `<div className="user-block" role="group" aria-label={t('auth.signedInAs')}>` containing:
   - `<span className="user-name">{user.full_name}</span>`
   - `<span className="user-role">{t('role.' + user.role)}</span>`
   - `<button type="button" onClick={signOut}>{t('auth.logout')}</button>`
 
   Keep the disclaimer and the switch exactly as in TS-05, still with no close/hide control (FR-012, AC8, contracts/auth-ui.md "Screen structure") (frontend-dev)
-- [ ] T015 [TS-06] Edit `frontend/src/App.jsx`, which depends on T011, T013 and T014. Return `<LanguageProvider><AuthProvider><AppShell><RequireAuth><StartPage /></RequireAuth></AppShell></AuthProvider></LanguageProvider>`, and update the top comment to mention TS-06. Keep the default export `App` and `import './App.css'`. `StartPage.jsx` is unchanged, so `/health` is called only when signed in (FR-011, AC7) (frontend-dev)
-- [ ] T016 [P] [TS-06] Edit `frontend/src/App.css`, keeping all existing rules. Add:
+- [X] T015 [TS-06] Edit `frontend/src/App.jsx`, which depends on T011, T013 and T014. Return `<LanguageProvider><AuthProvider><AppShell><RequireAuth><StartPage /></RequireAuth></AppShell></AuthProvider></LanguageProvider>`, and update the top comment to mention TS-06. Keep the default export `App` and `import './App.css'`. `StartPage.jsx` is unchanged, so `/health` is called only when signed in (FR-011, AC7) (frontend-dev)
+- [X] T016 [P] [TS-06] Edit `frontend/src/App.css`, keeping all existing rules. Add:
   - `.user-block { display: flex; gap: 0.5rem; align-items: center; }`
   - `.user-name { font-weight: 600; }`
   - `.user-block button, .login-form button { font: inherit; padding: 0.25rem 0.6rem; cursor: pointer; }`
@@ -228,7 +228,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `.login-form [role="alert"] { margin: 0; color: #a40000; }`
 
   (plan "Design notes") (frontend-dev)
-- [ ] T017 [P] [TS-06] Edit `frontend/README.md`: add a section `## Sign-in` after "How to add or change texts". It covers:
+- [X] T017 [P] [TS-06] Edit `frontend/README.md`: add a section `## Sign-in` after "How to add or change texts". It covers:
   - Signed out, the app shows the login page inside `AppShell`. The demo users come from the backend command (link `backend/README.md#authentication`).
   - The session is kept in `sessionStorage['pdm.session']` (one tab; a reload keeps it, closing the tab signs out; no cookies). Logout clears it, and a 401 from the backend signs out with "session ended".
   - `src/api/client.js` adds `Authorization: Bearer <token>` automatically. Screens never handle the token and must call the backend only through the client.
@@ -238,7 +238,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
 
 ### Tests
 
-- [ ] T018 [TS-06] Edit `backend/tests/conftest.py` and `backend/tests/test_cors.py`, which depend on T005.
+- [X] T018 [TS-06] Edit `backend/tests/conftest.py` and `backend/tests/test_cors.py`, which depend on T005.
   - **In `conftest.py`**, next to the existing `os.environ["CORS_ORIGINS"] = ""` and **before** `import app.main`, add:
     - `os.environ["AUTH_SECRET"] = TEST_AUTH_SECRET` (the value from `constants.py`, below)
     - `os.environ["ACCESS_TOKEN_MINUTES"] = ""`
@@ -254,7 +254,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
     - Add `test_preflight_delete_not_allowed`: from the default origin with `Access-Control-Request-Method: DELETE` → status 400, and `DELETE` is not in `access-control-allow-methods`.
 
     Each test docstring cites TS-06 AC10/FR-010. Keep every existing test unchanged otherwise. (qa-tester)
-- [ ] T019 [P] [TS-06] Create `backend/tests/test_passwords.py`, which depends on T003. Top docstring cites TS-06 FR-001 and research R1. Tests:
+- [X] T019 [P] [TS-06] Create `backend/tests/test_passwords.py`, which depends on T003. Top docstring cites TS-06 FR-001 and research R1. Tests:
   - `test_hash_format`: `hash_password("correct horse")` splits into 4 parts, `parts[0] == "pbkdf2_sha256"` and `parts[1] == "600000"`. Salt decodes to 16 bytes, hash to 32 bytes, and `len(stored) <= 255`.
   - `test_verify_correct_and_wrong`: with `iterations=1000`, `True` for the right password and `False` for a wrong one and for `""`.
   - `test_unique_salts`: two hashes of the same password differ.
@@ -263,7 +263,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `@pytest.mark.parametrize` `test_malformed_hash_is_false` over `""`, `"plain"`, `"md5$1$a$b"`, `"pbkdf2_sha256$x$a$b"`, `"pbkdf2_sha256$0$AA==$AA=="`, `"pbkdf2_sha256$1000$!!$AA=="`, `"pbkdf2_sha256$1000$AA=="` → `verify_password("pw", value) is False` with no exception.
 
   (qa-tester)
-- [ ] T020 [P] [TS-06] Create `backend/tests/test_auth.py`, which depends on T004, T005 and T018. Top docstring cites TS-06 AC2–AC6, AC11, FR-003–FR-009 and [contracts/auth-api.md](../../specs/006-authentication/contracts/auth-api.md). Synthetic data only.
+- [X] T020 [P] [TS-06] Create `backend/tests/test_auth.py`, which depends on T004, T005 and T018. Top docstring cites TS-06 AC2–AC6, AC11, FR-003–FR-009 and [contracts/auth-api.md](../../specs/006-authentication/contracts/auth-api.md). Synthetic data only.
 
   **Helpers**:
   - `FakeUserLookup` holds `User(id=1, username="demo.doctor", full_name="Dra. Ana Demo", role="doctor", password_hash=hash_password("doctor-pass-1", iterations=1000))` and `User(id=2, username="demo.nurse", full_name="Enf. Luis Demo", role="nurse", password_hash=hash_password("nurse-pass-1", iterations=1000))`, with `by_username` / `by_id` over a dict.
@@ -313,7 +313,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `test_no_secret_in_responses`: `TEST_AUTH_SECRET` doesn't appear in any response body from the tests above (sample login ok/401 and `/me` 401).
 
   (qa-tester)
-- [ ] T021 [P] [TS-06] Create `backend/tests/test_seed_demo_users.py`, which depends on T006. Top docstring cites TS-06 AC1, FR-002 and contracts "Demo-user command". Use an in-memory SQLite engine fixture: `create_engine("sqlite://")`, then `Base.metadata.create_all(engine, tables=[User.__table__])`. Tests:
+- [X] T021 [P] [TS-06] Create `backend/tests/test_seed_demo_users.py`, which depends on T006. Top docstring cites TS-06 AC1, FR-002 and contracts "Demo-user command". Use an in-memory SQLite engine fixture: `create_engine("sqlite://")`, then `Base.metadata.create_all(engine, tables=[User.__table__])`. Tests:
   - `test_read_passwords_ok`.
   - `test_read_passwords_missing_and_short`: `{"DEMO_DOCTOR_PASSWORD": "short"}` gives two errors that name the variables and don't contain `"short"`.
   - `test_upsert_creates_then_updates`:
@@ -327,7 +327,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `test_main_db_error`: `get_engine` returns an engine whose connect fails → 1 and `Could not update the demo users (`.
 
   Use `capsys` for the output (qa-tester)
-- [ ] T022 [P] [TS-06] Create `frontend/src/testing/fakeBackend.js`, which depends on T009. Top comment: "Test helpers (TS-06): fetch mock routed by URL, and a signed-in session. Synthetic data only." It exports:
+- [X] T022 [P] [TS-06] Create `frontend/src/testing/fakeBackend.js`, which depends on T009. Top comment: "Test helpers (TS-06): fetch mock routed by URL, and a signed-in session. Synthetic data only." It exports:
   - `jsonResponse(body, status = 200)`, the same shape as the TS-04 tests.
   - `DOCTOR = { username: 'demo.doctor', full_name: 'Dra. Ana Demo', role: 'doctor' }` and `NURSE = { username: 'demo.nurse', full_name: 'Enf. Luis Demo', role: 'nurse' }`.
   - `signInForTest(user = DOCTOR, token = 'test-token')`, which calls `saveSession({ token, user })`. This also sets the in-memory copy, so blocked storage still works.
@@ -338,7 +338,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `callsTo(mock, path)` returns the calls whose pathname equals `path`.
 
   (qa-tester)
-- [ ] T023 [TS-06] Update `frontend/src/App.test.jsx` and `frontend/src/i18n/language.test.jsx`, which depend on T015 and T022. They are changed **only** so they start signed in (FR-018):
+- [X] T023 [TS-06] Update `frontend/src/App.test.jsx` and `frontend/src/i18n/language.test.jsx`, which depend on T015 and T022. They are changed **only** so they start signed in (FR-018):
   - Add `beforeEach(() => signInForTest())` and `afterEach(resetSession)`.
   - Replace each `vi.stubGlobal('fetch', vi.fn(impl))` with `stubBackend({ health: impl })`; the `/me` answer is the default doctor.
   - Replace each `expect(fetchMock).toHaveBeenCalledTimes(1)` with `expect(callsTo(fetchMock, '/health')).toHaveLength(1)`.
@@ -347,7 +347,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - In `AC4 blocked storage still works`, keep the `Storage.prototype` spies. `signInForTest` runs before the spies, so the in-memory copy keeps the user signed in.
 
   Run `npm test` after editing: every test in both files passes (qa-tester)
-- [ ] T024 [P] [TS-06] Edit `frontend/src/api/client.test.js`, which depends on T010 and T022. Keep the existing five tests and add `afterEach(resetSession)`. Each new test name cites TS-06. Tests:
+- [X] T024 [P] [TS-06] Edit `frontend/src/api/client.test.js`, which depends on T010 and T022. Keep the existing five tests and add `afterEach(resetSession)`. Each new test name cites TS-06. Tests:
   - `FR-012 no Authorization header without a session`: `getHealth()` → the fetch options have no `Authorization` header.
   - `FR-012 apiGet adds the stored token`: `signInForTest()` → `headers.Authorization === 'Bearer test-token'`, and the URL has no token.
   - `apiPost sends JSON`: method `POST`, `Content-Type: application/json`, and the body equals `JSON.stringify({ a: 1 })`.
@@ -359,7 +359,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - `onUnauthorized returns an unsubscribe function`.
 
   (qa-tester)
-- [ ] T025 [P] [TS-06] Create `frontend/src/auth/auth.test.jsx`, which depends on T008–T016 and T022. Top comment cites TS-06 AC7–AC9, FR-011–FR-014 and [contracts/auth-ui.md](../../../specs/006-authentication/contracts/auth-ui.md).
+- [X] T025 [P] [TS-06] Create `frontend/src/auth/auth.test.jsx`, which depends on T008–T016 and T022. Top comment cites TS-06 AC7–AC9, FR-011–FR-014 and [contracts/auth-ui.md](../../../specs/006-authentication/contracts/auth-ui.md).
   - Render `<App />`. Use `fireEvent.change` on `getByLabelText('Usuario')` / `getByLabelText('Contraseña')` and `fireEvent.click` on the submit button (no new dependency).
   - `beforeEach`: `resetSession()` and `localStorage.clear()`. `afterEach`: `resetSession()`, `localStorage.clear()`, `vi.restoreAllMocks()`, `vi.unstubAllGlobals()` and `document.documentElement.lang = 'es'`.
 
@@ -388,14 +388,14 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
 
 ### Checks and review
 
-- [ ] T026 [TS-06] Run the checks, which depend on T001–T025. In `backend/`, run `python -m pytest`: everything passes, including the unchanged `test_health.py`, `test_db.py`, `test_models.py`, `test_migrations.py` and the updated `test_cors.py`, in under 30 s (SC-007). In `frontend/`, run `npm test` (everything passes, under 30 s) and `npm run build` (no errors). Keep all three outputs for the PR (D-27). Also confirm:
+- [X] T026 [TS-06] Run the checks, which depend on T001–T025. In `backend/`, run `python -m pytest`: everything passes, including the unchanged `test_health.py`, `test_db.py`, `test_models.py`, `test_migrations.py` and the updated `test_cors.py`, in under 30 s (SC-007). In `frontend/`, run `npm test` (everything passes, under 30 s) and `npm run build` (no errors). Keep all three outputs for the PR (D-27). Also confirm:
   - `git diff --stat main -- backend/migrations backend/app/models.py frontend/package.json frontend/package-lock.json frontend/src/StartPage.jsx` is empty (no migration, no new frontend dependency, `StartPage` unchanged).
   - `git diff main -- backend/requirements.txt` adds only `PyJWT==2.15.1`.
   - A Grep search of the repository (excluding `.venv`, `node_modules`, `dist`) finds no real-looking secret: `AUTH_SECRET=` only with a placeholder in `.env.example` and docs, and the only test secret is `test-only-secret-not-for-real-use-0123456789` and `another-secret-for-tests-only-0123456789` (SC-004).
   - A Grep of `frontend/src` `.jsx` files (excluding tests and `translations.js`) for `>[^<{}\s][^<{}]*<` finds no visible text (TS-05 SC-003).
 
   If a check fails, fix it in the owning task (qa-tester)
-- [ ] T027 [TS-06] **USER ACTION — done by the user, not an agent.** The orchestrator **stops here and waits for the user to confirm** before T029 or anything else that starts the real backend or runs the seed command. Agents must **not** create, read or edit `backend/.env`. The orchestrator shows the user these steps and waits:
+- [X] T027 [TS-06] **USER ACTION — done by the user, not an agent.** The orchestrator **stops here and waits for the user to confirm** before T029 or anything else that starts the real backend or runs the seed command. Agents must **not** create, read or edit `backend/.env`. The orchestrator shows the user these steps and waits:
   1. In `backend/` with the virtual environment active, run `python -m pip install -r requirements.txt` (installs PyJWT).
   2. Run `python -c "import secrets; print(secrets.token_urlsafe(48))"` and copy the printed value.
   3. Open `backend/.env` (copy `backend/.env.example` if it doesn't exist yet) and add these lines, keeping the existing `DATABASE_URL`:
@@ -406,7 +406,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   5. Tell the orchestrator "done".
 
   This is the same as [quickstart.md](quickstart.md) step 0 (FR-009, FR-016) (user)
-- [ ] T028 [TS-06] Review these files read-only: `backend/app/passwords.py`, `backend/app/auth.py`, `backend/app/seed_demo_users.py`, `backend/app/main.py`, `backend/.env.example`, `backend/requirements.txt`, `frontend/src/auth/*`, `frontend/src/api/client.js`, `frontend/src/LoginPage.jsx`, `frontend/src/components/AppShell.jsx`, and both READMEs. Check:
+- [X] T028 [TS-06] Review these files read-only: `backend/app/passwords.py`, `backend/app/auth.py`, `backend/app/seed_demo_users.py`, `backend/app/main.py`, `backend/.env.example`, `backend/requirements.txt`, `frontend/src/auth/*`, `frontend/src/api/client.js`, `frontend/src/LoginPage.jsx`, `frontend/src/components/AppShell.jsx`, and both READMEs. Check:
   - PBKDF2 parameters, and the constant-time compare;
   - the dummy-hash path for unknown users;
   - identical 401 bodies;
@@ -421,7 +421,7 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
   - the seed command touches nothing on bad input.
 
   Record accepted risks: stateless logout, no rate limiting (TS-10), and tokens readable by page scripts in `sessionStorage`. Report findings; don't change code (constitution VI, VIII) (security-reviewer)
-- [ ] T029 [TS-06] Run the manual checks in [quickstart.md](quickstart.md), steps 2 (Neon) and 3 (browser), after T026 and **only after the user confirmed T027**. They need a human with a browser and the `backend/.env` the user prepared in T027. If the agent can't do a step, report it as **pending for the user** with the exact commands, and don't mark it done. Record one line per step (2.1–2.5, 3.1–3.10) for the PR, without any secret, password, token or connection string (AC1, AC6–AC10, SC-001, FR-016) (orchestrator)
+- [X] T029 [TS-06] Run the manual checks in [quickstart.md](quickstart.md), steps 2 (Neon) and 3 (browser), after T026 and **only after the user confirmed T027**. They need a human with a browser and the `backend/.env` the user prepared in T027. If the agent can't do a step, report it as **pending for the user** with the exact commands, and don't mark it done. Record one line per step (2.1–2.5, 3.1–3.10) for the PR, without any secret, password, token or connection string (AC1, AC6–AC10, SC-001, FR-016) (orchestrator)
 
 **Checkpoint**: TS-06 is complete. Every later clinical endpoint uses `Depends(get_current_user)`, and every clinical screen is rendered inside `<RequireAuth>`.
 
@@ -429,8 +429,8 @@ None. TS-03 (the `users` table and models), TS-04 (CORS, `client.js`) and TS-05 
 
 ## Phase 4: Polish
 
-- [ ] T030 [P] Edit `DEVELOPMENT.md` "Run the app locally". Before "Terminal 1", add a one-time step: copy `backend/.env.example` to `backend/.env`, then set `AUTH_SECRET` (generation command), `DEMO_DOCTOR_PASSWORD` and `DEMO_NURSE_PASSWORD`, and run `python -m app.seed_demo_users` after `alembic upgrade head`. After "Then open http://localhost:5173", add: sign in as `demo.doctor` or `demo.nurse` with the password from your `.env`. Add one bullet linking `backend/README.md#authentication`. In "Never commit", make sure `backend/.env` is listed (orchestrator)
-- [ ] T031 Edit the project docs, after T026–T030:
+- [X] T030 [P] Edit `DEVELOPMENT.md` "Run the app locally". Before "Terminal 1", add a one-time step: copy `backend/.env.example` to `backend/.env`, then set `AUTH_SECRET` (generation command), `DEMO_DOCTOR_PASSWORD` and `DEMO_NURSE_PASSWORD`, and run `python -m app.seed_demo_users` after `alembic upgrade head`. After "Then open http://localhost:5173", add: sign in as `demo.doctor` or `demo.nurse` with the password from your `.env`. Add one bullet linking `backend/README.md#authentication`. In "Never commit", make sure `backend/.env` is listed (orchestrator)
+- [X] T031 Edit the project docs, after T026–T030:
   - **`docs/PROJECT_STATUS.md`**:
     - Set "Last updated" to the current date. In step 11's notes, mark TS-06 ✅ and set "Next: TS-07 (scoring module)"; set "Next step" to match.
     - Rewrite the "Where we left off" note: TS-06 is done (`/auth/login`, `/me`, `get_current_user`, `RequireAuth`, `sessionStorage['pdm.session']`, demo users created with `python -m app.seed_demo_users`), plus the local `pytest`/`npm test` results and the manual check results (or that they are pending for the user).

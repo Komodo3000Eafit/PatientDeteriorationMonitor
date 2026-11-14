@@ -75,7 +75,34 @@ key in `es` (the complete reference) and in `en`.
   (`es` or `en`). When nothing valid is stored, the page is in Spanish. To reset it, run
   `localStorage.removeItem('pdm.language')` in the browser console.
 
+## Sign-in
+
+- While signed out, the app shows the login page inside `AppShell` (with the disclaimer banner and
+  the language switch). The demo users (`demo.doctor`, `demo.nurse`) are created by the backend
+  command described in [backend/README.md](../backend/README.md#authentication).
+- The session (token and user) is kept in the browser under the `sessionStorage` key
+  `pdm.session`. It belongs to one tab: a reload keeps it, closing the tab signs out. No cookies
+  are used. **Sign out** clears it, and a `401` answer from the backend on a stored session signs
+  out and shows "Tu sesión ha terminado. Inicia sesión de nuevo."
+- [`src/api/client.js`](src/api/client.js) adds `Authorization: Bearer <token>` automatically.
+  Screens never handle the token and must call the backend only through the client.
+- To add a protected screen, render it inside `<RequireAuth>` (from
+  [`src/auth/RequireAuth.jsx`](src/auth/RequireAuth.jsx)), and get the signed-in user with
+  `useAuth()` (from [`src/auth/AuthContext.jsx`](src/auth/AuthContext.jsx)):
+
+  ```jsx
+  <RequireAuth>
+    <MyClinicalScreen />
+  </RequireAuth>
+  ```
+
+- Roles are shown with the `role.*` texts (`role.doctor`, `role.nurse`) from
+  `src/i18n/translations.js`.
+
 ## What the start page shows
+
+The start page is shown only after signing in, with the user's name, role and a sign-out button
+in the header.
 
 The page checks the backend's `GET /health` once when it loads:
 

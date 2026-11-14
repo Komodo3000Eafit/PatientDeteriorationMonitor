@@ -13,7 +13,10 @@ FastAPI application. All commands are for Windows PowerShell and are run from th
 py -3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
+
+Then fill in the real values in `backend/.env` (see [Database connection](#database-connection) and [Authentication](#authentication)). `backend/.env` is git-ignored; `backend/.env.example` holds placeholders only.
 
 ## Database connection
 
@@ -69,9 +72,79 @@ Set it in the terminal or as a line in `backend/.env`, like `DATABASE_URL`; a va
 - Spaces around entries and a trailing `/` are ignored.
 - Setting `CORS_ORIGINS` **replaces** the default: include `http://localhost:5173` in the list if you still need it.
 - `*` is not allowed. With a `*` entry the app stops at startup with `CORS_ORIGINS must not contain '*'; list the allowed origins explicitly`.
-- Only `GET` requests are allowed, and no cookies or credentials are sent.
+- Only `GET` and `POST` requests are allowed, with only the `Authorization` and `Content-Type` request headers (TS-06), and no cookies or credentials are sent.
 - `CORS_ORIGINS` is not a secret. The production origins are set in TS-10/TS-11.
 - In PowerShell, `$env:CORS_ORIGINS = ""` deletes the variable (the default then applies). To remove it explicitly, use `Remove-Item Env:CORS_ORIGINS`.
+
+## Authentication
+
+Clinicians sign in with a username and password and get a short-lived access token (TS-06).
+
+### Settings
+
+| Setting | Required | Rule | Used by |
+|---|---|---|---|
+| `AUTH_SECRET` | yes | random value, at least 32 characters; signs the tokens | the app |
+| `ACCESS_TOKEN_MINUTES` | no | whole number from 1 to 1440; default 480 (8 hours) | the app |
+| `DEMO_DOCTOR_PASSWORD` | for the command | at least 8 characters | `python -m app.seed_demo_users` only |
+| `DEMO_NURSE_PASSWORD` | for the command | at least 8 characters | `python -m app.seed_demo_users` only |
+
+Put them in `backend/.env` (copy `backend/.env.example`), like `DATABASE_URL`. **Never commit `backend/.env` and never paste its contents in a chat.**
+
+Generate the secret with:
+
+```powershell
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+The app refuses to start without a valid secret. It stops with `AUTH_SECRET must be set to a random value of at least 32 characters` (or `ACCESS_TOKEN_MINUTES must be a whole number of minutes from 1 to 1440`). The message names the setting only, never its value.
+
+### Demo users
+
+After `alembic upgrade head`, run:
+
+```powershell
+python -m app.seed_demo_users
+```
+
+It creates or updates two demo accounts, with the passwords from `DEMO_DOCTOR_PASSWORD` and `DEMO_NURSE_PASSWORD`:
+
+| Username | Full name | Role |
+|---|---|---|
+| `demo.doctor` | Dra. Ana Demo | doctor |
+| `demo.nurse` | Enf. Luis Demo | nurse |
+
+It is safe to run again: it updates the passwords and never creates duplicates. Only password hashes are stored. It prints one line per account (`created: demo.doctor` or `updated: demo.doctor`), and never prints passwords, hashes or the connection string. It needs no `AUTH_SECRET`.
+
+### Endpoints
+
+See [contracts/auth-api.md](../specs/006-authentication/contracts/auth-api.md) for the full contract.
+
+- `POST /auth/login` (public): body `{"username": "...", "password": "..."}`; returns `{"access_token": "...", "token_type": "bearer", "expires_in": 28800}`. A wrong username or password gives the same `401 {"detail": "Incorrect username or password"}`.
+- `GET /me` (protected): returns `{"username", "full_name", "role"}` of the signed-in user; without a valid token, `401 {"detail": "Not authenticated"}`.
+- `GET /health` stays public.
+
+To try them in <http://127.0.0.1:8000/docs>: call `POST /auth/login`, copy the `access_token`, click **Authorize**, paste the token and then call `GET /me`.
+
+### Protecting a new endpoint
+
+Every clinical endpoint must require a signed-in user:
+
+```python
+from app.auth import get_current_user
+from app.models import User
+
+@router.get("/patients")
+def list_patients(user: User = Depends(get_current_user)): ...
+```
+
+A missing, invalid or expired token gives 401, and the token is checked before any database access.
+
+### Notes
+
+- Logout is client-side only (the frontend forgets the token); tokens expire after `ACCESS_TOKEN_MINUTES`.
+- In CI and Azure, `AUTH_SECRET` will be a GitHub/Azure secret (TS-09/TS-10).
+- Login rate limiting is not done yet (TS-10).
 
 ## Run
 
@@ -102,7 +175,7 @@ ok     0.1.0   ok
 python -m pytest
 ```
 
-The tests need no database, no `backend/.env` and no network access. They also check the schema (the models) and the migrations (the offline upgrade and downgrade SQL) without a database.
+The tests need no database, no `backend/.env` and no network access. They use a fake built-in `AUTH_SECRET`, so a developer's `.env` never changes them. They also check the schema (the models) and the migrations (the offline upgrade and downgrade SQL) without a database.
 
 ## Version
 

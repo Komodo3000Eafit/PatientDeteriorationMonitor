@@ -1,8 +1,11 @@
 // TS-04 start page tests: AC2, AC3, AC4, AC8 and FR-008, following
 // specs/004-react-app-skeleton/contracts/health-ui.md. Synthetic responses only; fetch is mocked.
-import { describe, it, expect, vi, afterEach } from 'vitest'
+// TS-06 FR-018: every test starts signed in (synthetic session) and fetch is routed by path, so
+// the start page behaves as before; /me answers with the synthetic doctor.
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
 import App from './App.jsx'
+import { callsTo, resetSession, signInForTest, stubBackend } from './testing/fakeBackend.js'
 
 const CHECKING = 'Comprobando la conexión con el servidor…'
 const UNREACHABLE = 'No se puede conectar con el servidor.'
@@ -12,6 +15,10 @@ function jsonResponse(body, status = 200) {
   return { ok: status >= 200 && status < 300, status, json: async () => body }
 }
 
+beforeEach(() => signInForTest())
+
+afterEach(resetSession)
+
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.useRealTimers()
@@ -19,10 +26,9 @@ afterEach(() => {
 
 describe('App start page', () => {
   it('AC2 shows checking first, then API ok, version and database available', async () => {
-    const fetchMock = vi.fn(async () =>
-      jsonResponse({ status: 'ok', version: '0.1.0', database: 'ok' }),
-    )
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = stubBackend({
+      health: async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'ok' }),
+    })
 
     render(<App />)
     expect(screen.getByText(CHECKING)).toBeTruthy()
@@ -31,14 +37,13 @@ describe('App start page', () => {
     expect(screen.getByText('Versión: 0.1.0')).toBeTruthy()
     expect(screen.getByText('Base de datos: disponible')).toBeTruthy()
     expect(screen.queryByText(CHECKING)).toBeNull()
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(callsTo(fetchMock, '/health')).toHaveLength(1)
   })
 
   it('AC3 shows database not available', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'unavailable' })),
-    )
+    stubBackend({
+      health: async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'unavailable' }),
+    })
 
     render(<App />)
 
@@ -48,10 +53,9 @@ describe('App start page', () => {
   })
 
   it('edge case: unknown database value is shown as not available', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'weird' })),
-    )
+    stubBackend({
+      health: async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'weird' }),
+    })
 
     render(<App />)
 
@@ -60,12 +64,11 @@ describe('App start page', () => {
   })
 
   it('AC4 network error shows backend unreachable', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
+    stubBackend({
+      health: async () => {
         throw new TypeError('Failed to fetch')
-      }),
-    )
+      },
+    })
 
     render(<App />)
 
@@ -77,7 +80,7 @@ describe('App start page', () => {
   })
 
   it('AC4 non-200 status shows backend unreachable', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({}, 500)))
+    stubBackend({ health: async () => jsonResponse({}, 500) })
 
     render(<App />)
 
@@ -87,7 +90,7 @@ describe('App start page', () => {
   })
 
   it('AC4 unexpected body shows backend unreachable', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({ foo: 'bar' })))
+    stubBackend({ health: async () => jsonResponse({ foo: 'bar' }) })
 
     render(<App />)
 
@@ -99,17 +102,14 @@ describe('App start page', () => {
   it('AC4 timeout after 10 seconds shows backend unreachable', async () => {
     // Only the client's timer is faked; React's scheduler keeps working (research R5).
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(
-        (url, { signal }) =>
-          new Promise((_, reject) => {
-            signal.addEventListener('abort', () =>
-              reject(new DOMException('Aborted', 'AbortError')),
-            )
-          }),
-      ),
-    )
+    stubBackend({
+      health: (url, { signal }) =>
+        new Promise((_, reject) => {
+          signal.addEventListener('abort', () =>
+            reject(new DOMException('Aborted', 'AbortError')),
+          )
+        }),
+    })
 
     render(<App />)
     expect(screen.getByText(CHECKING)).toBeTruthy()

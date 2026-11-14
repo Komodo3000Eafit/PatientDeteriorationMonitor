@@ -45,3 +45,37 @@ main {
   font-weight: 700;
   text-decoration: underline;
 }
+
+/* Sign-in (TS-06): user block in the header and the login form. */
+.user-block {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.user-name {
+  font-weight: 600;
+}
+
+.user-block button,
+.login-form button {
+  font: inherit;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+
+.login-form {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 20rem;
+}
+
+.login-form input {
+  font: inherit;
+  padding: 0.3rem;
+}
+
+.login-form [role="alert"] {
+  margin: 0;
+  color: #a40000;
+}
