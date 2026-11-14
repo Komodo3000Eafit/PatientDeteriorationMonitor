@@ -69,7 +69,7 @@ Stopped: round limit reached. Rounds: 2, readings saved: 12.
 |---|---|---|
 | normal stop or Ctrl+C | (none); the summary is on stdout | 0 |
 | `DATABASE_URL` not set | `DATABASE_URL is not set` (before any round) | 1 |
-| database error (`SQLAlchemyError`) at any time | `Could not reach the database (<ErrorType>)`, after the summary of what was already saved | 1 |
+| database error (`SQLAlchemyError`) at any time | `Could not reach the database (<ErrorType>)`, after the stdout summary `Stopped: database error. Rounds: N, readings saved: M.` | 1 |
 | bad or conflicting option | argparse usage message (before any database access) | 2 |
 
 ## 3. `app.readings.record_reading(session, patient_id, vitals) -> VitalSign`
