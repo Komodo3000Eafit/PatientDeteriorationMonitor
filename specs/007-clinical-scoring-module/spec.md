@@ -51,7 +51,7 @@
 - All seven parameters normal (total 0): band `low`, every explanation entry shows 0 points.
 - Total 4 made only of 1- and 2-point parameters → `low`; total 3 made of a single 3 (e.g. consciousness V) → `low-medium`.
 - A single 3 plus enough other points to reach 5 or 7 → `medium` or `high`, never `low-medium`.
-- Maximum possible score (every parameter at its highest points: 3+3+2+3+3+3+2 = 19) → `high`.
+- Maximum possible score (every parameter at its highest points: 3+3+2+3+3+3+3 = 20, temperature ≤35.0 scoring 3) → `high`.
 - Temperature exactly on a boundary (35.0, 35.1, 36.0, 36.1, 38.0, 38.1, 39.0, 39.1) scores by the table; temperatures with more than one decimal are rejected (they cannot be stored by TS-03 and would fall between NEWS2 ranges).
 - Integer parameters given with a fractional part (e.g. heart rate 90.5) are rejected, not rounded.
 - On supplemental oxygen given as anything other than yes/no (true/false), e.g. the text "yes" or the number 1, is rejected.

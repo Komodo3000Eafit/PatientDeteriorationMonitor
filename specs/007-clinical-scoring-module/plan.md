@@ -173,7 +173,7 @@ docs/DECISIONS.md                   # CHANGED: D-36
   - a single 3 with total 3 and with total 4 → low-medium;
   - 5 and 6 (one of them with a 3) → medium;
   - 7 → high;
-  - maximum 19 → high.
+  - maximum 20 → high.
 - **Worked examples** (whole result checked, including every entry):
   - all normal → 0/low;
   - RR 22, SpO2 95, HR 95, the rest normal → 4/low;
