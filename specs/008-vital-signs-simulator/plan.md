@@ -139,7 +139,7 @@ docs/DECISIONS.md               # CHANGED: D-37
 - **`simulator.py`**:
   - `SCENARIOS` is a dict of `{"steps", "params": {name: (start, final, noise)}, "oxygen_at", "c_at"}` (data-model). `scenario_for(identifier)` uses `DEMO_PATIENTS`, otherwise `"stable"`.
   - `generate_vitals(scenario, seed, identifier, step) -> VitalSigns` is pure (R3, R5).
-  - `run_round(session, seed, out) -> int`:
+  - `run_round(session, seed, out, stats) -> int` (adds 1 to `stats["saved"]` after each commit, so the totals stay right when a round is interrupted):
     1. queries the active patients ordered by identifier, plus the reading counts (`GROUP BY`);
     2. for each patient, generates the values, calls `record_reading` and commits;
     3. on `InvalidVitalSigns`, rolls back, prints the parameter names and continues;

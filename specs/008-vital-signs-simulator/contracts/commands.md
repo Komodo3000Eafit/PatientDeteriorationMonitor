@@ -82,5 +82,5 @@ Stopped: round limit reached. Rounds: 2, readings saved: 12.
   - It validates with `app.scoring.validate_vital_signs`. Invalid values raise `InvalidVitalSigns` (with problems listed by parameter and reason, and no values), and **nothing is added to the session**.
   - When the values are valid, it adds one `VitalSign` row with the 7 values, calls `flush()`, and returns the row, which now has its `id`.
   - It does not commit. The caller commits or rolls back.
-- **Single insertion point**: no other code in `backend/app/` creates `VitalSign` rows. A test enforces this with a source search, the same approach as the TS-07 isolation test.
+- **Single insertion point**: no other code in `backend/app/` creates `VitalSign` rows. A test enforces this with a source search for `VitalSign(`, the same approach as the TS-07 isolation test. The search ignores the class definition `class VitalSign(Base):` in `app/models.py`.
 - **Extension (US-03)**: US-03 adds scoring and storing the score inside this function (or right after the insert, in the same function). Callers don't change.

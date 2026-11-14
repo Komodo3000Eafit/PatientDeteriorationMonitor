@@ -21,7 +21,7 @@ description: "Task list for TS-08 vital signs simulator"
 - Edit files with Edit/Write, not PowerShell (CLAUDE.md). Keep the files UTF-8.
 - **Standard library only.** Do not touch `backend/requirements.txt`, `backend/app/models.py`, `backend/migrations/`, `backend/app/main.py`, `backend/app/db.py` or `backend/app/scoring/`. No endpoint and no UI. The simulator never starts with the API (FR-010).
 - No code in `backend/app/` outside `app/scoring/` may contain the text `news2` (the TS-07 isolation test). The simulator imports only from `app.scoring`.
-- Only `backend/app/readings.py` may construct `VitalSign(` rows in `backend/app/` (FR-008).
+- Only `backend/app/readings.py` may construct `VitalSign(` rows in `backend/app/` (FR-008). The class definition `class VitalSign(` in `backend/app/models.py` is not a construction and is excluded from the check.
 - Never print or log the connection string, driver error messages or patient names in the simulator output.
 
 ---
@@ -74,8 +74,8 @@ None. TS-03 (tables) and TS-07 (`app.scoring`) are merged, and there is no migra
 
     No commit.
   - **`parse_args(argv)`**: argparse with `--reset` and `--yes` (`store_true`), and a description that names the command.
-  - **`main(argv=None, input_fn=input, is_interactive=sys.stdin.isatty) -> int`**:
-    1. Parse the arguments.
+  - **`main(argv=None, input_fn=input, is_interactive=None) -> int`**:
+    1. Parse the arguments. If `is_interactive is None`, use `lambda: sys.stdin is not None and sys.stdin.isatty()`, resolved at call time and not at import (analyze U2).
     2. If `--reset` without `--yes`: when `is_interactive()`, ask `input_fn('Type "yes" to delete the readings, triage events and alerts of PAT-001 to PAT-006: ')`. `EOFError` counts as no. If the answer is not exactly `yes` after `strip()`, or the input is not interactive, print `Reset cancelled: nothing was changed` to stderr and return 1, **before any database access**.
     3. If `database_url() is None`, print `DATABASE_URL is not set` to stderr and return 1.
     4. `with Session(get_engine()) as session:` run reset or ensure, then `session.commit()` once.
@@ -99,27 +99,28 @@ None. TS-03 (tables) and TS-07 (`app.scoring`) are merged, and there is no migra
     4. `on_oxygen = oxygen_at is not None and progress >= oxygen_at`, and `consciousness = "C" if c_at is not None and progress >= c_at else "A"`.
     5. Return `VitalSigns(...)`.
   - **`_summary(v) -> str`** returns `"RR {rr}, SpO2 {spo2}, O2 {yes|no}, SBP {sbp}, HR {hr}, ACVPU {c}, T {t}"`.
-  - **`run_round(session, seed, out) -> int`**:
+  - **`run_round(session, seed, out, stats) -> int`**. `stats` is the run's counter dict `{"rounds": int, "saved": int}`, and `run_round` increments `stats["saved"]` right after each successful `session.commit()` (analyze F1):
     1. Query the active patients: `select(Patient.id, Patient.identifier).where(Patient.status == "active").order_by(Patient.identifier)`.
     2. Get the counts with one query: `select(VitalSign.patient_id, func.count()).group_by(VitalSign.patient_id)`, made into a dict.
     3. If there are no active patients, `out("  no active patients")` and return 0.
     4. For each patient:
        - `step = counts.get(id, 0)`, `scenario = scenario_for(identifier)`, `vitals = generate_vitals(scenario, seed, identifier, step)`;
-       - `try: record_reading(session, id, vitals); session.commit()`;
+       - `try: record_reading(session, id, vitals); session.commit(); stats["saved"] += 1`;
        - `except InvalidVitalSigns as exc: session.rollback(); out(f"  {identifier} not saved: invalid {', '.join(p.parameter for p in exc.problems)}"); continue`;
        - `out(f"  {identifier} {scenario} step {step}: {_summary(vitals)}")`.
 
        Never print the patient's name.
     5. Return the number saved.
   - **`run(interval, max_rounds, max_seconds, seed, session_factory, sleep=time.sleep, clock=time.monotonic, out=print, stats=None) -> tuple[int, int, str]`**:
-    1. `start = clock()`, then loop:
-       - increment `rounds` and `out(f"Round {rounds}")`;
-       - `with session_factory() as session: saved += run_round(session, seed, out)`;
-       - if `max_rounds is not None and rounds >= max_rounds` → reason `"round limit reached"`, break;
+    1. If `stats is None`, create `stats = {"rounds": 0, "saved": 0}`. This dict is the **only** counter, so the totals stay right when a round is interrupted (analyze F1).
+    2. `start = clock()`, then loop:
+       - `stats["rounds"] += 1` and `out(f"Round {stats['rounds']}")`;
+       - `with session_factory() as session: run_round(session, seed, out, stats)`;
+       - if `max_rounds is not None and stats["rounds"] >= max_rounds` → reason `"round limit reached"`, break;
        - if `clock() - start + interval >= max_seconds` → reason `"time limit reached"`, break;
        - `sleep(interval)`.
-    2. Wrap the loop in `try/except KeyboardInterrupt` → reason `"stopped by Ctrl+C"`. The `with` block closes the session, and the uncommitted reading is discarded.
-    3. Return `(rounds, saved, reason)`.
+    3. Wrap the loop in `try/except KeyboardInterrupt` → reason `"stopped by Ctrl+C"`. The `with` block closes the session, and the uncommitted reading is discarded. A `SQLAlchemyError` is not caught here; it propagates to `main`, and `stats` already holds the committed totals.
+    4. Return `(stats["rounds"], stats["saved"], reason)`.
   - **`positive_int(text)`** is an argparse type that raises `argparse.ArgumentTypeError("must be a positive whole number")` for a non-integer or a value ≤ 0.
   - **`parse_args(argv)`**:
     - group A (mutually exclusive): `--interval-seconds` (`positive_int`) or `--demo`;
@@ -133,7 +134,7 @@ None. TS-03 (tables) and TS-07 (`app.scoring`) are merged, and there is no migra
     3. `seed = args.seed if args.seed is not None else random.SystemRandom().randrange(1_000_000)`.
     4. Print the header `Simulator: interval {i} s, limit {m} min, rounds {n or "no limit"}, seed {seed} (use --seed {seed} to repeat)`.
     5. `try: rounds, saved, reason = run(..., session_factory=lambda: Session(get_engine()))`.
-    6. `except SQLAlchemyError as exc`: print `Stopped: database error. Rounds: {stats["rounds"]}, readings saved: {stats["saved"]}.` to stdout, then `Could not reach the database (<type name>)` to stderr, and return 1. For this, `run` takes an optional `stats: dict | None = None` argument (`{"rounds": 0, "saved": 0}`, created by `main`) and updates it after each round and each saved reading. `run`'s return value is unchanged.
+    6. `except SQLAlchemyError as exc`: print `Stopped: database error. Rounds: {stats["rounds"]}, readings saved: {stats["saved"]}.` to stdout, then `Could not reach the database (<type name>)` to stderr, and return 1. For this, `main` creates `stats = {"rounds": 0, "saved": 0}` and passes it to `run`, so the totals are still available after the exception.
     7. Otherwise print `Stopped: {reason}. Rounds: {rounds}, readings saved: {saved}.` and return 0.
   - End with `if __name__ == "__main__": raise SystemExit(main())`.
   - The file must not contain the text `news2`.
@@ -156,7 +157,7 @@ All three test files use an in-memory SQLite engine fixture: `create_engine("sql
 - [ ] T006 [P] [TS-08] Create `backend/tests/test_readings.py` (depends on T002). The module docstring cites FR-007, FR-008 and AC7. Tests:
   1. **`test_record_valid_reading`**: one patient, and a valid `VitalSigns(16, 97, False, 120, 72, "A", Decimal("36.8"))`. `record_reading` returns a row with an id and the 7 values equal to the input. After `session.rollback()` the row is gone, which proves the function does not commit.
   2. **`test_record_invalid_reading_saves_nothing`**: SpO2 101 and consciousness "X" raise `InvalidVitalSigns` with problems `spo2 out_of_range` and `consciousness not_allowed`. `session.new` is empty, and after a commit the count of `VitalSign` rows is 0.
-  3. **`test_single_writer`** (FR-008): walk `backend/app/**/*.py` and assert that `"VitalSign("` appears only in `app/readings.py`.
+  3. **`test_single_writer`** (FR-008): walk `backend/app/**/*.py` and collect the lines that contain `"VitalSign("`, skipping lines that start (after whitespace) with `class VitalSign(`. Assert that every remaining match is in `app/readings.py` and that there is at least one there. Fail with the offending file names (analyze C1).
 
   (qa-tester)
 - [ ] T007 [P] [TS-08] Create `backend/tests/test_demo_patients.py` (depends on T003). The module docstring cites FR-001, FR-002, FR-013, FR-017, AC1, AC11 and SC-005. Tests:
@@ -180,7 +181,7 @@ All three test files use an in-memory SQLite engine fixture: `create_engine("sql
   7. **`test_scenarios_known`**: every `DEMO_PATIENTS` scenario is a key of `app.simulator.SCENARIOS`, and the initial levels are within 3–5.
 
   (qa-tester)
-- [ ] T008 [P] [TS-08] Create `backend/tests/test_simulator.py` (depends on T004). The module docstring cites FR-003 to FR-012, AC2 to AC9, SC-002 and SC-003. Define `fake_sleep`, which records the intervals, and a fake clock that advances by each slept interval. Tests:
+- [ ] T008 [P] [TS-08] Create `backend/tests/test_simulator.py` (depends on T004). The module docstring cites FR-003 to FR-012, AC2 to AC9, SC-002 and SC-003. Define `fake_sleep`, which records the intervals, and a fake clock that advances by each slept interval. Tests that call `run_round` directly pass `stats = {"rounds": 0, "saved": 0}` and also check `stats["saved"]`. Tests:
   1. **`test_values_within_limits_and_types`** (AC6, SC-003): for every scenario, seeds 1 to 5 and steps 0 to 50, `generate_vitals` returns:
      - exact types (`type(x) is int` for the 4 integers, `bool`, `"A"`/`"C"`, a `Decimal` with exponent −1);
      - values within `ACCEPTED_LIMITS`;
@@ -204,7 +205,8 @@ All three test files use an in-memory SQLite engine fixture: `create_engine("sql
       - interval 15 with 60 s → 4 rounds.
   12. **`test_ctrl_c`** (AC8):
       - sleep raising `KeyboardInterrupt` after round 2 → `(2, 2 * n, "stopped by Ctrl+C")`, with the committed readings kept;
-      - `record_reading` patched to raise `KeyboardInterrupt` on the 3rd patient → the first two readings are kept, there is no third row, and the reason is Ctrl+C.
+      - `app.simulator.record_reading` (the name the simulator imported, not `app.readings.record_reading`; analyze U1) patched with a wrapper that calls the real function but raises `KeyboardInterrupt` on the 3rd patient of round 1 → returns `(1, 2, "stopped by Ctrl+C")`, the two committed readings are kept, and there is no third row (analyze F1).
+      - A `SQLAlchemyError` raised the same way on the 3rd patient propagates from `run`, and the passed `stats` dict holds `{"rounds": 1, "saved": 2}`.
   13. **`test_options`** (AC3):
       - `parse_args([])` → interval 300, minutes 60, rounds None;
       - `--demo` → 15; `--interval-seconds 20` → 20; `--once` → rounds 1;
@@ -225,7 +227,7 @@ All three test files use an in-memory SQLite engine fixture: `create_engine("sql
 - [ ] T009 [TS-08] Run `python -m pytest` in `backend/` (depends on T002–T008). Everything passes: the 256 existing tests plus the new ones (SC-006). Keep the output for the PR (D-27). Also confirm:
   - `git diff --stat main -- backend/requirements.txt backend/app/models.py backend/migrations backend/app/main.py backend/app/db.py backend/app/scoring` is empty;
   - `git grep -n -i news2 -- backend/app ':!backend/app/scoring'` prints nothing;
-  - `git grep -n "VitalSign(" -- backend/app` shows only `backend/app/readings.py`.
+  - `git grep -n "VitalSign(" -- backend/app` shows only `backend/app/readings.py` and the class definition `class VitalSign(Base):` in `backend/app/models.py` (analyze C1).
 
   If a check fails, fix it in the owning task (qa-tester)
 - [ ] T010 [TS-08] Review read-only: `backend/app/readings.py`, `demo_patients.py`, `simulator.py`, the three new test files and the README section. Check:
@@ -245,14 +247,20 @@ All three test files use an in-memory SQLite engine fixture: `create_engine("sql
 
 ## Phase 4: Polish
 
-- [ ] T011 Run the one-time Neon check from [quickstart.md](quickstart.md) §2, steps 1–7, against the Neon `main` branch. Keep the session short. Record the commands, the summarized output (with no connection string) and the row counts for the PR description (FR-015) (orchestrator)
+- [ ] T011 Run the one-time Neon check from [quickstart.md](quickstart.md) §2, steps 1–7, against the Neon `main` branch. Keep the session short. Record for the PR description (FR-015):
+  - the commands;
+  - the summarized output (with no connection string);
+  - the row counts;
+  - the elapsed time from starting step 1 (create the demo patients) to the end of step 2 (the first round), as evidence for SC-001 (under 2 minutes; analyze S1).
+
+  (orchestrator)
 - [ ] T012 Edit the project docs, after T009–T011:
   - **`docs/PROJECT_STATUS.md`**:
     - Set "Last updated" to the current date. In step 11's notes, mark TS-08 ✅ and set "Next: TS-09 (CI pipeline)"; update "Current step" and "Next step" to match.
     - Rewrite the "Where we left off" note: TS-08 done (`app/readings.py` `record_reading`, `python -m app.demo_patients [--reset --yes]`, `python -m app.simulator`, with the options and defaults), with the local `pytest` result, the review result and the Neon check result.
     - Under "Notes for later stories", add:
       - **US-03** extends `record_reading` to score the reading and store the result. If it adds a table that refers to `vital_signs` or `patients`, it adds that table to `reset_demo_patients`' delete list.
-      - **US-01** identifiers must not reuse PAT-001 to PAT-006 (the demo identifiers).
+      - **US-01** must reject the six demo identifiers PAT-001 to PAT-006 when registering a patient, because `--reset` treats any patient with those identifiers as demo data (analyze D1).
   - **`docs/BACKLOG.md`**: link `specs/008-vital-signs-simulator` in TS-08's Spec column. Set Status ✅ only when the PR is merged.
   - **`docs/DECISIONS.md`**: add **D-37** after D-36 (the current date, Status "Active"), using the table format of D-36. Content:
     - **Decision**: vital signs simulator (TS-08) as two hand-run standard-library commands.
