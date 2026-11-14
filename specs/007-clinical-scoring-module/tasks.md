@@ -26,7 +26,7 @@ description: "Task list for TS-07 clinical scoring module"
 
 ## Phase 1: Setup
 
-- [ ] T001 [TS-07] Create the package folder `backend/app/scoring/` (the files are created in T002–T005). Confirm `python -m pytest` passes before any change (136 tests today) so later failures are clearly new (backend-dev)
+- [X] T001 [TS-07] Create the package folder `backend/app/scoring/` (the files are created in T002–T005). Confirm `python -m pytest` passes before any change (136 tests today) so later failures are clearly new (backend-dev)
 
 ---
 
@@ -44,7 +44,7 @@ None. TS-01 (backend skeleton, pytest) is merged. The TS-03 column types define 
 
 ### Implementation
 
-- [ ] T002 [P] [TS-07] Create `backend/app/scoring/base.py` with the module docstring "Generic scoring types (TS-07). Nothing here is specific to NEWS2; see specs/007-clinical-scoring-module/data-model.md." It uses only `dataclasses`, `decimal.Decimal` and `typing.Protocol`. Contents:
+- [X] T002 [P] [TS-07] Create `backend/app/scoring/base.py` with the module docstring "Generic scoring types (TS-07). Nothing here is specific to NEWS2; see specs/007-clinical-scoring-module/data-model.md." It uses only `dataclasses`, `decimal.Decimal` and `typing.Protocol`. Contents:
   - `PARAMETERS = ("respiratory_rate", "spo2", "on_oxygen", "systolic_bp", "heart_rate", "consciousness", "temperature")`.
   - `RISK_BANDS = ("low", "low-medium", "medium", "high")`.
   - `@dataclass(frozen=True) class VitalSigns` with the fields, in this order:
@@ -78,7 +78,7 @@ None. TS-01 (backend skeleton, pytest) is merged. The TS-03 column types define 
     - The message never contains a value.
 
   (FR-001, FR-002, FR-004; data-model) (backend-dev)
-- [ ] T003 [TS-07] Create `backend/app/scoring/limits.py` (depends on T002). Module docstring: "Accepted value ranges and strict validation (TS-07, FR-005, FR-011). Generic plausibility limits, not NEWS2 rules; US-03 reuses ACCEPTED_LIMITS." Contents:
+- [X] T003 [TS-07] Create `backend/app/scoring/limits.py` (depends on T002). Module docstring: "Accepted value ranges and strict validation (TS-07, FR-005, FR-011). Generic plausibility limits, not NEWS2 rules; US-03 reuses ACCEPTED_LIMITS." Contents:
   - `@dataclass(frozen=True) class Limit`:
     - `kind: str` (`"integer" | "decimal" | "boolean" | "code"`)
     - `minimum: int | Decimal | None = None`
@@ -117,7 +117,7 @@ None. TS-01 (backend skeleton, pytest) is merged. The TS-03 column types define 
   - Never include a value in any problem or message.
 
   (FR-005, FR-011; research R5–R8; data-model "Limit", "Problem") (backend-dev)
-- [ ] T004 [TS-07] Create `backend/app/scoring/news2.py` (depends on T002, T003). Module docstring: "NEWS2 (Royal College of Physicians, 2017), SpO2 Scale 1 only. The only module that knows NEWS2 rules (FR-006). Source: specs/007-clinical-scoring-module/research.md R1. Scale 2 (hypercapnic patients) is not implemented." Contents:
+- [X] T004 [TS-07] Create `backend/app/scoring/news2.py` (depends on T002, T003). Module docstring: "NEWS2 (Royal College of Physicians, 2017), SpO2 Scale 1 only. The only module that knows NEWS2 rules (FR-006). Source: specs/007-clinical-scoring-module/research.md R1. Scale 2 (hypercapnic patients) is not implemented." Contents:
   - `NUMERIC_BANDS`: each tuple is `(low, high, points)`, inclusive, with `None` for an open end:
     - `respiratory_rate`: `((None, 8, 3), (9, 11, 1), (12, 20, 0), (21, 24, 2), (25, None, 3))`
     - `spo2`: `((None, 91, 3), (92, 93, 2), (94, 95, 1), (96, None, 0))`
@@ -140,14 +140,14 @@ None. TS-01 (backend skeleton, pytest) is merged. The TS-03 column types define 
   - `NEWS2 = News2()`.
 
   (FR-002, FR-003, FR-004; research R1, R3; data-model "NEWS2 tables") (backend-dev)
-- [ ] T005 [TS-07] Create `backend/app/scoring/__init__.py` (depends on T002–T004). Module docstring: "Clinical scoring (TS-07). Callers import only from app.scoring and get the current system from get_scoring_system(); see specs/007-clinical-scoring-module/contracts/scoring-interface.md." Contents:
+- [X] T005 [TS-07] Create `backend/app/scoring/__init__.py` (depends on T002–T004). Module docstring: "Clinical scoring (TS-07). Callers import only from app.scoring and get the current system from get_scoring_system(); see specs/007-clinical-scoring-module/contracts/scoring-interface.md." Contents:
   - Re-export from `.base`: `PARAMETERS`, `RISK_BANDS`, `VitalSigns`, `ParameterScore`, `ScoreResult`, `ScoringSystem`, `Problem` and `InvalidVitalSigns`.
   - Re-export from `.limits`: `Limit`, `ACCEPTED_LIMITS`, `validate_vital_signs` and `vital_signs_from_mapping`.
   - `def get_scoring_system() -> ScoringSystem:`, with a docstring saying it is "The single selection point. To replace NEWS2, add a module with a ScoringSystem implementation and return it here." The body is `return NEWS2` (import `NEWS2` from `.news2` inside this module only).
   - `__all__` lists exactly the 13 public names of the contract.
 
   (FR-001, FR-006; contract) (backend-dev)
-- [ ] T006 [P] [TS-07] Add a section `## Clinical scoring` to `backend/README.md`, before `## Run`. It contains:
+- [X] T006 [P] [TS-07] Add a section `## Clinical scoring` to `backend/README.md`, before `## Run`. It contains:
   1. One sentence: what it does and that it is pure Python with no database or endpoint (US-03 calls it).
   2. The example from [contracts/scoring-interface.md](contracts/scoring-interface.md).
   3. An input table with the 7 fields, their types and accepted ranges (as in data-model `ACCEPTED_LIMITS`), saying `ACCEPTED_LIMITS` is the single source and API code must reuse it.
@@ -160,7 +160,7 @@ None. TS-01 (backend skeleton, pytest) is merged. The TS-03 column types define 
 
 ### Tests
 
-- [ ] T007 [P] [TS-07] Create `backend/tests/test_scoring_news2.py` (depends on T005; may import `app.scoring.news2` only to read its tables). Module docstring cites FR-003/FR-004/FR-009 and research R1/R4. Use a helper `normal(**overrides)` that builds `VitalSigns(16, 98, False, 120, 70, "A", Decimal("37.0"))` with overrides, and `score(v) = get_scoring_system().score(v)`. Tests:
+- [X] T007 [P] [TS-07] Create `backend/tests/test_scoring_news2.py` (depends on T005; may import `app.scoring.news2` only to read its tables). Module docstring cites FR-003/FR-004/FR-009 and research R1/R4. Use a helper `normal(**overrides)` that builds `VitalSigns(16, 98, False, 120, 70, "A", Decimal("37.0"))` with overrides, and `score(v) = get_scoring_system().score(v)`. Tests:
   1. **`test_boundary_points` (AC2)**: parametrized over a **hand-written** list of `(parameter, value, points)` taken from the RCP chart in research R1, **not** generated from the module tables. The list contains:
      - **respiratory_rate**: 0→3, 8→3, 9→1, 11→1, 12→0, 20→0, 21→2, 24→2, 25→3, 80→3
      - **spo2**: 0→3, 91→3, 92→2, 93→2, 94→1, 95→1, 96→0, 100→0
@@ -206,7 +206,7 @@ None. TS-01 (backend skeleton, pytest) is merged. The TS-03 column types define 
      - `[3, 2, 2, 0, 0, 0, 0]` → high.
 
   (AC1–AC3, FR-003, FR-004, FR-009, SC-001) (qa-tester)
-- [ ] T008 [P] [TS-07] Create `backend/tests/test_scoring_limits.py` (depends on T005; imports only from `app.scoring`). Module docstring cites FR-005/FR-011 and research R5–R7. Use `VALID = {"respiratory_rate": 16, "spo2": 98, "on_oxygen": False, "systolic_bp": 120, "heart_rate": 70, "consciousness": "A", "temperature": Decimal("37.0")}`. Tests:
+- [X] T008 [P] [TS-07] Create `backend/tests/test_scoring_limits.py` (depends on T005; imports only from `app.scoring`). Module docstring cites FR-005/FR-011 and research R5–R7. Use `VALID = {"respiratory_rate": 16, "spo2": 98, "on_oxygen": False, "systolic_bp": 120, "heart_rate": 70, "consciousness": "A", "temperature": Decimal("37.0")}`. Tests:
   1. **`test_invalid_value` (AC4)**: parametrized `(parameter, value, reason)` over:
      - `("spo2", 101, "out_of_range")`, `("spo2", -1, "out_of_range")`
      - `("heart_rate", -1, "out_of_range")`, `("heart_rate", 301, "out_of_range")`
@@ -232,7 +232,7 @@ None. TS-01 (backend skeleton, pytest) is merged. The TS-03 column types define 
   7. **`test_temperature_normalised`**: `vital_signs_from_mapping({**VALID, "temperature": 37})` gives `temperature == Decimal("37.0")`; `36.7` (float) gives `Decimal("36.7")`.
 
   (AC4, FR-005, FR-011, SC-002) (qa-tester)
-- [ ] T009 [P] [TS-07] Create `backend/tests/test_scoring_interface.py` (depends on T005). Module docstring cites FR-001/FR-006/FR-007 and research R9. Tests:
+- [X] T009 [P] [TS-07] Create `backend/tests/test_scoring_interface.py` (depends on T005). Module docstring cites FR-001/FR-006/FR-007 and research R9. Tests:
   1. **`test_selection_point` (AC1, AC5)**:
      - `get_scoring_system().name == "NEWS2"`, and the system has a callable `score`;
      - `app.scoring.__all__` equals the 13 names of the contract;
@@ -245,13 +245,13 @@ None. TS-01 (backend skeleton, pytest) is merged. The TS-03 column types define 
 
 ### Checks and review
 
-- [ ] T010 [TS-07] Run `python -m pytest` in `backend/` (depends on T002–T009). Everything passes: the 136 existing tests plus the new ones, in under 30 s (SC-006). Keep the output for the PR (D-27). Also confirm:
+- [X] T010 [TS-07] Run `python -m pytest` in `backend/` (depends on T002–T009). Everything passes: the 136 existing tests plus the new ones, in under 30 s (SC-006). Keep the output for the PR (D-27). Also confirm:
   - `git diff --stat main -- backend/requirements.txt backend/app/models.py backend/migrations backend/app/main.py backend/app/auth.py backend/app/db.py` is empty;
   - `git grep -n -i news2 -- backend/app ':!backend/app/scoring'` prints nothing;
   - the quickstart step 2 one-liner prints `NEWS2 3 low-medium`.
 
   If a check fails, fix it in the owning task (qa-tester)
-- [ ] T011 [TS-07] Review read-only: `backend/app/scoring/*.py`, the three `backend/tests/test_scoring_*.py` files and the README section. Check:
+- [X] T011 [TS-07] Review read-only: `backend/app/scoring/*.py`, the three `backend/tests/test_scoring_*.py` files and the README section. Check:
   - strict types (`bool` rejected for numbers, no coercion of strings, no rounding);
   - NaN and infinity rejected;
   - temperature compared as `Decimal`;
@@ -269,7 +269,7 @@ None. TS-01 (backend skeleton, pytest) is merged. The TS-03 column types define 
 
 ## Phase 4: Polish
 
-- [ ] T012 Edit the project docs, after T010–T011:
+- [X] T012 Edit the project docs, after T010–T011:
   - **`docs/PROJECT_STATUS.md`**:
     - Set "Last updated" to the current date. In step 11's notes, mark TS-07 ✅ and set "Next: TS-08 (vital signs simulator)"; set "Current step" and "Next step" to match.
     - Rewrite the "Where we left off" note: TS-07 done (`app/scoring/`, `get_scoring_system()`, `vital_signs_from_mapping`, `ACCEPTED_LIMITS`, NEWS2 Scale 1 checked against the RCP chart), with the local `pytest` result and the review result.

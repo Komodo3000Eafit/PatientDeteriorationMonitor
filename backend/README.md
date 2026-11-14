@@ -146,6 +146,75 @@ A missing, invalid or expired token gives 401, and the token is checked before a
 - In CI and Azure, `AUTH_SECRET` will be a GitHub/Azure secret (TS-09/TS-10).
 - Login rate limiting is not done yet (TS-10).
 
+## Clinical scoring
+
+The package `app/scoring/` (TS-07) scores one set of 7 vital signs and explains every point; it is pure Python with no database and no endpoint, and US-03 calls it. See [contracts/scoring-interface.md](../specs/007-clinical-scoring-module/contracts/scoring-interface.md) for the full contract.
+
+```python
+from decimal import Decimal
+from app.scoring import get_scoring_system, vital_signs_from_mapping
+
+vitals = vital_signs_from_mapping({
+    "respiratory_rate": 22, "spo2": 95, "on_oxygen": False, "systolic_bp": 115,
+    "heart_rate": 95, "consciousness": "A", "temperature": Decimal("37.5"),
+})
+result = get_scoring_system().score(vitals)
+# result.system == "NEWS2", result.total == 4, result.band == "low"
+# result.parameters[0] == ParameterScore("respiratory_rate", 22, 2, 21, 24, ())
+```
+
+Import only from `app.scoring`, never from a specific scoring system's module.
+
+### Input
+
+| Field | Type | Accepted values |
+|---|---|---|
+| `respiratory_rate` | `int` | 0 to 80 breaths/min |
+| `spo2` | `int` | 0 to 100 % |
+| `on_oxygen` | `bool` | `False` (air) or `True` (supplemental oxygen) |
+| `systolic_bp` | `int` | 0 to 300 mmHg |
+| `heart_rate` | `int` | 0 to 300 beats/min |
+| `consciousness` | `str` | `A`, `C`, `V`, `P` or `U` (exact, upper case) |
+| `temperature` | `Decimal` (or `int`/`float`) | 25.0 to 45.0 °C, at most 1 decimal |
+
+Bounds are inclusive and types are strict: no coercion (`True` is not a number, `"90"` is not an integer) and no rounding. These limits are defined once, in the read-only mapping `ACCEPTED_LIMITS`. It is the single source: API code must reuse it (or `vital_signs_from_mapping`) instead of repeating the numbers.
+
+### Result
+
+`score()` returns a `ScoreResult`:
+
+- `system`: the scoring system's name (`"NEWS2"` today);
+- `total`: the sum of the points;
+- `band`: one of `low`, `low-medium`, `medium`, `high` (`RISK_BANDS`);
+- `parameters`: 7 `ParameterScore` entries in `PARAMETERS` order, each with `parameter`, `value`, `points`, `low` and `high` (the inclusive bounds of the matched range, `None` = open end) and `category` (the matched values for `on_oxygen` and `consciousness`).
+
+Band identifiers and reason codes are data, not text: the UI translates them.
+
+### Errors
+
+Invalid input raises `InvalidVitalSigns` (a `ValueError`). Its `problems` attribute is a tuple of `Problem(parameter, reason)`, listing every problem at once, in `PARAMETERS` order with unknown keys last. Unknown key names are reported with non-printable characters removed and cut to 40 characters.
+
+| Reason | When |
+|---|---|
+| `missing` | a required parameter is absent |
+| `unknown` | a key that is not one of the 7 parameters |
+| `wrong_type` | the value has the wrong type |
+| `out_of_range` | a number outside the accepted range, or a non-finite temperature |
+| `too_many_decimals` | the temperature has more than 1 decimal |
+| `not_allowed` | a code that is not in the accepted list (for example `"a"`) |
+
+Messages never contain input values, for example `invalid vital signs: spo2: out_of_range; consciousness: not_allowed`.
+
+### Adding another scoring system
+
+1. Add `app/scoring/<name>.py` with a class that has `name` and `score(vitals)`. `score()` calls `validate_vital_signs(vitals)` first and returns a `ScoreResult` using the same `RISK_BANDS`.
+2. Change the one line in `get_scoring_system()` in `app/scoring/__init__.py` to return it.
+3. Add its own tests. Callers don't change.
+
+### Note on NEWS2
+
+NEWS2 is implemented for SpO2 Scale 1 only. Scale 2 (for hypercapnic patients) needs a per-patient flag and is left for a later story. Source: [Royal College of Physicians, NEWS2](https://www.rcp.ac.uk/resources/national-early-warning-score-news-2/).
+
 ## Run
 
 ```powershell
@@ -175,7 +244,7 @@ ok     0.1.0   ok
 python -m pytest
 ```
 
-The tests need no database, no `backend/.env` and no network access. They use a fake built-in `AUTH_SECRET`, so a developer's `.env` never changes them. They also check the schema (the models) and the migrations (the offline upgrade and downgrade SQL) without a database.
+The tests need no database, no `backend/.env` and no network access. They use a fake built-in `AUTH_SECRET`, so a developer's `.env` never changes them. They also check the schema (the models) and the migrations (the offline upgrade and downgrade SQL) without a database. The clinical scoring tests (`tests/test_scoring_*.py`) are pure Python and need nothing extra.
 
 ## Version
 
