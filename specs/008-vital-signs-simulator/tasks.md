@@ -28,7 +28,7 @@ description: "Task list for TS-08 vital signs simulator"
 
 ## Phase 1: Setup
 
-- [ ] T001 [TS-08] Confirm `python -m pytest` passes in `backend/` before any change (256 tests today), so later failures are clearly new. There are no new folders or dependencies (backend-dev)
+- [X] T001 [TS-08] Confirm `python -m pytest` passes in `backend/` before any change (256 tests today), so later failures are clearly new. There are no new folders or dependencies (backend-dev)
 
 ---
 
@@ -46,7 +46,7 @@ None. TS-03 (tables) and TS-07 (`app.scoring`) are merged, and there is no migra
 
 ### Implementation
 
-- [ ] T002 [P] [TS-08] Create `backend/app/readings.py`. Module docstring: "Saving vital-sign readings (TS-08). record_reading is the only place that creates vital_signs rows; US-03 extends it to score the reading. See specs/008-vital-signs-simulator/contracts/commands.md §3."
+- [X] T002 [P] [TS-08] Create `backend/app/readings.py`. Module docstring: "Saving vital-sign readings (TS-08). record_reading is the only place that creates vital_signs rows; US-03 extends it to score the reading. See specs/008-vital-signs-simulator/contracts/commands.md §3."
   - Define `record_reading(session, patient_id: int, vitals: VitalSigns) -> VitalSign`:
     1. call `validate_vital_signs(vitals)` from `app.scoring`, so `InvalidVitalSigns` propagates **before** anything is added;
     2. build `VitalSign(patient_id=patient_id, **{name: getattr(vitals, name) for name in PARAMETERS})`;
@@ -54,7 +54,7 @@ None. TS-03 (tables) and TS-07 (`app.scoring`) are merged, and there is no migra
   - **No commit.** The docstring says the caller commits or rolls back.
 
   (FR-007, FR-008, AC7; research R1) (backend-dev)
-- [ ] T003 [P] [TS-08] Create `backend/app/demo_patients.py`. Module docstring: "Create or reset the synthetic demo patients PAT-001 to PAT-006 (TS-08). Run from backend/: python -m app.demo_patients [--reset] [--yes]. Never prints the connection string. See specs/008-vital-signs-simulator/contracts/commands.md §1."
+- [X] T003 [P] [TS-08] Create `backend/app/demo_patients.py`. Module docstring: "Create or reset the synthetic demo patients PAT-001 to PAT-006 (TS-08). Run from backend/: python -m app.demo_patients [--reset] [--yes]. Never prints the connection string. See specs/008-vital-signs-simulator/contracts/commands.md §1."
   - **Constant** `DEMO_PATIENTS`, a tuple of `(identifier, name, age, sex, scenario, triage_level)`, exactly as in data-model:
     - `("PAT-001", "Paciente Demo Uno", 34, "female", "stable", 4)`
     - `("PAT-002", "Paciente Demo Dos", 58, "male", "stable", 5)`
@@ -84,7 +84,7 @@ None. TS-03 (tables) and TS-07 (`app.scoring`) are merged, and there is no migra
   - End with `if __name__ == "__main__": raise SystemExit(main())`.
 
   (FR-001, FR-002, FR-013, FR-017, AC1, AC11; research R6) (backend-dev)
-- [ ] T004 [TS-08] Create `backend/app/simulator.py` (depends on T002, T003). Module docstring: "Synthetic vital-signs simulator (TS-08). Run by hand from backend/: python -m app.simulator [--demo|--interval-seconds N] [--once|--rounds N] [--minutes M] [--seed S]. Never started by the API; always stops by itself (constitution cost control). Contains no scoring rules. See specs/008-vital-signs-simulator/contracts/commands.md §2."
+- [X] T004 [TS-08] Create `backend/app/simulator.py` (depends on T002, T003). Module docstring: "Synthetic vital-signs simulator (TS-08). Run by hand from backend/: python -m app.simulator [--demo|--interval-seconds N] [--once|--rounds N] [--minutes M] [--seed S]. Never started by the API; always stops by itself (constitution cost control). Contains no scoring rules. See specs/008-vital-signs-simulator/contracts/commands.md §2."
   - **`SCENARIOS`** dict, values exactly as in data-model. Each entry is `{"steps": int, "params": {name: (start, final, noise)}, "oxygen_at": float | None, "c_at": float | None}`, with the numeric params in this order: `respiratory_rate`, `spo2`, `systolic_bp`, `heart_rate`, `temperature`.
     - **stable**: steps 1; RR (16, 16, 1), SpO2 (97, 97, 1), SBP (125, 125, 3), HR (76, 76, 3), T (36.8, 36.8, 0.1); oxygen_at None; c_at None.
     - **slow**: steps 12; RR (16, 24, 1), SpO2 (97, 92, 1), SBP (125, 102, 3), HR (78, 112, 3), T (36.9, 38.4, 0.1); oxygen_at 0.75; c_at None.
@@ -140,7 +140,7 @@ None. TS-03 (tables) and TS-07 (`app.scoring`) are merged, and there is no migra
   - The file must not contain the text `news2`.
 
   (FR-003 to FR-012, AC2 to AC9; research R2 to R5, R7 to R9; data-model) (backend-dev)
-- [ ] T005 [P] [TS-08] Add a "Demo data and simulator" section to `backend/README.md`, before "## Run". Contents:
+- [X] T005 [P] [TS-08] Add a "Demo data and simulator" section to `backend/README.md`, before "## Run". Contents:
   - the two commands, with the options tables from [contracts/commands.md](contracts/commands.md);
   - the six demo patients and their scenarios (stable, slow over about 12 readings, rapid over about 4);
   - that runs continue from each patient's saved readings, and that `python -m app.demo_patients --reset --yes` starts a rehearsal from scratch (it touches only PAT-001 to PAT-006);
@@ -154,13 +154,13 @@ None. TS-03 (tables) and TS-07 (`app.scoring`) are merged, and there is no migra
 
 All three test files use an in-memory SQLite engine fixture: `create_engine("sqlite://")` plus `Base.metadata.create_all(engine)`, disposed after the test. They monkeypatch `<module>.database_url` and `<module>.get_engine`, as in `backend/tests/test_seed_demo_users.py`. Use synthetic data only.
 
-- [ ] T006 [P] [TS-08] Create `backend/tests/test_readings.py` (depends on T002). The module docstring cites FR-007, FR-008 and AC7. Tests:
+- [X] T006 [P] [TS-08] Create `backend/tests/test_readings.py` (depends on T002). The module docstring cites FR-007, FR-008 and AC7. Tests:
   1. **`test_record_valid_reading`**: one patient, and a valid `VitalSigns(16, 97, False, 120, 72, "A", Decimal("36.8"))`. `record_reading` returns a row with an id and the 7 values equal to the input. After `session.rollback()` the row is gone, which proves the function does not commit.
   2. **`test_record_invalid_reading_saves_nothing`**: SpO2 101 and consciousness "X" raise `InvalidVitalSigns` with problems `spo2 out_of_range` and `consciousness not_allowed`. `session.new` is empty, and after a commit the count of `VitalSign` rows is 0.
   3. **`test_single_writer`** (FR-008): walk `backend/app/**/*.py` and collect the lines that contain `"VitalSign("`, skipping lines that start (after whitespace) with `class VitalSign(`. Assert that every remaining match is in `app/readings.py` and that there is at least one there. Fail with the offending file names (analyze C1).
 
   (qa-tester)
-- [ ] T007 [P] [TS-08] Create `backend/tests/test_demo_patients.py` (depends on T003). The module docstring cites FR-001, FR-002, FR-013, FR-017, AC1, AC11 and SC-005. Tests:
+- [X] T007 [P] [TS-08] Create `backend/tests/test_demo_patients.py` (depends on T003). The module docstring cites FR-001, FR-002, FR-013, FR-017, AC1, AC11 and SC-005. Tests:
   1. **`test_first_run_creates_six`**: `main([])` returns 0, and stdout has 6 `created:` lines in order. In the database:
      - 6 patients with exactly the `DEMO_PATIENTS` values, `status == "active"`, and identifiers matching `^PAT-\d{3}$`;
      - 6 triage events with `source "initial"`, `previous_level None`, `new_level` equal to the initial level, `score None`, reason `INITIAL_REASON` and `created_by_id None`.
@@ -181,7 +181,7 @@ All three test files use an in-memory SQLite engine fixture: `create_engine("sql
   7. **`test_scenarios_known`**: every `DEMO_PATIENTS` scenario is a key of `app.simulator.SCENARIOS`, and the initial levels are within 3–5.
 
   (qa-tester)
-- [ ] T008 [P] [TS-08] Create `backend/tests/test_simulator.py` (depends on T004). The module docstring cites FR-003 to FR-012, AC2 to AC9, SC-002 and SC-003. Define `fake_sleep`, which records the intervals, and a fake clock that advances by each slept interval. Tests that call `run_round` directly pass `stats = {"rounds": 0, "saved": 0}` and also check `stats["saved"]`. Tests:
+- [X] T008 [P] [TS-08] Create `backend/tests/test_simulator.py` (depends on T004). The module docstring cites FR-003 to FR-012, AC2 to AC9, SC-002 and SC-003. Define `fake_sleep`, which records the intervals, and a fake clock that advances by each slept interval. Tests that call `run_round` directly pass `stats = {"rounds": 0, "saved": 0}` and also check `stats["saved"]`. Tests:
   1. **`test_values_within_limits_and_types`** (AC6, SC-003): for every scenario, seeds 1 to 5 and steps 0 to 50, `generate_vitals` returns:
      - exact types (`type(x) is int` for the 4 integers, `bool`, `"A"`/`"C"`, a `Decimal` with exponent −1);
      - values within `ACCEPTED_LIMITS`;
@@ -224,13 +224,13 @@ All three test files use an in-memory SQLite engine fixture: `create_engine("sql
 
 ### Checks and review
 
-- [ ] T009 [TS-08] Run `python -m pytest` in `backend/` (depends on T002–T008). Everything passes: the 256 existing tests plus the new ones (SC-006). Keep the output for the PR (D-27). Also confirm:
+- [X] T009 [TS-08] Run `python -m pytest` in `backend/` (depends on T002–T008). Everything passes: the 256 existing tests plus the new ones (SC-006). Keep the output for the PR (D-27). Also confirm:
   - `git diff --stat main -- backend/requirements.txt backend/app/models.py backend/migrations backend/app/main.py backend/app/db.py backend/app/scoring` is empty;
   - `git grep -n -i news2 -- backend/app ':!backend/app/scoring'` prints nothing;
   - `git grep -n "VitalSign(" -- backend/app` shows only `backend/app/readings.py` and the class definition `class VitalSign(Base):` in `backend/app/models.py` (analyze C1).
 
   If a check fails, fix it in the owning task (qa-tester)
-- [ ] T010 [TS-08] Review read-only: `backend/app/readings.py`, `demo_patients.py`, `simulator.py`, the three new test files and the README section. Check:
+- [X] T010 [TS-08] Review read-only: `backend/app/readings.py`, `demo_patients.py`, `simulator.py`, the three new test files and the README section. Check:
   - the reset is limited to the six exact identifiers (no prefix match), runs in one transaction, and the confirmation comes before any database access;
   - output and errors never show the connection string, driver messages or patient names;
   - every reading is validated before it is saved;
@@ -247,14 +247,14 @@ All three test files use an in-memory SQLite engine fixture: `create_engine("sql
 
 ## Phase 4: Polish
 
-- [ ] T011 Run the one-time Neon check from [quickstart.md](quickstart.md) §2, steps 1–7, against the Neon `main` branch. Keep the session short. Record for the PR description (FR-015):
+- [X] T011 Run the one-time Neon check from [quickstart.md](quickstart.md) §2, steps 1–7, against the Neon `main` branch. Keep the session short. Record for the PR description (FR-015):
   - the commands;
   - the summarized output (with no connection string);
   - the row counts;
   - the elapsed time from starting step 1 (create the demo patients) to the end of step 2 (the first round), as evidence for SC-001 (under 2 minutes; analyze S1).
 
   (orchestrator)
-- [ ] T012 Edit the project docs, after T009–T011:
+- [X] T012 Edit the project docs, after T009–T011:
   - **`docs/PROJECT_STATUS.md`**:
     - Set "Last updated" to the current date. In step 11's notes, mark TS-08 ✅ and set "Next: TS-09 (CI pipeline)"; update "Current step" and "Next step" to match.
     - Rewrite the "Where we left off" note: TS-08 done (`app/readings.py` `record_reading`, `python -m app.demo_patients [--reset --yes]`, `python -m app.simulator`, with the options and defaults), with the local `pytest` result, the review result and the Neon check result.

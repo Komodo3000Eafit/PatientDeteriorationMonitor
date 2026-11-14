@@ -215,6 +215,64 @@ Messages never contain input values, for example `invalid vital signs: spo2: out
 
 NEWS2 is implemented for SpO2 Scale 1 only. Scale 2 (for hypercapnic patients) needs a per-patient flag and is left for a later story. Source: [Royal College of Physicians, NEWS2](https://www.rcp.ac.uk/resources/national-early-warning-score-news-2/).
 
+## Demo data and simulator
+
+Two commands, run by hand from `backend/` with the virtual environment active (TS-08). They use the same `DATABASE_URL` as the app (environment variable or `backend/.env`), never print it, and show only the error type on a database error. See [contracts/commands.md](../specs/008-vital-signs-simulator/contracts/commands.md) for the full contract.
+
+### Demo patients
+
+```powershell
+python -m app.demo_patients
+```
+
+| Option | Meaning |
+|---|---|
+| (none) | Create the missing demo patients PAT-001 to PAT-006, each with one "initial" triage event. Existing ones are left unchanged. |
+| `--reset` | Additionally, for exactly PAT-001 to PAT-006: delete their readings, triage events and alerts, set them back to `active` at their initial triage level, and add a new "initial" triage event. Everything happens in one transaction. |
+| `--yes` | Confirm `--reset` without a prompt. It has no effect without `--reset`. |
+
+Without `--yes`, `--reset` asks you to type `yes` in an interactive terminal; any other answer, or a non-interactive input, prints `Reset cancelled: nothing was changed` and touches nothing. It prints one line per patient, for example `created: PAT-001 (stable, triage 4)`, `exists: PAT-002` or `reset: PAT-003 (slow, triage 3)`.
+
+- Stop the simulator before running `--reset`: a reading committed by a simulator running at the same time can survive the reset.
+- On the shared Neon `main` branch, `--reset --yes` clears the demo history for every teammate using that branch, though it only ever touches PAT-001 to PAT-006.
+
+The six demo patients are synthetic, and each follows a scenario:
+
+| Identifier | Scenario | Initial triage level |
+|---|---|---|
+| PAT-001 | stable | 4 |
+| PAT-002 | stable | 5 |
+| PAT-003 | slow (deteriorates over about 12 readings) | 3 |
+| PAT-004 | slow (deteriorates over about 12 readings) | 4 |
+| PAT-005 | rapid (deteriorates over about 4 readings) | 3 |
+| PAT-006 | rapid (deteriorates over about 4 readings) | 4 |
+
+Any other active patient is simulated as stable.
+
+### Simulator
+
+```powershell
+python -m app.simulator --demo --rounds 5
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--interval-seconds N` | 300 | Seconds between rounds (positive whole number). |
+| `--demo` | off | Use 15 seconds between rounds. Cannot be combined with `--interval-seconds`. |
+| `--once` | off | Run one round and exit. Cannot be combined with `--rounds`. |
+| `--rounds N` | none | Stop after N rounds (positive whole number). |
+| `--minutes M` | 60 | Stop when the next round would start at or after M minutes (positive whole number). |
+| `--seed S` | random | Whole number; the same seed gives the same values. Without it, a seed is chosen and printed. |
+
+- Each round saves one valid reading for every `active` patient, in identifier order, and prints one line per patient (identifier, scenario, step and values, never the name).
+- Runs continue from each patient's saved readings: the step is the number of readings already saved, so a second run picks up where the first stopped. To start a rehearsal from scratch, run `python -m app.demo_patients --reset --yes` first; it touches only PAT-001 to PAT-006.
+- Use `--demo` (15 s between rounds) for presentations; the default 300 s matches the 5-minute monitoring cadence.
+- It stops at the first limit reached (rounds or minutes) or on Ctrl+C, and prints `Stopped: <reason>. Rounds: N, readings saved: M.`
+
+**Cost control**: the simulator keeps the Neon database awake while it runs. Start it only by hand, for testing and demos, and keep runs short. It always stops by itself (default limit 60 minutes), is never started by the API, and must never be left running.
+
+To check both commands against Neon once, follow [quickstart.md §2](../specs/008-vital-signs-simulator/quickstart.md#2-one-time-manual-check-on-neon-record-the-result-in-the-pr).
+
 ## Run
 
 ```powershell
