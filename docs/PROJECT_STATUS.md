@@ -5,12 +5,12 @@
 
 **Last updated:** 2026-11-13
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅
-**Next step:** TS-07 — Clinical scoring module (see [BACKLOG.md](BACKLOG.md))
+**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅, TS-07 ✅
+**Next step:** TS-08 — Vital signs simulator (see [BACKLOG.md](BACKLOG.md))
 
-> **Where we left off (2026-11-13):** TS-01 to TS-05 are merged to `main`. TS-06 is implemented on branch `006-authentication` (D-35). The backend has `POST /auth/login` (PBKDF2 password check, generic 401, PyJWT HS256 token, default 480 minutes) and `GET /me`, protected by the reusable `get_current_user` dependency; `/health` stays public. The app refuses to start without an `AUTH_SECRET` of at least 32 characters. Demo users `demo.doctor` (Dra. Ana Demo) and `demo.nurse` (Enf. Luis Demo) are created on Neon with `python -m app.seed_demo_users`. The frontend shows a login page inside `AppShell` until the user signs in, keeps the session in `sessionStorage['pdm.session']`, adds the token in `client.js`, and wraps clinical screens in `<RequireAuth>`; the header shows the name, translated role and a sign-out button. Locally `python -m pytest` gives 136 passed (about 6 s), `npm test` gives 63 passed (5 files, about 1 s), and `npm run build` succeeds. The security review passed: 1 low finding (an oversized token `sub` gave 503 instead of 401) was fixed and tested, with 5 info notes. Manual checks ([quickstart.md](../specs/006-authentication/quickstart.md)) passed. On Neon (step 2): seeding twice, a missing demo password, a missing `AUTH_SECRET`, the identical 401s, the nurse login with `GET /me`, and `/health`. In the browser (step 3), checked by the user: the login page with the banner and ES/EN, the generic wrong-password error, doctor and nurse sign-in with translated roles, reload, logout, a tampered token ("session ended") and the backend stopped ("cannot connect"). **Teammates must run `pip install -r requirements.txt` (adds PyJWT) and add `AUTH_SECRET`, `DEMO_DOCTOR_PASSWORD` and `DEMO_NURSE_PASSWORD` to `backend/.env`** (see `backend/.env.example`). To resume:
-> 1. **Finish TS-06:** commit, then open the PR with the `pytest`, `npm test` and `npm run build` output, the manual check results (D-27) and the agent log summary, and merge it. Set TS-06 to ✅ in [BACKLOG.md](BACKLOG.md) when it is merged.
-> 2. From an up-to-date `main`, run `/speckit-specify` for TS-07 (clinical scoring module), then `/speckit-clarify`. NEWS2 must stay behind a replaceable interface (constitution V).
+> **Where we left off (2026-11-13):** TS-01 to TS-06 are merged to `main`. TS-07 is implemented on branch `007-clinical-scoring-module` (D-36). It adds `backend/app/scoring/`, a pure standard-library package with no database, endpoint or new dependency. Callers use `from app.scoring import get_scoring_system, vital_signs_from_mapping, ACCEPTED_LIMITS`. `get_scoring_system().score(vitals)` returns `system`, `total`, `band` (`low`, `low-medium`, `medium`, `high`) and one structured entry per parameter (value, points, matched range). Invalid input raises `InvalidVitalSigns` with every `Problem(parameter, reason)` and never echoes values. NEWS2 is SpO2 Scale 1 only, checked against the RCP 2017 chart, and confined to `app/scoring/news2.py` (enforced by a test). Locally `python -m pytest` gives 256 passed (136 existing + 120 new scoring tests, about 6 s). The security review passed all 9 checks: 3 low findings (unbounded unknown key names in errors, a huge integer temperature crashing validation, `int`/`str` subclasses bypassing the range check) were fixed and tested, and 4 info notes were accepted. No manual Neon or browser check is needed ([quickstart.md](../specs/007-clinical-scoring-module/quickstart.md)). To resume:
+> 1. **Finish TS-07:** commit, then open the PR with the `pytest` output (D-27) and the agent log summary, and merge it. Set TS-07 to ✅ in [BACKLOG.md](BACKLOG.md) when it is merged.
+> 2. From an up-to-date `main`, run `/speckit-specify` for TS-08 (vital signs simulator), then `/speckit-clarify`.
 > 3. Continue as before: plan → tasks → analyze → `claude --agent orchestrator` → review → PR (paste local test output, D-27) → merge.
 > 4. Deferred to TS-09 (from the TS-02 to TS-04 security reviews): lock the indirect Python dependencies (including Mako and MarkupSafe) and run the vulnerability scan; optionally move pytest/httpx to a dev requirements file; run `npm test` and `npm audit` in CI (use `npm ci`).
 > 5. Notes for later stories:
@@ -18,6 +18,9 @@
 >    - **TS-10** must never run `alembic downgrade` in CI/CD, and must not point frequent health probes at `/health` (D-30).
 >    - **TS-10/TS-11** (from the TS-04 review): reject `null` and malformed entries in `CORS_ORIGINS`, and add HTTP security headers (CSP, `X-Content-Type-Options`, frame-ancestors).
 >    - **Clinical stories** (from TS-06): every clinical endpoint uses `Depends(get_current_user)` and every clinical screen is rendered inside `<RequireAuth>`. **TS-09/TS-10** set `AUTH_SECRET` as a GitHub/Azure secret; **TS-10** adds login rate limiting.
+>    - **US-03** (from TS-07): validate request bodies with `ACCEPTED_LIMITS` (or `vital_signs_from_mapping`) and map `InvalidVitalSigns.problems` to a 422 without echoing values; store `system`, `total`, `band` and the entries.
+>    - **US-04** (from TS-07): map `band` to escalation; NEWS2 stays only in `app/scoring/news2.py`, and other code imports only from `app.scoring`.
+>    - **Later**: NEWS2 SpO2 Scale 2 needs a per-patient hypercapnic flag.
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
 
 > **Solo dry run:** one member is building the project end to end first, to learn the process and prepare resources. The project will then be redone with the full team using these docs.
@@ -52,7 +55,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). Next: TS-07 (scoring module) |
+| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). TS-07 ✅ (clinical scoring module, NEWS2). Next: TS-08 (vital signs simulator) |
 | 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo
