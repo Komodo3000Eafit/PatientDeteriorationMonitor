@@ -14,6 +14,17 @@ import os
 # backend/.env can't change it (research R7).
 os.environ["CORS_ORIGINS"] = ""
 
+# TS-06 (FR-018, research R7): a fake secret, default token lifetime and no demo
+# passwords. python-dotenv (override=False) can't replace these variables, so a
+# developer's backend/.env never changes the tests. Set before importing app.main,
+# whose import of app.auth runs the AUTH_SECRET startup check.
+from constants import TEST_AUTH_SECRET  # noqa: E402
+
+os.environ["AUTH_SECRET"] = TEST_AUTH_SECRET
+os.environ["ACCESS_TOKEN_MINUTES"] = ""
+os.environ["DEMO_DOCTOR_PASSWORD"] = ""
+os.environ["DEMO_NURSE_PASSWORD"] = ""
+
 import pytest
 
 import app.db

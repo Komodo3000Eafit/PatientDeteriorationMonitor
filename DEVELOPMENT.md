@@ -160,7 +160,7 @@ The list of agents, their roles and responsibilities is documented in [`docs/age
 ### Never commit
 
 - Real patient data (use only public de-identified datasets or synthetic data)
-- Passwords, API keys, tokens or `.env` files (e.g. `backend/.env` with `DATABASE_URL`)
+- Passwords, API keys, tokens or `.env` files (e.g. `backend/.env` with `DATABASE_URL`, `AUTH_SECRET` and the demo passwords)
 - Personal tool settings such as `.claude/settings.local.json`
 
 ---
@@ -179,6 +179,13 @@ Each student will be assigned a user story during the demo and must build it **f
 
 Use two terminals, both starting from the repository root.
 
+One-time setup (after installing the backend requirements):
+
+1. Copy `backend/.env.example` to `backend/.env` (git-ignored) and fill it in. Keep your `DATABASE_URL`, then set:
+   - `AUTH_SECRET`: generate it with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+   - `DEMO_DOCTOR_PASSWORD` and `DEMO_NURSE_PASSWORD`: at least 8 characters each.
+2. In `backend/` with the virtual environment active, run `alembic upgrade head`, then `python -m app.seed_demo_users` to create the demo accounts.
+
 Terminal 1 — backend (API at `http://localhost:8000`):
 
 ```powershell
@@ -195,8 +202,9 @@ npm install        # first time only
 npm run dev
 ```
 
-Then open **http://localhost:5173** (use `localhost`, not `127.0.0.1`). The page shows whether the API and the database are working.
+Then open **http://localhost:5173** (use `localhost`, not `127.0.0.1`). The page shows whether the API and the database are working. Sign in as `demo.doctor` or `demo.nurse` with the password from your `backend/.env`.
 
+- Authentication settings and the demo-user command: see [backend/README.md](backend/README.md#authentication).
 - `CORS_ORIGINS` (backend): the default (`http://localhost:5173`) is fine locally — see [backend/README.md](backend/README.md#allowed-frontend-origins-cors).
 - `VITE_API_BASE_URL` (frontend): the default (`http://localhost:8000`) is fine locally — see [frontend/README.md](frontend/README.md#configuration).
 

@@ -1,9 +1,12 @@
 // TS-05 language switch and disclaimer tests: AC2, AC3, AC4, AC5, AC6, AC7 and
 // FR-003 to FR-009, FR-011, following specs/005-language-disclaimer/contracts/i18n.md.
 // Synthetic /health responses only; fetch is stubbed, no backend and no network.
+// TS-06 FR-018: every test starts signed in (synthetic session) and fetch is routed by path;
+// /me answers with the synthetic doctor.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import App from '../App.jsx'
+import { callsTo, resetSession, signInForTest, stubBackend } from '../testing/fakeBackend.js'
 
 const ES_BANNER = 'Prototipo académico: no es un dispositivo médico certificado.'
 const EN_BANNER = 'Academic prototype: not a certified medical device.'
@@ -19,9 +22,7 @@ function jsonResponse(body, status = 200) {
 }
 
 function stubOkFetch() {
-  const fetchMock = vi.fn(async () => jsonResponse(OK_BODY))
-  vi.stubGlobal('fetch', fetchMock)
-  return fetchMock
+  return stubBackend({ health: async () => jsonResponse(OK_BODY) })
 }
 
 function englishButton() {
@@ -35,6 +36,10 @@ function spanishButton() {
 beforeEach(() => {
   localStorage.clear()
 })
+
+beforeEach(() => signInForTest())
+
+afterEach(resetSession)
 
 afterEach(() => {
   localStorage.clear()
@@ -94,18 +99,17 @@ describe('TS-05 language and disclaimer', () => {
     expect(spanishButton().getAttribute('aria-pressed')).toBe('true')
 
     // FR-005: the /health result is kept; the backend is called only once in total.
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(callsTo(fetchMock, '/health')).toHaveLength(1)
   })
 
   it('edge case: switch while checking', async () => {
     let resolveFetch
-    const fetchMock = vi.fn(
-      () =>
+    const fetchMock = stubBackend({
+      health: () =>
         new Promise((resolve) => {
           resolveFetch = resolve
         }),
-    )
-    vi.stubGlobal('fetch', fetchMock)
+    })
     render(<App />)
 
     expect(screen.getByText(ES_CHECKING)).toBeTruthy()
@@ -118,7 +122,7 @@ describe('TS-05 language and disclaimer', () => {
 
     expect(await screen.findByText('API: running')).toBeTruthy()
     expect(screen.getByText('Version: 0.1.0')).toBeTruthy()
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(callsTo(fetchMock, '/health')).toHaveLength(1)
   })
 
   it('AC4 remembered English starts in English', async () => {
@@ -203,7 +207,7 @@ describe('TS-05 language and disclaimer', () => {
     ]
 
     it.each(outcomes)('AC6 banner shown when /health is $name', async ({ fetchImpl, esText, enText }) => {
-      vi.stubGlobal('fetch', vi.fn(fetchImpl))
+      stubBackend({ health: fetchImpl })
       render(<App />)
 
       expect(await screen.findByText(esText)).toBeTruthy()
@@ -217,7 +221,7 @@ describe('TS-05 language and disclaimer', () => {
   })
 
   it('AC6 banner shown while checking', () => {
-    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    stubBackend({ health: () => new Promise(() => {}) })
     render(<App />)
 
     expect(screen.getByText(ES_CHECKING)).toBeTruthy()
@@ -234,9 +238,15 @@ describe('TS-05 language and disclaimer', () => {
     render(<App />)
     await screen.findByText('API: funcionando')
 
+    // TS-06: signed in, the header also has the sign-out button; logout is not a close control for
+    // the banner, which still has none.
     const buttons = screen.getAllByRole('button')
-    expect(buttons).toHaveLength(2)
-    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual(['Español', 'English'])
+    expect(buttons).toHaveLength(3)
+    expect(buttons.map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual([
+      'Cerrar sesión',
+      'Español',
+      'English',
+    ])
   })
 
   it('FR-004 switch is a labelled group', async () => {
