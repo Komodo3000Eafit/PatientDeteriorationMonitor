@@ -47,9 +47,9 @@ Built directly or with `vital_signs_from_mapping(data)`. It carries no patient i
   |---|---|
   | `missing` | a required parameter is absent |
   | `unknown` | a key that is not one of the 7 parameters |
-  | `wrong_type` | the value has the wrong type for its `kind` (incl. `bool` for a number, a non-`int` for an integer, a `str` temperature, a non-finite number) |
-  | `out_of_range` | a number below `minimum` or above `maximum` |
-  | `too_many_decimals` | the temperature has more than `decimals` decimals |
+  | `wrong_type` | the value has the wrong type for its `kind` (incl. `bool` for a number, a non-`int` for an integer, a `str` temperature) |
+  | `out_of_range` | a number below `minimum` or above `maximum`, or a non-finite temperature (NaN, infinity) |
+  | `too_many_decimals` | the temperature is within range but has more than `decimals` decimals (checked after the range) |
   | `not_allowed` | `on_oxygen` or `consciousness` is the right type but not in `allowed` (e.g. `"a"`, `"X"`) |
 
 - `InvalidVitalSigns(ValueError)`: `.problems: tuple[Problem, ...]`, ordered like `PARAMETERS`, with unknown keys last. There is at most one problem per parameter and it is never empty. `str()` is `"invalid vital signs: spo2: out_of_range; consciousness: not_allowed"`, with no values.

@@ -119,7 +119,7 @@ docs/DECISIONS.md                   # CHANGED: D-36
   - `ScoringSystem` is a `typing.Protocol` (not `runtime_checkable`; the tests check the attributes directly).
   - `InvalidVitalSigns.__init__(problems)` stores a tuple and builds the message `"invalid vital signs: " + "; ".join(f"{p.parameter}: {p.reason}")`.
 - **`limits.py`**:
-  - `_check(parameter, value, limit) -> str | None` returns the first failing reason code (type → range or decimals → allowed).
+  - `_check(parameter, value, limit) -> str | None` returns the first failing reason code (type → range, with non-finite as out of range → decimals → allowed).
   - `validate_vital_signs(vitals)` runs `_check` for each `PARAMETERS` entry and raises if any reason was found.
   - `vital_signs_from_mapping(data)` adds `missing`/`unknown`, raises if needed, then builds `VitalSigns(**data)`. The temperature is normalised with `Decimal(str(v)).quantize(Decimal("0.1"))` after it is validated.
   - Unknown keys are reported in sorted order after the known parameters.
@@ -166,7 +166,7 @@ docs/DECISIONS.md                   # CHANGED: D-36
   - consciousness A, C, V, P, U.
 
   Each test changes one parameter in an otherwise all-normal set and checks that parameter's points and range.
-- **Table coverage**: the NEWS2 numeric bands are contiguous and cover `ACCEPTED_LIMITS` exactly from minimum to maximum. Every bound appears in the boundary list.
+- **Table coverage**: the NEWS2 numeric bands are contiguous (no gaps or overlaps) and open-ended at both ends, so every value within `ACCEPTED_LIMITS` falls in exactly one band. The categorical rows contain exactly the allowed values. Every finite bound appears in the hand-written boundary list.
 - **Bands**:
   - total 0 → low;
   - 4 without a 3 → low;
@@ -182,7 +182,7 @@ docs/DECISIONS.md                   # CHANGED: D-36
   - RR 26, SpO2 91, oxygen, SBP 95, HR 120, temperature 38.5 → 13/high.
 - **Invalid input**:
   - each reason code;
-  - `True` for `heart_rate`, `90.5` and `90.0` for an integer, `"36.5"` for temperature, `36.55`, `NaN`;
+  - `True` for `heart_rate`, `90.5` and `90.0` for an integer, `"36.5"` for temperature, `36.55`, and `NaN`, infinity and `1e30` (all `out_of_range`);
   - `"a"` and `"X"` for consciousness, `1` and `"yes"` for `on_oxygen`;
   - SpO2 101 and -1, temperature 24.9 and 45.1;
   - a missing key, an extra key, and three problems at once (all listed);

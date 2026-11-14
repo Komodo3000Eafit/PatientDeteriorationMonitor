@@ -99,9 +99,11 @@ None. TS-01 (backend skeleton, pytest) is merged. The TS-03 column types define 
     - **integer**: `isinstance(value, bool) or not isinstance(value, int)` → `wrong_type`; outside `[minimum, maximum]` → `out_of_range`.
     - **decimal**:
       - `bool`, or not an `int`/`float`/`Decimal` → `wrong_type`;
-      - `d = Decimal(str(value))` not finite → `wrong_type`;
-      - `d != d.quantize(Decimal(1).scaleb(-limit.decimals))` → `too_many_decimals`;
-      - outside the range → `out_of_range`.
+      - `d = Decimal(str(value))` not finite (NaN, infinity) → `out_of_range`;
+      - outside `[minimum, maximum]` → `out_of_range`;
+      - only then, `d != d.quantize(Decimal(1).scaleb(-limit.decimals))` → `too_many_decimals`.
+
+      The range check MUST come before the decimals check: `quantize` raises `decimal.InvalidOperation` for huge finite values such as `1e30`, and these must give `out_of_range`, not crash (analyze C1).
     - **boolean**: `type(value) is not bool` → `wrong_type`.
     - **code**: not a `str` → `wrong_type`; not in `allowed` (exact match, no strip/upper) → `not_allowed`.
   - `validate_vital_signs(vitals: VitalSigns) -> None` checks each `PARAMETERS` field with `getattr` and raises `InvalidVitalSigns` with one `Problem` per failing field, in `PARAMETERS` order.
@@ -211,7 +213,7 @@ None. TS-01 (backend skeleton, pytest) is merged. The TS-03 column types define 
      - `("respiratory_rate", 81, "out_of_range")`, `("systolic_bp", 301, "out_of_range")`
      - `("temperature", Decimal("24.9"), "out_of_range")`, `("temperature", Decimal("45.1"), "out_of_range")`
      - `("heart_rate", True, "wrong_type")`, `("heart_rate", 90.5, "wrong_type")`, `("heart_rate", 90.0, "wrong_type")`, `("heart_rate", "90", "wrong_type")`
-     - `("temperature", "36.5", "wrong_type")`, `("temperature", True, "wrong_type")`, `("temperature", float("nan"), "wrong_type")`, `("temperature", 36.55, "too_many_decimals")`, `("temperature", Decimal("36.55"), "too_many_decimals")`
+     - `("temperature", "36.5", "wrong_type")`, `("temperature", True, "wrong_type")`, `("temperature", float("nan"), "out_of_range")`, `("temperature", float("inf"), "out_of_range")`, `("temperature", 1e30, "out_of_range")`, `("temperature", Decimal("1E+30"), "out_of_range")`, `("temperature", 36.55, "too_many_decimals")`, `("temperature", Decimal("36.55"), "too_many_decimals")`
      - `("on_oxygen", 1, "wrong_type")`, `("on_oxygen", "yes", "wrong_type")`
      - `("consciousness", "a", "not_allowed")`, `("consciousness", "X", "not_allowed")`, `("consciousness", " A", "not_allowed")`, `("consciousness", 1, "wrong_type")`
 

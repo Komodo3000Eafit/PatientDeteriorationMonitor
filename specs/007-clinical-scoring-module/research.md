@@ -59,7 +59,7 @@ All decisions keep to D-23 (simplest thing that works): Python 3.13 standard lib
   - **Integers** (respiratory rate, SpO2, systolic BP, heart rate): must be `int` and not `bool`. Python's `True` is an `int`, so `isinstance(v, bool)` is checked first.
   - **`on_oxygen`**: must be exactly `bool`.
   - **`consciousness`**: must be a `str` that is exactly one of `A`, `C`, `V`, `P`, `U` (no `.strip()` or `.upper()`).
-  - **`temperature`**: `int`, `float` or `Decimal`, not `bool` and not `str`. It is converted with `Decimal(str(value))` (`float` 36.7 → `Decimal("36.7")`, not the binary 36.69999…). It must be finite and have at most one decimal place (`d == d.quantize(Decimal("0.1"))`). The explanation entry holds the value as a `Decimal` with exactly one decimal (`37` → `Decimal("37.0")`).
+  - **`temperature`**: `int`, `float` or `Decimal`, not `bool` and not `str`. It is converted with `Decimal(str(value))` (`float` 36.7 → `Decimal("36.7")`, not the binary 36.69999…). It is checked in this order: finite (NaN or infinity → `out_of_range`), then within 25.0–45.0 (`out_of_range`), and only then at most one decimal place (`d == d.quantize(Decimal("0.1"))`, else `too_many_decimals`). The range comes first because `quantize` raises `decimal.InvalidOperation` for huge values such as `1e30` (analyze C1). The explanation entry holds the value as a `Decimal` with exactly one decimal (`37` → `Decimal("37.0")`).
   - A non-integral number for an integer field (e.g. `90.5` or `90.0`) is a `wrong_type`, not rounded.
 - **Rationale**: matches the clarified spec (strict types, FR-005) and the TS-03 columns (`SmallInteger`, `Boolean`, `String(1)`, `Numeric(3,1)`). It avoids float boundary errors such as 35.0 vs 35.05.
 - **Alternatives considered**: Pydantic models (already installed through FastAPI, but they coerce `"36"` and `1` by default; strict mode adds config to learn, and the scorer should not depend on the web layer); accepting floats for integer fields when integral (a hidden coercion the spec rejects).
@@ -68,7 +68,7 @@ All decisions keep to D-23 (simplest thing that works): Python 3.13 standard lib
 
 - **Decision**: `InvalidVitalSigns(ValueError)` with `.problems`, a tuple of `Problem(parameter, reason)`.
   - `reason` is one of the fixed codes `missing`, `unknown`, `wrong_type`, `out_of_range`, `too_many_decimals` and `not_allowed`.
-  - All problems are collected before raising. At most one problem is reported per parameter: the first failing check in the order type → range/decimals.
+  - All problems are collected before raising. At most one problem is reported per parameter: the first failing check in the order type → range (incl. non-finite) → decimals.
   - `str(exc)` lists the problems as `parameter: reason` for logs and test output. It holds no values (so nothing is echoed) and no sentences to translate.
 - **Rationale**: FR-005 says to list every offending parameter, and the user asked for reason codes, not free text. US-03 can map the problems to a 422 response.
 
