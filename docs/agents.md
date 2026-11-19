@@ -9,9 +9,9 @@ We use a team of custom **Claude Code subagents** with differentiated roles (gra
 | Agent | File | Role and responsibilities | Tool access |
 |---|---|---|---|
 | **orchestrator** | `.claude/agents/orchestrator.md` | Reads the story's spec and tasks, decides which agent handles each task, verifies outputs against acceptance criteria, keeps traceability and the activity log | Read, search, delegate |
-| **backend-dev** | `.claude/agents/backend-dev.md` | FastAPI endpoints, PostgreSQL models/migrations, swappable triage scoring module (NEWS2) | Read, edit, run |
+| **backend-dev** | `.claude/agents/backend-dev.md` | FastAPI endpoints, PostgreSQL models/migrations, swappable risk scoring module (NEWS2) | Read, edit, run |
 | **frontend-dev** | `.claude/agents/frontend-dev.md` | React UI, Spanish by default with English switch, integration with the API | Read, edit, run |
-| **qa-tester** | `.claude/agents/qa-tester.md` | Automated tests on critical paths (triage scoring, prediction, API, security); runs them and reports failures back to the orchestrator | Read, edit, run tests |
+| **qa-tester** | `.claude/agents/qa-tester.md` | Automated tests on critical paths (risk scoring, prediction, API, security); runs them and reports failures back to the orchestrator | Read, edit, run tests |
 | **security-reviewer** | `.claude/agents/security-reviewer.md` | Input validation, secrets handling, dependency and OWASP checks. **Read-only**: reports findings, does not change code | Read, search |
 | **devops** | `.claude/agents/devops.md` | CI/CD pipeline and deployment | Read, edit, run |
 

@@ -1,6 +1,43 @@
 <!--
 Sync Impact Report
 ==================
+Version change: 1.1.0 → 1.2.0 (MINOR)
+Bump rationale: materially expanded guidance, no principle removed or redefined
+incompatibly (DECISIONS D-41):
+- Product Context: the app monitors NEWS2 risk and suggests re-triage; a clinician decides the
+  triage level (Triage I–V, Res. 5596 de 2015); the app never changes it on its own.
+- Principle V (Swappable and Explainable Clinical Logic): rationale no longer says the Colombian
+  triage scheme may replace NEWS2 (NEWS2 measures risk; triage is a professional's
+  classification; GLOSSARY §1.1). Rule wording aligned: "risk scoring and deterioration
+  prediction" instead of "triage and deterioration scoring"; "re-triage suggestion" instead of
+  "escalation".
+- Principle VII (Critical-Path Testing): rationale wording aligned ("suggested for re-triage"
+  instead of "escalated"); rule unchanged.
+- Technology and Deployment Constraints: frontend and backend deploy together on one Azure App
+  Service, FastAPI serves the React build (D-39); Azure Static Web Apps removed.
+- Development Workflow: new step 2, glossary rule (D-40); later steps renumbered 3–8.
+
+Modified principles: V (rationale + wording), VII (rationale wording). No renames.
+Added sections: none (new workflow step only). Removed sections: none.
+
+Templates:
+- ✅ .specify/templates/plan-template.md — Principle IX check now "Neon / one Azure App Service
+  (FastAPI serves the React build) / GitHub Actions"; Principle V check reworded to risk scoring
+  and re-triage suggestions; Principle XI check adds glossary terms.
+- ✅ .specify/templates/spec-template.md, tasks-template.md, checklist-template.md — no change
+  needed (no references to hosting, triage escalation or terminology).
+
+Runtime guidance flagged (not modified by this command; follow-up):
+- ⚠ CLAUDE.md line 3 ("escalating the patient to a more urgent triage level") and line 23
+  ("may be replaced by the Colombian triage regulation") contradict v1.2.0.
+- ⚠ .claude/agents/backend-dev.md and frontend-dev.md say "every escalation"; read as
+  "every re-triage suggestion".
+- Merged specs 003, 004, 007 keep their original wording as history; the constitution and
+  glossary take precedence (D-41).
+
+Follow-up TODOs: none.
+
+Previous report (1.1.0):
 Version change: 1.0.0 → 1.1.0 (MINOR)
 Bump rationale: Principle III expanded — team-session stories (US-06 to US-10) may depend on
 merged baseline functional stories (US-01 to US-05), never on each other. Backlog lives in
@@ -54,9 +91,10 @@ Follow-up TODOs:
 ## Product Context and Scope
 
 PatientDeteriorationMonitor is a **digital twin of a patient after triage classification**. It
-monitors vital signs every 5 minutes and predicts whether the patient's condition will
-deteriorate, so the patient's triage level can be escalated to a more urgent one and they are
-attended sooner.
+monitors vital signs every 5 minutes, measures the patient's NEWS2 risk and predicts whether their
+condition will deteriorate. When it does, the app **suggests re-triage** to a more urgent level so
+the patient can be attended sooner; **a clinician decides** the triage level (Triage I–V,
+Resolución 5596 de 2015). The app MUST NOT change a patient's triage level on its own.
 
 - **Theoretical users:** doctors and nurses.
 - **Actual user:** the course professor evaluating the project.
@@ -124,14 +162,16 @@ demonstrable, real collaboration between differentiated agents.
 
 ### V. Swappable and Explainable Clinical Logic
 
-- Triage and deterioration scoring MUST be implemented behind a replaceable module/interface.
-  NEWS2 is the current implementation.
+- Risk scoring and deterioration prediction MUST be implemented behind a replaceable
+  module/interface. NEWS2 is the current scoring system.
 - No code outside the scoring module MAY depend on NEWS2-specific rules or thresholds.
-- Every escalation or alert MUST show which vital signs and which rules produced it.
+- Every alert or re-triage suggestion MUST show which vital signs and which rules produced it.
 
-**Rationale:** the project must comply with Colombian regulations, and the official Colombian
-triage scheme may replace NEWS2; clinicians must be able to understand and challenge any
-automated recommendation.
+**Rationale:** NEWS2 measures risk from vital signs, while the triage level is a professional's
+classification (Triage I–V, Resolución 5596 de 2015), so one cannot replace the other (see
+`docs/GLOSSARY.md` §1.1); keeping the scoring swappable still lets the team change or refine the
+risk score without touching the rest of the app. Clinicians must be able to understand and
+challenge any automated recommendation.
 
 ### VI. Data Privacy (NON-NEGOTIABLE)
 
@@ -148,7 +188,8 @@ process real patient information.
   security controls.
 - Tests MUST run in CI and MUST pass before a pull request is merged.
 
-**Rationale:** these paths determine whether a patient is escalated; a silent regression there
+**Rationale:** these paths determine whether a patient is suggested for re-triage; a silent
+regression there
 defeats the purpose of the product.
 
 ### VIII. Security Baseline
@@ -204,8 +245,9 @@ risk to delivery.
 ## Technology and Deployment Constraints
 
 - **Database:** PostgreSQL on Neon (free plan).
-- **Backend:** FastAPI on Azure App Service (Azure for Students credit).
-- **Frontend:** React on Azure Static Web Apps (Azure for Students credit).
+- **App hosting:** frontend and backend deploy together on **one Azure App Service** (Azure for
+  Students credit). FastAPI serves the React production build, so frontend and API share one
+  origin and CORS is needed only for local development (DECISIONS D-39).
 - **CI/CD:** GitHub Actions runs the tests and deploys to Azure using OIDC federation. Cloud
   credentials MUST NOT be stored in the repository.
 - **Secrets:** database connection strings and other secrets are provided only through
@@ -218,18 +260,21 @@ risk to delivery.
 ## Development Workflow and Quality Gates
 
 1. A story is written in the Scrum format with a TS-xx or US-xx identifier (Principles II–III).
-2. The story is run through the full Spec Kit workflow on its own branch (Principle I).
-3. The plan's Constitution Check MUST pass, or violations MUST be justified in Complexity
+2. Specs, code, API fields and UI text MUST use the preferred terms in `docs/GLOSSARY.md`. A new
+   term MUST be added to the glossary in the same pull request that introduces it (DECISIONS
+   D-40).
+3. The story is run through the full Spec Kit workflow on its own branch (Principle I).
+4. The plan's Constitution Check MUST pass, or violations MUST be justified in Complexity
    Tracking.
-4. The orchestrator assigns tasks to agents; agents execute them (Principle IV).
-5. The pull request MUST include:
+5. The orchestrator assigns tasks to agents; agents execute them (Principle IV).
+6. The pull request MUST include:
    - a link to the story's `specs/` folder;
    - the agent activity log (which agent did what);
    - passing CI (tests and dependency checks);
    - the security-reviewer's findings, if any, and how they were resolved.
-6. When a roadmap step is completed, `docs/PROJECT_STATUS.md` MUST be updated in the same pull
+7. When a roadmap step is completed, `docs/PROJECT_STATUS.md` MUST be updated in the same pull
    request. When a decision changes, an entry MUST be added to `docs/DECISIONS.md`.
-7. A pull request is merged only after at least one teammate reviews it and CI passes.
+8. A pull request is merged only after at least one teammate reviews it and CI passes.
 
 ## Governance
 
@@ -247,4 +292,4 @@ risk to delivery.
   run before implementation, and every pull request review MUST verify compliance with these
   principles.
 
-**Version**: 1.1.0 | **Ratified**: 2026-11-10 | **Last Amended**: 2026-11-10
+**Version**: 1.2.0 | **Ratified**: 2026-11-10 | **Last Amended**: 2026-11-18
