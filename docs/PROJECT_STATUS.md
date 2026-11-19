@@ -3,26 +3,24 @@
 > **Read this first.** This file tells you where the project is right now and what comes next.
 > Whoever completes a step updates this file **in the same pull request** as the work.
 
-**Last updated:** 2026-11-13
+**Last updated:** 2026-11-18
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅, TS-07 ✅, TS-08 ✅
-**Next step:** TS-09 — CI pipeline (see [BACKLOG.md](BACKLOG.md))
+**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅, TS-07 ✅, TS-08 ✅, TS-09 🔄
+**Next step:** TS-10 — Backend deployment (see [BACKLOG.md](BACKLOG.md))
 
-> **Where we left off (2026-11-13):** TS-01 to TS-07 are merged to `main`. TS-08 is implemented on branch `008-vital-signs-simulator` (D-37), with standard-library code only and no new dependency, table, endpoint or UI:
-> - `backend/app/readings.py` `record_reading(session, patient_id, vitals)` validates with `app.scoring`, adds and flushes one `vital_signs` row, and does not commit. It is the only code that creates readings (enforced by a test).
-> - `python -m app.demo_patients [--reset] [--yes]` creates the synthetic PAT-001 to PAT-006 (2 stable, 2 slow, 2 rapid; initial triage 3 to 5). `--reset` clears only those six, in one transaction, after `--yes` or an interactive `yes`.
-> - `python -m app.simulator [--demo|--interval-seconds N] [--once|--rounds N] [--minutes M] [--seed S]`: defaults are 300 s, `--demo` 15 s and a 60-minute limit. It saves one reading per active patient per round and continues from each patient's saved readings.
+> **Where we left off (2026-11-18):** TS-01 to TS-08 are merged to `main`. TS-09 (CI pipeline, D-38) is implemented on branch `009-ci-pipeline` and is in review. It adds no application code:
+> - One workflow, `.github/workflows/ci.yml`, with three independent checks on every PR to `main` and every push to `main`: **Backend tests** (pytest), **Frontend tests** (Vitest + build) and **Dependency check**. It uses `permissions: contents: read`, no secrets and official actions at `@v7`.
+> - Audit rules: `pip-audit -r backend/requirements.txt` fails on any finding; `npm audit --audit-level=high` fails on high/critical. Exceptions need `--ignore-vuln` or `overrides` plus a DECISIONS entry. How to read and reproduce the checks: [DEVELOPMENT.md §7.1](../DEVELOPMENT.md#71-continuous-integration-ci).
 >
-> Locally `python -m pytest` gives 289 passed (256 existing + 33 new, about 6.5 s). The security review passed all 7 checks with 2 low and 4 info findings. These were fixed and tested: a generic error message for any exception, the single-writer test also catching bulk inserts, and README notes about `--reset`. The open low finding (no upper bound on `--minutes`) went to the team, and the identifier note is listed below. The Neon check passed: steps 1–2 took 19.9 s, the tables had 6, 12 and then 0 readings, and an invalid host gave only the error type. The demo patients are left on Neon `main`. To resume:
-> 1. **Finish TS-08:** commit, then open the PR with the `pytest` output (D-27), the Neon check record and the agent log summary, and merge it. Set TS-08 to ✅ in [BACKLOG.md](BACKLOG.md) when it is merged.
-> 2. From an up-to-date `main`, run `/speckit-specify` for TS-09 (CI pipeline), then `/speckit-clarify`.
-> 3. Continue as before: plan → tasks → analyze → `claude --agent orchestrator` → review → PR (paste local test output, D-27) → merge.
-> 4. Deferred to TS-09 (from the TS-02 to TS-04 security reviews): lock the indirect Python dependencies (including Mako and MarkupSafe) and run the vulnerability scan; optionally move pytest/httpx to a dev requirements file; run `npm test` and `npm audit` in CI (use `npm ci`).
-> 5. Notes for later stories:
+> The constitution's "tests and dependency checks in CI" gate is **met once T009–T010 pass** (green run on the PR, red run on a throwaway branch). After that, PRs rely on CI instead of pasted test output (D-27 superseded). To resume:
+> 1. **Finish TS-09:** tasks T009–T014 in [specs/009-ci-pipeline/tasks.md](../specs/009-ci-pipeline/tasks.md) (green run, red run, cleanup, mark ✅, optional branch protection, merge).
+> 2. From an up-to-date `main`, run `/speckit-specify` for TS-10 (backend deployment), then continue as before: clarify → plan → tasks → analyze → `claude --agent orchestrator` → review → PR (CI green) → merge.
+> 3. ~~Deferred to TS-09 (from the TS-02 to TS-04 security reviews)~~: ~~lock the indirect Python dependencies (including Mako and MarkupSafe)~~ resolved: no lock file, CI audits everything `requirements.txt` installs (D-23, D-38); ~~run the vulnerability scan~~ done (Dependency check); ~~run `npm test` and `npm audit` in CI (use `npm ci`)~~ done. Still open, optional: move pytest/httpx to a dev requirements file.
+> 4. Notes for later stories:
 >    - **TS-08** and the API stories must keep patient and user text fields synthetic, e.g. by checking the `PAT-NNN` identifier pattern (TS-03 review).
 >    - **TS-10** must never run `alembic downgrade` in CI/CD, and must not point frequent health probes at `/health` (D-30).
 >    - **TS-10/TS-11** (from the TS-04 review): reject `null` and malformed entries in `CORS_ORIGINS`, and add HTTP security headers (CSP, `X-Content-Type-Options`, frame-ancestors).
->    - **Clinical stories** (from TS-06): every clinical endpoint uses `Depends(get_current_user)` and every clinical screen is rendered inside `<RequireAuth>`. **TS-09/TS-10** set `AUTH_SECRET` as a GitHub/Azure secret; **TS-10** adds login rate limiting.
+>    - **Clinical stories** (from TS-06): every clinical endpoint uses `Depends(get_current_user)` and every clinical screen is rendered inside `<RequireAuth>`. **TS-10** sets `AUTH_SECRET` as a GitHub/Azure secret (TS-09 CI needs none: the tests use a fake value); **TS-10** adds login rate limiting.
 >    - **US-03** (from TS-07): validate request bodies with `ACCEPTED_LIMITS` (or `vital_signs_from_mapping`) and map `InvalidVitalSigns.problems` to a 422 without echoing values; store `system`, `total`, `band` and the entries.
 >    - **US-03** (from TS-08): extend `record_reading` to score the reading and store the result. If US-03 adds a table that refers to `vital_signs` or `patients`, add it to the delete list in `reset_demo_patients`.
 >    - **US-01** (from TS-08): reject the six demo identifiers PAT-001 to PAT-006 when registering a patient, because `--reset` treats any patient with those identifiers as demo data. Also limit identifiers to `[A-Z0-9-]`, because the simulator prints them raw (TS-08 review).
@@ -62,7 +60,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). TS-07 ✅ (clinical scoring module, NEWS2). TS-08 ✅ (vital signs simulator). Next: TS-09 (CI pipeline) |
+| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). TS-07 ✅ (clinical scoring module, NEWS2). TS-08 ✅ (vital signs simulator). TS-09 🔄 (CI pipeline, in review). Next: TS-10 |
 | 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo
