@@ -32,7 +32,7 @@ Sources: `backend/app/models.py` (database models, TS-03), `backend/app/scoring/
 | `reason` (triage event) | — | Which vital signs and rules produced the change. | `models.py` |
 | `occurred_at` | — | When the triage event happened. | `models.py` |
 | `created_by_id` | — | The user who made the event; empty for system events. | `models.py` |
-| escalation / escalate | — | Moving a patient to a **more urgent** (lower-numbered) triage level. **The app only suggests re-triage; a clinician decides** (§1.1). Recorded as a triage event. Note: `source = automatic` and the US-04 wording "escalated automatically" predate this rule; US-04 aligns them. | constitution (Product context); US-04 |
+| escalation / escalate | — | Moving a patient to a **more urgent** (lower-numbered) triage level. **The app only suggests re-triage; a clinician decides** (§1.1). Recorded as a triage event. Note: `source = automatic` predates this rule; US-04 aligns it (the US-04 backlog wording is already updated). | constitution (Product context); US-04 |
 | register (a patient) | — | Create a patient with an initial triage level and an `initial` triage event. | US-01 |
 | demo patients | — | The fixed synthetic patients `PAT-001` to `PAT-006` created by `python -m app.demo_patients`. | `demo_patients.py`; D-37 |
 
@@ -60,8 +60,8 @@ Resolución 5596 de 2015 (Ministerio de Salud y Protección Social, Colombia), A
 **Mismatches (flagged, not fixed):**
 
 1. **Display name.** The rule names levels with Roman numerals ("Triage I" … "Triage V"). The repo stores plain integers and has no UI text for them yet. The story that first shows a level (US-02) should decide the label, e.g. "Triage I".
-2. **"The Colombian scheme may replace NEWS2."** D-08, the constitution (Principle V) and the TS-03/TS-07 specs say so. Under the rule above they are different things: Resolución 5596 sets the triage level, while NEWS2 (or another score) stays in the scoring module. To be reworded in the constitution v1.2.0 amendment.
-3. **Automatic escalation.** The constitution's Product context, US-04 ("escalated automatically") and `triage_events.source = 'automatic'` describe the app changing the level by itself. Under the rule above the app only suggests it. US-04 resolves this; the `source` values stay until then.
+2. **"The Colombian scheme may replace NEWS2."** D-08, the constitution (Principle V) and the TS-03/TS-07 specs say so. Under the rule above they are different things: Resolución 5596 sets the triage level, while NEWS2 (or another score) stays in the scoring module. Reworded in the constitution v1.2.0 amendment (D-41); merged specs keep the old wording as history.
+3. **Automatic escalation.** `triage_events.source = 'automatic'` describes the app changing the level by itself. Under the rule above (constitution v1.2.0) the app only suggests it. The constitution and the US-04 backlog wording are updated; the US-04 spec resolves the `source` values, which stay until then.
 4. **Attention times** (Triage I immediate, Triage II ≤ 30 min; III–V set by each provider, and their reporting under Res. 373 de 2026) are not modelled anywhere. No story needs them yet.
 
 ---
@@ -148,10 +148,10 @@ Code, database and API names stay as they are; new specs, prose and UI use the p
 |---|---|---|---|---|---|
 | 1 | Marking an alert as handled | **acknowledged** (UI "Atendida") | `alerts.status = 'acknowledged'`, `acknowledged_by_id`, `acknowledged_at` | "attended" (for alerts) | — (US-07 updated). The constitution's "attended sooner" is about patients, not alerts |
 | 2 | One set of seven vital signs | **reading** = one `VitalSign` row | `VitalSign` / `vital_signs`, `VitalSigns`, `record_reading` | "vital sign reading", "vital signs set" | TS-03 spec (Key Entities), TS-07 spec (Key Entities) |
-| 3 | Sum of points | **NEWS2 score** | `ScoreResult.total`, `triage_events.score` | "total" in prose, a bare "score" | BACKLOG US-02 ("latest score"), US-04, US-08 ("the score") |
+| 3 | Sum of points | **NEWS2 score** | `ScoreResult.total`, `triage_events.score` | "total" in prose, a bare "score" | — (BACKLOG US-02, US-04, US-05, US-08 updated) |
 | 4 | Risk vs alert level | **risk band** (4 NEWS2 values) and **alert severity** (3 values), separate concepts; US-04 defines the mapping | `ScoreResult.band`, `RISK_BANDS`; `alerts.severity` | "risk level", "band" in prose | TS-07 spec (story text "risk level") |
 | 5 | A person who signs in | **user** in code; **clinician** only in prose for the doctor/nurse roles | `User` / `users`, `GET /me` | "user account", "account" | TS-06 spec (Key Entities "User account") |
 | 6 | Patient key | **patient code** (`PAT-001`) and **patient_id** (internal id) | `patients.identifier`; `patients.id` / `patient_id` | "identifier" in prose and UI, "patient ID" | TS-03 spec, TS-08 spec and contract ("identifier") |
 | 7 | Person's name | left as is: `name` (patients), `full_name` (users) | same | — | — |
-| 8 | Prediction | **deterioration prediction** | — (US-08 not built) | "worsening trend", "trend rule" | BACKLOG US-08, D-25 |
+| 8 | Prediction | **deterioration prediction** | — (US-08 not built) | "worsening trend", "trend rule" | D-25 (BACKLOG US-08 updated) |
 | 9 | Signing in and out | **login** / **logout** (UI "Iniciar sesión" / "Cerrar sesión") | `POST /auth/login`, `auth.logout` key | — | — (English UI keeps "Sign in" / "Sign out") |

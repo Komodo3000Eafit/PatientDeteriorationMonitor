@@ -29,10 +29,10 @@ Build these first, in order. Together they provide every resource the app needs.
 | ID | Story | Depends on | Spec | Status |
 |---|---|---|---|---|
 | US-01 | As a nurse, I want to register a triaged patient with their initial triage level, so that the system starts monitoring them | TS-03, TS-06 | | ⬜ |
-| US-02 | As a nurse, I want a patient list showing each patient's current triage level and latest score, so that I see who needs attention first | TS-03, TS-06 | | ⬜ |
+| US-02 | As a nurse, I want a patient list showing each patient's current triage level and latest NEWS2 score, so that I see who needs attention first | TS-03, TS-06 | | ⬜ |
 | US-03 | As a nurse, I want each vital-signs reading to be saved and scored with the reason for each point, so that I understand the patient's risk | TS-07, TS-08 | | ⬜ |
-| US-04 | As a doctor, I want a patient to be escalated automatically to a more urgent triage level when the score crosses the threshold, with an alert explaining why, so that they are attended sooner | TS-07 | | ⬜ |
-| US-05 | As a doctor, I want a patient detail page with current vitals, score and triage history, so that I can review one patient at a glance | TS-03, TS-06 | | ⬜ |
+| US-04 | As a doctor, I want an alert suggesting re-triage to a more urgent level when a patient's NEWS2 risk band crosses the threshold, explaining why, so that I can decide sooner whether to change the triage level (the app never changes it on its own, D-41) | TS-07 | | ⬜ |
+| US-05 | As a doctor, I want a patient detail page with current vitals, NEWS2 score and triage history, so that I can review one patient at a glance | TS-03, TS-06 | | ⬜ |
 
 ## Functional stories (US): built with the team in the final session (5)
 
@@ -42,6 +42,6 @@ These must be **independent of each other**: each one adds its own files (endpoi
 |---|---|---|---|---|
 | US-06 | As a doctor, I want a chart of a patient's vital signs history, so that I can see how they evolve | US-03, US-05 | | ⬜ |
 | US-07 | As a nurse, I want to mark an alert as acknowledged, so that the team knows it has been handled | US-04 | | ⬜ |
-| US-08 | As a doctor, I want a "worsening trend" warning when the score rises across the last 3 readings, so that I can act before escalation | US-03 | | ⬜ |
+| US-08 | As a doctor, I want a deterioration prediction warning when the NEWS2 score rises across the last 3 readings, so that I can act before the risk band crosses the re-triage threshold | US-03 | | ⬜ |
 | US-09 | As a nurse, I want to filter and sort the patient list by triage level, so that I find the most urgent patients faster | US-02 | | ⬜ |
 | US-10 | As a doctor, I want to export a patient's vital signs to CSV, so that I can share or analyze them | US-03 | | ⬜ |
