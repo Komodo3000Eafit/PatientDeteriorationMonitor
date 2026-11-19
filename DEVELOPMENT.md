@@ -222,7 +222,7 @@ Expected: all pytest and Vitest tests pass and `frontend/dist/` is built; pip-au
 - **Accept the risk (only if no fix is available or it doesn't affect us):** backend: add `--ignore-vuln <ID>` to the `pip-audit` line in `ci.yml` with the reason in a YAML comment; frontend: add an `overrides` entry in `frontend/package.json` with the reason in the PR description (JSON has no comments). In both cases add an entry to [docs/DECISIONS.md](docs/DECISIONS.md).
 - A newly published advisory can turn CI red without any code change. That is intended.
 
-**Branch protection (optional, repo owner).** Without it, "CI must pass" is a rule the reviewer checks. To make GitHub enforce it (free, because the repository is public):
+**Branch protection (repo owner).** **On for `main` since 2026-11-19** (ruleset: pull request required, the three checks required, force pushes blocked), so you can't push to `main` directly: open a PR from your story branch. For reference, how it was set up (free, because the repository is public):
 
 1. Wait until the three checks have run at least once (they only appear in the list after that).
 2. On GitHub: **Settings → Branches →** add a branch protection rule (or a ruleset) for `main`.
