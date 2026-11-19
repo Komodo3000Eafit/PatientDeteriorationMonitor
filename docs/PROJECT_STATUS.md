@@ -17,7 +17,7 @@
 > 1. **Finish TS-08:** commit, then open the PR with the `pytest` output (D-27), the Neon check record and the agent log summary, and merge it. Set TS-08 to ✅ in [BACKLOG.md](BACKLOG.md) when it is merged.
 > 2. From an up-to-date `main`, run `/speckit-specify` for TS-09 (CI pipeline), then `/speckit-clarify`.
 > 3. Continue as before: plan → tasks → analyze → `claude --agent orchestrator` → review → PR (paste local test output, D-27) → merge.
-> 4. Deferred to TS-09 (from the TS-02 to TS-04 security reviews): lock the indirect Python dependencies (including Mako and MarkupSafe) and run the vulnerability scan; optionally move pytest/httpx to a dev requirements file; run `npm test` and `npm audit` in CI (use `npm ci`).
+> 4. Deferred to TS-09 (from the TS-02 to TS-04 security reviews): ~~lock the indirect Python dependencies (including Mako and MarkupSafe)~~ resolved by the TS-09 spec: no lock file, CI audits everything `requirements.txt` installs (D-23); run the vulnerability scan; optionally move pytest/httpx to a dev requirements file; run `npm test` and `npm audit` in CI (use `npm ci`).
 > 5. Notes for later stories:
 >    - **TS-08** and the API stories must keep patient and user text fields synthetic, e.g. by checking the `PAT-NNN` identifier pattern (TS-03 review).
 >    - **TS-10** must never run `alembic downgrade` in CI/CD, and must not point frequent health probes at `/health` (D-30).
