@@ -5,15 +5,15 @@
 
 **Last updated:** 2026-11-18
 **Current phase:** 1 — Spec Kit and team setup
-**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅, TS-07 ✅, TS-08 ✅, TS-09 🔄
+**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅, TS-07 ✅, TS-08 ✅, TS-09 ✅
 **Next step:** TS-10 — Backend deployment (see [BACKLOG.md](BACKLOG.md))
 
-> **Where we left off (2026-11-18):** TS-01 to TS-08 are merged to `main`. TS-09 (CI pipeline, D-38) is implemented on branch `009-ci-pipeline` and is in review. It adds no application code:
+> **Where we left off (2026-11-18):** TS-01 to TS-09 are merged to `main` (TS-09 as PR #11). TS-09 (CI pipeline, D-38) adds no application code:
 > - One workflow, `.github/workflows/ci.yml`, with three independent checks on every PR to `main` and every push to `main`: **Backend tests** (pytest), **Frontend tests** (Vitest + build) and **Dependency check**. It uses `permissions: contents: read`, no secrets and official actions at `@v7`.
 > - Audit rules: `pip-audit -r backend/requirements.txt` fails on any finding; `npm audit --audit-level=high` fails on high/critical. Exceptions need `--ignore-vuln` or `overrides` plus a DECISIONS entry. How to read and reproduce the checks: [DEVELOPMENT.md §7.1](../DEVELOPMENT.md#71-continuous-integration-ci).
 >
-> The constitution's "tests and dependency checks in CI" gate is **met once T009–T010 pass** (green run on the PR, red run on a throwaway branch). After that, PRs rely on CI instead of pasted test output (D-27 superseded). To resume:
-> 1. **Finish TS-09:** tasks T009–T014 in [specs/009-ci-pipeline/tasks.md](../specs/009-ci-pipeline/tasks.md) (green run, red run, cleanup, mark ✅, optional branch protection, merge).
+> The constitution's "tests and dependency checks in CI" gate is **met**: green run [CI #1](https://github.com/Komodo3000Eafit/PatientDeteriorationMonitor/actions/runs/44454387339) on the PR, red run [CI #3](https://github.com/Komodo3000Eafit/PatientDeteriorationMonitor/actions/runs/44454880682) on the throwaway branch `ci-red-check` (draft PR closed unmerged, branch deleted locally and on GitHub). PRs now rely on CI instead of pasted test output (D-27 superseded). Branch protection (T013, optional) is not turned on yet. To resume:
+> 1. **Before TS-10:** update the TS-10 and TS-11 specs (once written) and [BACKLOG.md](BACKLOG.md) for the decision that the **frontend is served by FastAPI on the same Azure App Service**, because Azure Static Web Apps is blocked by the subscription's region policy. The TS-11 backlog row still says Static Web Apps.
 > 2. From an up-to-date `main`, run `/speckit-specify` for TS-10 (backend deployment), then continue as before: clarify → plan → tasks → analyze → `claude --agent orchestrator` → review → PR (CI green) → merge.
 > 3. ~~Deferred to TS-09 (from the TS-02 to TS-04 security reviews)~~: ~~lock the indirect Python dependencies (including Mako and MarkupSafe)~~ resolved: no lock file, CI audits everything `requirements.txt` installs (D-23, D-38); ~~run the vulnerability scan~~ done (Dependency check); ~~run `npm test` and `npm audit` in CI (use `npm ci`)~~ done. Still open, optional: move pytest/httpx to a dev requirements file.
 > 4. Notes for later stories:
@@ -60,7 +60,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). TS-07 ✅ (clinical scoring module, NEWS2). TS-08 ✅ (vital signs simulator). TS-09 🔄 (CI pipeline, in review). Next: TS-10 |
+| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). TS-07 ✅ (clinical scoring module, NEWS2). TS-08 ✅ (vital signs simulator). TS-09 ✅ (CI pipeline). Next: TS-10 |
 | 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo
