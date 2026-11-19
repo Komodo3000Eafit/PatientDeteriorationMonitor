@@ -21,8 +21,8 @@ Build these first, in order. Together they provide every resource the app needs.
 | TS-07 | **Clinical scoring module**: replaceable scoring interface with a NEWS2 implementation that returns the score and the reason for each point | TS-01 | [007-clinical-scoring-module](../specs/007-clinical-scoring-module/) | ✅ |
 | TS-08 | **Vital signs simulator**: generates synthetic readings for each patient every 5 minutes (faster in demo mode). Runs only during tests and demos | TS-03 | [008-vital-signs-simulator](../specs/008-vital-signs-simulator/) | ✅ |
 | TS-09 | **CI pipeline**: GitHub Actions runs backend and frontend tests and a dependency check on every pull request | TS-01, TS-04 | [009-ci-pipeline](../specs/009-ci-pipeline/spec.md) | ✅ |
-| TS-10 | **Backend deployment**: Azure App Service settings (environment variables, Neon connection) and automatic deploy from GitHub Actions using OIDC | TS-03, TS-09 | | ⬜ |
-| TS-11 | **Frontend deployment**: Azure Static Web Apps settings (production API URL) and automatic deploy; end-to-end check that the deployed frontend reaches the deployed backend | TS-05, TS-10 | | ⬜ |
+| TS-10 | **Backend deployment**: deploy the FastAPI backend to the existing Azure App Service (Brazil South, `rg-patient-monitor`, Linux, Python 3.13, Free F1); App Service environment variables (Neon `DATABASE_URL`, `AUTH_SECRET`, token lifetime) and Neon connection; automatic deploy from GitHub Actions using OIDC after the CI checks pass (D-39) | TS-03, TS-06, TS-09 | | ⬜ |
+| TS-11 | **Frontend served by the backend**: CI builds the React app and deploys it with the backend to the same App Service; FastAPI serves the static files and falls back to `index.html` for client routes; the frontend calls the API with relative URLs (same origin, so CORS stays for local development only); end-to-end check on the deployed URL (D-39) | TS-05, TS-10 | | ⬜ |
 
 ## Functional stories (US): baseline, implemented first (5)
 
@@ -41,7 +41,7 @@ These must be **independent of each other**: each one adds its own files (endpoi
 | ID | Story | Depends on | Spec | Status |
 |---|---|---|---|---|
 | US-06 | As a doctor, I want a chart of a patient's vital signs history, so that I can see how they evolve | US-03, US-05 | | ⬜ |
-| US-07 | As a nurse, I want to mark an alert as attended, so that the team knows it has been handled | US-04 | | ⬜ |
+| US-07 | As a nurse, I want to mark an alert as acknowledged, so that the team knows it has been handled | US-04 | | ⬜ |
 | US-08 | As a doctor, I want a "worsening trend" warning when the score rises across the last 3 readings, so that I can act before escalation | US-03 | | ⬜ |
 | US-09 | As a nurse, I want to filter and sort the patient list by triage level, so that I find the most urgent patients faster | US-02 | | ⬜ |
 | US-10 | As a doctor, I want to export a patient's vital signs to CSV, so that I can share or analyze them | US-03 | | ⬜ |
