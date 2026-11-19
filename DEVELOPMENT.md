@@ -153,7 +153,7 @@ The list of agents, their roles and responsibilities is documented in [`docs/age
 - `main` always contains working, reviewed code. **Never push directly to `main`** (exception: setup steps during the solo dry run, see `docs/DECISIONS.md` D-20).
 - Work on the branch Spec Kit creates for your story (`/speckit-specify` creates it automatically).
 - Commit messages: short and descriptive, referencing the story ID, e.g. `US-03: add vital signs chart`.
-- Open a pull request to `main`; at least one teammate reviews it; CI tests must pass before merging.
+- Open a pull request to `main`; at least one teammate reviews it; the [CI](#71-continuous-integration-ci) checks must pass before merging.
 - Pull often: `git checkout main && git pull`, then start new stories from an updated `main`.
 - When your PR completes a roadmap step, update [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) in the same PR; when it changes a decision, add an entry to [docs/DECISIONS.md](docs/DECISIONS.md).
 
@@ -162,6 +162,70 @@ The list of agents, their roles and responsibilities is documented in [`docs/age
 - Real patient data (use only public de-identified datasets or synthetic data)
 - Passwords, API keys, tokens or `.env` files (e.g. `backend/.env` with `DATABASE_URL`, `AUTH_SECRET` and the demo passwords)
 - Personal tool settings such as `.claude/settings.local.json`
+
+### 7.1 Continuous integration (CI)
+
+GitHub Actions runs `.github/workflows/ci.yml` automatically. It needs no secrets and no database.
+
+**What runs and when.** Three independent checks, on every pull request to `main` (opened, reopened or with new commits, also from forks) and on every push or merge to `main`:
+
+| Check | What it does | Fails when |
+|---|---|---|
+| `Backend tests` | installs `backend/requirements.txt`, runs pytest | install fails, any test fails or errors, or 10 minutes pass |
+| `Frontend tests` | `npm ci`, Vitest, `npm run build` | `npm ci` fails (e.g. lock file out of date), any test fails, the build fails, or 10 minutes pass |
+| `Dependency check` | `pip-audit` (backend) and `npm audit` (frontend) | any backend vulnerability; a high or critical frontend vulnerability; an advisory database can't be reached; or 10 minutes pass |
+
+On a PR they show as `CI / Backend tests (pull_request)` and so on. There are no path filters: all three run on every change. A push to another branch **without** a PR to `main` runs nothing.
+
+**Reading a failure.** On the PR, open the **Checks** tab (or click **Details** next to the red ✗) → open the failed step. The step names say what failed: `Install backend requirements`, `Run backend tests`, `Install frontend dependencies`, `Run frontend tests`, `Build frontend`, `Install pip-audit`, `Audit backend dependencies`, `Audit frontend dependencies`. Typical causes:
+
+- A failing test: the pytest or Vitest summary at the end of the log names it.
+- `npm ci` fails: `package-lock.json` is out of date. Run `npm install` in `frontend/` and commit the lock file.
+- An audit finding: the log shows the package, its version, the advisory ID and the fixed version (see "When the dependency check fails" below).
+- The advisory database or a package registry was unreachable: use **Re-run failed jobs** first.
+
+**Run the same checks locally** before pushing. Windows PowerShell, starting from the repository root, in this order (the backend virtual environment from [backend/README.md](backend/README.md) must exist):
+
+```powershell
+# Backend tests
+cd backend
+.\.venv\Scripts\Activate.ps1
+python -m pytest
+cd ..
+
+# Frontend tests
+cd frontend
+npm ci
+npm test
+npm run build
+cd ..
+
+# Dependency check (backend virtual environment still active)
+pip install pip-audit==2.10.1
+pip-audit -r backend/requirements.txt
+cd frontend
+npm audit --audit-level=high
+cd ..
+```
+
+Expected: all pytest and Vitest tests pass and `frontend/dist/` is built; pip-audit prints "No known vulnerabilities found" and npm prints "found 0 vulnerabilities".
+
+- Normal, not failures: pytest reports `1 warning` (a Starlette/httpx deprecation warning); pip may print a "new release of pip is available" notice (don't upgrade as part of this); `npm ci` also prints "found 0 vulnerabilities", but the audit result that counts is the one from `npm audit --audit-level=high`.
+- `pip-audit` is a CI/local tool only; it is **not** in `requirements.txt`.
+- Windows PowerShell 5.1 may show a red `NativeCommandError` around the pip-audit output because pip-audit prints its summary to stderr. That is not a failure: check the exit code with `$LASTEXITCODE` (0 = passed).
+
+**When the dependency check fails.**
+
+- **Fix it (preferred):** upgrade the pinned version — backend in `backend/requirements.txt`; frontend in `frontend/package.json`, then `npm install` and commit `package-lock.json`.
+- **Accept the risk (only if no fix is available or it doesn't affect us):** backend: add `--ignore-vuln <ID>` to the `pip-audit` line in `ci.yml` with the reason in a YAML comment; frontend: add an `overrides` entry in `frontend/package.json` with the reason in the PR description (JSON has no comments). In both cases add an entry to [docs/DECISIONS.md](docs/DECISIONS.md).
+- A newly published advisory can turn CI red without any code change. That is intended.
+
+**Branch protection (optional, repo owner).** Without it, "CI must pass" is a rule the reviewer checks. To make GitHub enforce it (free, because the repository is public):
+
+1. Wait until the three checks have run at least once (they only appear in the list after that).
+2. On GitHub: **Settings → Branches →** add a branch protection rule (or a ruleset) for `main`.
+3. Turn on **Require a pull request before merging** and **Require status checks to pass before merging**.
+4. Select `Backend tests`, `Frontend tests` and `Dependency check`, then save. **Require branches to be up to date before merging** is optional.
 
 ---
 
@@ -172,6 +236,7 @@ Each student will be assigned a user story during the demo and must build it **f
 - [ ] Run every command in section 2 ("Verify your installation") without errors
 - [ ] Run the app locally (backend, frontend and database, see "Run the app locally" below) — details: [backend/README.md](backend/README.md) (database setup: [Database connection](backend/README.md#database-connection)) and [frontend/README.md](frontend/README.md)
 - [ ] Run the automated tests (see [backend/README.md](backend/README.md))
+- [ ] Run the three CI checks locally (see [7.1](#71-continuous-integration-ci))
 - [ ] Complete the full Spec Kit workflow for a small practice story
 - [ ] Invoke each agent in Claude Code
 
