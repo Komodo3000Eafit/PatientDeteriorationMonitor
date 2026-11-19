@@ -4,6 +4,7 @@ description: Tech lead that coordinates the implementation of one user story. Re
 tools:
   - read
   - shell
+  - write
   - subagent/backend-dev
   - subagent/frontend-dev
   - subagent/qa-tester
