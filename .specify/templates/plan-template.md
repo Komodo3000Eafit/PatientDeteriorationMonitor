@@ -46,13 +46,13 @@ Check each principle of `.specify/memory/constitution.md`. Any unchecked item mu
 - [ ] II. Small Scrum story: one story, implementable in 5-10 minutes
 - [ ] III. Independence: dependencies match docs/BACKLOG.md; team-session stories don't depend on each other; no changes to another functional story's code (beyond registering a route or mounting a component)
 - [ ] IV. Multi-agent: each task has an owner agent; work is logged in `agent-log.csv`
-- [ ] V. Clinical logic: triage scoring stays behind the replaceable module; alerts show which vitals and rules produced them
+- [ ] V. Clinical logic: risk scoring stays behind the replaceable module; alerts and re-triage suggestions show which vitals and rules produced them; the app never changes a triage level on its own (a clinician decides)
 - [ ] VI. Data privacy: only synthetic or public de-identified data; no secrets in code
 - [ ] VII. Tests: critical paths (scoring, prediction, API, security) have automated tests
 - [ ] VIII. Security baseline: input validation, authentication on clinical views, secrets in environment variables
-- [ ] IX. Deployable at low cost: Neon / Azure App Service / Azure Static Web Apps / GitHub Actions; no new paid services
+- [ ] IX. Deployable at low cost: Neon / one Azure App Service (FastAPI serves the React build) / GitHub Actions; no new paid services
 - [ ] X. Stack: Python (FastAPI), React, PostgreSQL
-- [ ] XI. Language: code and docs in English; UI in Spanish by default with English switch
+- [ ] XI. Language: code and docs in English; UI in Spanish by default with English switch; preferred terms from `docs/GLOSSARY.md`, new terms added to it in this PR
 - [ ] XII. Simplicity: simplest solution that meets the spec; nothing added "for later"
 
 ## Project Structure
