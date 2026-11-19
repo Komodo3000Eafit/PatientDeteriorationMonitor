@@ -14,7 +14,7 @@ Academic team project (4 students, deadline 2026-11-24): a **digital twin of a t
 
 This repo is configured for more than one assistant. Use whichever you have; they share the same specs, docs and workflow.
 
-- **Kiro** reads custom agents from `.kiro/agents/`, MCP servers from `.kiro/settings/mcp.json`, and skills from `.kiro/skills/` (a junction to `.claude/skills/`, so both tools share one copy). This `AGENTS.md` is Kiro's always-on project context.
+- **Kiro** reads custom agents from `.kiro/agents/`, MCP servers from `.kiro/settings/mcp.json`, and skills from `.kiro/skills/`. Although `.kiro/skills/` is a junction to `.claude/skills/` locally, git commits it as a full copy rather than a link, so `.kiro/skills/` must be kept in sync with `.claude/skills/`. This `AGENTS.md` is Kiro's always-on project context.
 - **Claude Code** reads subagents from `.claude/agents/`, skills from `.claude/skills/`, the MCP server from `.mcp.json`, and context from `CLAUDE.md`.
 
 The six team agents (orchestrator, backend-dev, frontend-dev, qa-tester, security-reviewer, devops) exist in both `.kiro/agents/` and `.claude/agents/`; keep the two in sync when you change a role. See `docs/agents.md`.
