@@ -1,0 +1,157 @@
+# Glossary (ubiquitous language)
+
+One name per concept, used the same way in specs, code, API fields and UI text (D-40).
+
+**Rules**
+
+- Specs, code, API fields and UI texts use the terms below. Code and API use the English term; the UI uses the Spanish term by default and the English one with the language switch (D-10).
+- A story that introduces a new term adds it here **in the same PR**. A story that renames a term updates this file and says so in its spec.
+- "—" in the UI column means there is no UI text for the term yet. The story that first shows it on screen picks the Spanish text, adds it to `frontend/src/i18n/translations.js` and fills it in here.
+- **Preferred term** is the one to use in new specs, prose and UI. **Avoid** lists other names found in the repo for the same concept. Existing code, database and API names are **not renamed**: they stay as they are, and the glossary says which preferred term they stand for. The table at the end lists every resolved name.
+
+Sources: `backend/app/models.py` (database models, TS-03), `backend/app/scoring/` (TS-07), `backend/app/auth.py` and `main.py` (API), `backend/app/simulator.py` and `demo_patients.py` (TS-08), `frontend/src/i18n/translations.js` (UI texts), `specs/`, [BACKLOG.md](BACKLOG.md) and the constitution.
+
+---
+
+## 1. Patients and triage
+
+| Code / API (English) | UI (Spanish) | Definition | Source |
+|---|---|---|---|
+| `Patient` / `patients` | — | A synthetic triaged patient being monitored. No real-identity data (constitution, D-09). | `models.py`; TS-03 spec |
+| **patient_id** = `patients.id` (`patient_id` in other tables) | — | Internal database key. Never shown to users. Avoid: "patient ID" for the code below. | `models.py` |
+| **patient code** = `identifier` | — | Unique synthetic code shown to clinicians, e.g. `PAT-001`; upper-case letters, digits and `-` only. Avoid: "identifier" in prose and UI, "patient ID". | `models.py`; TS-03 spec; PROJECT_STATUS (US-01 note) |
+| `name` (patient) | — | Synthetic patient name, e.g. "Paciente Demo Uno". Users have `full_name` instead; both stay as they are. | `models.py`; `demo_patients.py` |
+| `age` | — | Age in whole years, 0–130. | `models.py` |
+| `sex` | — | `female`, `male` or `other`. | `models.py` |
+| `admitted_at` | — | When the patient was registered. | `models.py` |
+| `status` (patient) | — | `active` (monitored; the simulator only reads active patients) or `discharged`. | `models.py`; TS-08 contract |
+| **triage level** = `triage_level` | — | The patient's **current** triage level: a clinical professional's classification, Triage I–V under Resolución 5596 de 2015, stored as a whole number 1–5 where **1 = Triage I = most urgent**. It is not computed from NEWS2. See §1.1. | `models.py`; TS-03 data model; Res. 5596 Art. 5 |
+| `TriageEvent` / `triage_events` | — | A change of (or the first) triage level for a patient, with the reason for it (constitution Principle V). | `models.py`; TS-03 spec |
+| `previous_level` / `new_level` | — | Triage level before and after the event. `previous_level` is empty for the initial event. | `models.py` |
+| `source` (triage event) | — | Who caused the event: `initial` (set at registration), `automatic` (escalation by the system, US-04) or `manual` (a clinician). | `models.py` |
+| `reason` (triage event) | — | Which vital signs and rules produced the change. | `models.py` |
+| `occurred_at` | — | When the triage event happened. | `models.py` |
+| `created_by_id` | — | The user who made the event; empty for system events. | `models.py` |
+| escalation / escalate | — | Moving a patient to a **more urgent** (lower-numbered) triage level. **The app only suggests re-triage; a clinician decides** (§1.1). Recorded as a triage event. Note: `source = automatic` and the US-04 wording "escalated automatically" predate this rule; US-04 aligns them. | constitution (Product context); US-04 |
+| register (a patient) | — | Create a patient with an initial triage level and an `initial` triage event. | US-01 |
+| demo patients | — | The fixed synthetic patients `PAT-001` to `PAT-006` created by `python -m app.demo_patients`. | `demo_patients.py`; D-37 |
+
+### 1.1 Triage levels: repo vs Resolución 5596 de 2015
+
+Resolución 5596 de 2015 (Ministerio de Salud y Protección Social, Colombia), Art. 5, defines five categories, ordered from highest to lowest risk:
+
+| Rule (Art. 5) | Meaning (summary) | Attention time | Repo value |
+|---|---|---|---|
+| Triage I | Immediate attention; vital risk, needs resuscitation | Immediate | `1` |
+| Triage II | May deteriorate rapidly or die, or risk of losing a limb or organ; extreme pain counts | No more than 30 minutes | `2` |
+| Triage III | Needs diagnostic and therapeutic measures in the emergency room; stable but may worsen | Set by each provider (IPS), as an average told to patients (Art. 6) | `3` |
+| Triage IV | No risk to life or limb; risk of complications if not attended | Set by each provider (IPS) | `4` |
+| Triage V | Acute or chronic problem with no sign of deterioration | Set by each provider (IPS) | `5` |
+
+**Matches:** five levels, and 1 = most urgent matches Triage I = highest risk. The schema can hold the Colombian levels without changes (TS-03 spec, Assumptions).
+
+**How NEWS2 and the triage level relate (project rule):**
+
+- **NEWS2 measures risk.** It turns one reading into a NEWS2 score and a risk band.
+- **The triage level is a professional's classification** (Triage I–V, Resolución 5596 de 2015). It is not a score and has no vital-sign thresholds.
+- **The app only suggests re-triage.** When the risk band or the deterioration prediction indicates it, the app raises an alert suggesting a more urgent level. **A clinician decides** whether the triage level changes. How a risk band leads to a suggestion and an alert severity is defined in US-04.
+- **Resolución 373 de 2026** only adds the reporting of attention times and keeps the triage system of Resolución 5596.
+
+**Mismatches (flagged, not fixed):**
+
+1. **Display name.** The rule names levels with Roman numerals ("Triage I" … "Triage V"). The repo stores plain integers and has no UI text for them yet. The story that first shows a level (US-02) should decide the label, e.g. "Triage I".
+2. **"The Colombian scheme may replace NEWS2."** D-08, the constitution (Principle V) and the TS-03/TS-07 specs say so. Under the rule above they are different things: Resolución 5596 sets the triage level, while NEWS2 (or another score) stays in the scoring module. To be reworded in the constitution v1.2.0 amendment.
+3. **Automatic escalation.** The constitution's Product context, US-04 ("escalated automatically") and `triage_events.source = 'automatic'` describe the app changing the level by itself. Under the rule above the app only suggests it. US-04 resolves this; the `source` values stay until then.
+4. **Attention times** (Triage I immediate, Triage II ≤ 30 min; III–V set by each provider, and their reporting under Res. 373 de 2026) are not modelled anywhere. No story needs them yet.
+
+---
+
+## 2. Vital signs
+
+| Code / API (English) | UI (Spanish) | Definition | Source |
+|---|---|---|---|
+| **reading** = one `VitalSign` row (`vital_signs` table); `VitalSigns` in the scoring module | — | **One set** of the seven parameters below for one patient at one time. Avoid: "vital sign reading", "vital signs set", "a vital sign" for the whole set. | `models.py`; `scoring/base.py`; `readings.py`; TS-03, TS-07 specs |
+| `recorded_at` | — | When the reading was taken. | `models.py` |
+| `respiratory_rate` | — | Breaths per minute. | `models.py`; `scoring/base.py` |
+| `spo2` | — | Oxygen saturation, % (0–100). | `models.py` |
+| `on_oxygen` | — | Whether the patient is on supplemental oxygen (yes/no). | `models.py`; TS-07 spec |
+| `systolic_bp` | — | Systolic blood pressure, mmHg. | `models.py` |
+| `heart_rate` | — | Beats per minute. | `models.py` |
+| `consciousness` | — | ACVPU code: `A` alert, `C` new confusion, `V` responds to voice, `P` responds to pain, `U` unresponsive. | `models.py`; TS-07 spec |
+| `temperature` | — | Body temperature, °C, one decimal. | `models.py` |
+| parameter | — | One of the seven vital signs above (`PARAMETERS`). | `scoring/base.py` |
+| `ACCEPTED_LIMITS` | — | The input limits every API story validates against (single source). | `scoring/limits.py`; D-36 |
+| `record_reading` | — | The only function that saves a reading (US-03 extends it to score it). | `readings.py`; D-37 |
+| simulator | — | Hand-run command that saves synthetic readings every 5 minutes (15 s in demo mode). | `simulator.py`; D-37 |
+| scenario | — | How a demo patient's vitals evolve: `stable`, `slow` (slow deterioration) or `rapid` (rapid deterioration). | `simulator.py`; TS-08 |
+| round / step | — | Round: one reading for every active patient. Step: a patient's number of saved readings. | TS-08 contract |
+
+---
+
+## 3. NEWS2 and risk
+
+| Code / API (English) | UI (Spanish) | Definition | Source |
+|---|---|---|---|
+| scoring system / `ScoringSystem` | — | Any implementation of the generic scoring interface; chosen in one place, `get_scoring_system()`. | `scoring/base.py`; D-36 |
+| NEWS2 / `News2` | — | National Early Warning Score 2 (RCP, 2017), SpO2 Scale 1 only. The current scoring system; its rules live only in `scoring/news2.py`. | `scoring/news2.py`; D-08 |
+| `ScoreResult` | — | Result of scoring one reading: `system`, `total`, `band`, `parameters`. | `scoring/base.py` |
+| `system` | — | Name of the scoring system that produced the result, e.g. `NEWS2`. | `scoring/base.py` |
+| **NEWS2 score** = `ScoreResult.total`, `triage_events.score` | — | Sum of the points of all parameters for one reading. Avoid: "total" in prose, a bare "score". | `scoring/base.py`; `models.py`; BACKLOG |
+| **risk band** = `ScoreResult.band` (`RISK_BANDS`) | — | NEWS2 risk from the score, four values: `low`, `low-medium`, `medium`, `high`. **Not the same concept as alert severity** (§4); US-04 defines the mapping. Avoid: "risk level", "band" in prose. | `scoring/base.py`; `news2.py` |
+| `ParameterScore` (explanation entry) | — | For one parameter: `value`, `points` and the matched range (`low`/`high`) or `category`. This is "the reason for each point". | `scoring/base.py`; US-03 |
+| points | — | Points one parameter adds to the total (0–3). | `scoring/base.py` |
+| `InvalidVitalSigns` / `Problem` | — | Validation error for a reading; each problem has `parameter` and `reason` (`missing`, `unknown`, `wrong_type`, `out_of_range`, `too_many_decimals`, `not_allowed`). Never holds the input value. | `scoring/base.py` |
+| **deterioration prediction** | — | The project's prediction: a simple rule, the NEWS2 score rising across the last 3 readings. No machine learning. Avoid: "worsening trend", "trend rule". | constitution; D-25; US-08 |
+
+---
+
+## 4. Monitoring and alerts
+
+| Code / API (English) | UI (Spanish) | Definition | Source |
+|---|---|---|---|
+| `Alert` / `alerts` | — | A notice to clinicians about a patient, e.g. explaining an escalation. | `models.py`; US-04 |
+| **alert severity** = `severity` | — | Three values: `low`, `medium`, `high`. A separate concept from the risk band (§3); US-04 defines the mapping. | `models.py` |
+| `message` (alert) | — | Alert text. | `models.py` |
+| `status` (alert) | — | `open` or `acknowledged`. | `models.py`; TS-03 data model |
+| **acknowledged** / acknowledge · `acknowledged_by_id` · `acknowledged_at` | "Atendida" | A clinician marks an open alert as handled; stores who and when. Avoid: "attended" for alerts. | `models.py`; US-07 |
+| monitoring cadence | — | A new reading every 5 minutes in the product model. | constitution (Deployment constraints) |
+| `GET /health` · `status` · `version` · `database` | "API: funcionando" · "Versión" · "Base de datos: disponible / no disponible" | Public check that the API runs; `database` is `ok` or `unavailable`. | `main.py`; `translations.js` (`health.*`); D-30 |
+| disclaimer | "Prototipo académico: no es un dispositivo médico certificado." | Banner pinned on every screen. | `translations.js` (`disclaimer.text`); TS-05 |
+
+---
+
+## 5. Users and roles
+
+| Code / API (English) | UI (Spanish) | Definition | Source |
+|---|---|---|---|
+| **user** = `User` / `users` | — | An account that signs in (role `doctor` or `nurse`). Use "user" in code and API. Use **"clinician"** only in prose, meaning the doctor and nurse roles. Avoid: "user account", "account" for the entity. | `models.py`; TS-06 spec |
+| `username` | "Usuario" | Unique sign-in name, matched exactly. | `auth.py`; `translations.js` (`login.username`) |
+| `password` · `password_hash` | "Contraseña" | Only the PBKDF2 hash is stored (D-35). | `auth.py`; `translations.js` (`login.password`) |
+| `full_name` | — (shown as data, no label) | The user's full name. Patients have `name` instead; both stay as they are. | `models.py`; `GET /me` |
+| `role` | — (no label; values below) | `doctor` or `nurse`. | `models.py`; `GET /me` |
+| `doctor` | "Médico" | Role. | `translations.js` (`role.doctor`) |
+| `nurse` | "Enfermero(a)" | Role. | `translations.js` (`role.nurse`) |
+| **login** = `POST /auth/login` | "Iniciar sesión" (title) · "Entrar" (button) | Exchange username and password for an access token. Code and API keep `login`; the English UI shows "Sign in". | `auth.py`; `translations.js` (`login.*`) |
+| **logout** | "Cerrar sesión" | Clear the session in the browser (stateless). Code keeps `logout`; the English UI shows "Sign out". | `translations.js` (`auth.logout`); D-35 |
+| access token · `access_token`, `token_type`, `expires_in` | — | Signed, short-lived proof of sign-in (JWT). | `auth.py`; D-35 |
+| session | "Sesión iniciada" · "Tu sesión ha terminado…" | The signed-in state kept for the browser tab (`sessionStorage['pdm.session']`). | `translations.js` (`auth.*`, `login.sessionExpired`); D-35 |
+| `GET /me` | — | The signed-in user's `username`, `full_name` and `role`. | `auth.py` |
+| demo users | — | Seeded doctor and nurse accounts (`python -m app.seed_demo_users`). | D-35 |
+
+---
+
+## Resolved names
+
+Code, database and API names stay as they are; new specs, prose and UI use the preferred term.
+
+| # | Concept | Preferred term | Code / DB / API (unchanged) | Avoid | Still worded the old way in |
+|---|---|---|---|---|---|
+| 1 | Marking an alert as handled | **acknowledged** (UI "Atendida") | `alerts.status = 'acknowledged'`, `acknowledged_by_id`, `acknowledged_at` | "attended" (for alerts) | — (US-07 updated). The constitution's "attended sooner" is about patients, not alerts |
+| 2 | One set of seven vital signs | **reading** = one `VitalSign` row | `VitalSign` / `vital_signs`, `VitalSigns`, `record_reading` | "vital sign reading", "vital signs set" | TS-03 spec (Key Entities), TS-07 spec (Key Entities) |
+| 3 | Sum of points | **NEWS2 score** | `ScoreResult.total`, `triage_events.score` | "total" in prose, a bare "score" | BACKLOG US-02 ("latest score"), US-04, US-08 ("the score") |
+| 4 | Risk vs alert level | **risk band** (4 NEWS2 values) and **alert severity** (3 values), separate concepts; US-04 defines the mapping | `ScoreResult.band`, `RISK_BANDS`; `alerts.severity` | "risk level", "band" in prose | TS-07 spec (story text "risk level") |
+| 5 | A person who signs in | **user** in code; **clinician** only in prose for the doctor/nurse roles | `User` / `users`, `GET /me` | "user account", "account" | TS-06 spec (Key Entities "User account") |
+| 6 | Patient key | **patient code** (`PAT-001`) and **patient_id** (internal id) | `patients.identifier`; `patients.id` / `patient_id` | "identifier" in prose and UI, "patient ID" | TS-03 spec, TS-08 spec and contract ("identifier") |
+| 7 | Person's name | left as is: `name` (patients), `full_name` (users) | same | — | — |
+| 8 | Prediction | **deterioration prediction** | — (US-08 not built) | "worsening trend", "trend rule" | BACKLOG US-08, D-25 |
+| 9 | Signing in and out | **login** / **logout** (UI "Iniciar sesión" / "Cerrar sesión") | `POST /auth/login`, `auth.logout` key | — | — (English UI keeps "Sign in" / "Sign out") |

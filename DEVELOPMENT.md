@@ -95,6 +95,7 @@ scripts/               Helper scripts (log-agent.ps1: agent activity log)
 docs/
   PROJECT_STATUS.md    Current step, roadmap and onboarding checklist
   DECISIONS.md         Decision log (why things are the way they are)
+  GLOSSARY.md          Ubiquitous language: one name per concept, English (code/API) and Spanish (UI)
   ASSIGNMENT.md        English summary of the course assignment
   agents.md            Agent team: roles, tools, responsibilities
 backend/               FastAPI application (setup, run and test: backend/README.md)
@@ -116,6 +117,7 @@ CLAUDE.md              Project context Claude Code reads automatically
   - **Technical (TS-xx):** sets up the architecture the app needs — e.g. create and connect the PostgreSQL database, set up the FastAPI app, deploy it, connect the frontend to the backend. Technical stories form the **baseline foundation**.
   - **Functional (US-xx):** adds an app feature on top of that foundation. Functional stories may rely on the baseline, but **never on another functional story**.
 - **One user story = one Spec Kit feature** = one folder in `specs/` = one branch = one pull request.
+- **Use the glossary terms.** Specs, code, API fields and UI texts use the names in [docs/GLOSSARY.md](docs/GLOSSARY.md). A story that introduces a new term adds it to the glossary in the same PR (D-40).
 
 ### 5.2 Spec Kit workflow for each story
 
