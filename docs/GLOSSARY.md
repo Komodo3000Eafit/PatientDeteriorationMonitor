@@ -118,6 +118,10 @@ Resolución 5596 de 2015 (Ministerio de Salud y Protección Social, Colombia), A
 | monitoring cadence | — | A new reading every 5 minutes in the product model. | constitution (Deployment constraints) |
 | `GET /health` · `status` · `version` · `database` | "API: funcionando" · "Versión" · "Base de datos: disponible / no disponible" | Public check that the API runs; `database` is `ok` or `unavailable`. | `main.py`; `translations.js` (`health.*`); D-30 |
 | disclaimer | "Prototipo académico: no es un dispositivo médico certificado." | Banner pinned on every screen. | `translations.js` (`disclaimer.text`); TS-05 |
+| **patient list** = `PatientListPage` | "Pacientes" (title) · "Volver a la lista de pacientes" (link) | The page at `/patients` that lists the monitored patients (a placeholder until US-02). Signed-in users only. | `translations.js` (`patients.*`, `nav.backToPatients`); TS-13 |
+| **patient detail** = `PatientDetailPage` | "Paciente {code}" (title) · "Detalle del paciente" | The page at `/patients/:identifier` for one patient, addressed by the patient code (a placeholder until US-05). Signed-in users only. | `translations.js` (`patientDetail.*`); TS-13 |
+| **not-found page** = `NotFoundPage` | "Página no encontrada" | Shown for any address the app does not know, or a patient detail address whose code is not in the patient code format. | `translations.js` (`notFound.*`); TS-13 |
+| **page address** = route (`<Route path>`) | — (not shown as a term) | The browser path of a page, e.g. `/patients/PAT-001`. Only the patient code may appear in one; never under `/api` or equal to `/health`. Avoid: "URL" in UI text. | `App.jsx`; TS-13 contract `routes.md` |
 
 ---
 

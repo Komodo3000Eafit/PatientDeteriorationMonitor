@@ -39,6 +39,14 @@ textarea {
   min-height: var(--size-target);
 }
 
+/* Links are styled as standalone controls (TS-13). An inline link inside running text needs its own rule (e.g. display: inline) when a story adds one. */
+a {
+  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-target);
+}
+
 :focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);

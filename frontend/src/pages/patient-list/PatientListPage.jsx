@@ -1,10 +1,11 @@
-// Start page (TS-04, texts from TS-05): shows the backend /health result once per page load.
+// Patient list placeholder (TS-13) until US-02 replaces it; keeps the TS-04 /health check, once per load.
 // All texts come from src/i18n/translations.js; switching language never calls /health again.
 import { useEffect, useState } from 'react'
 import { getHealth } from '../../api/client.js'
+import Card from '../../components/Card.jsx'
 import { useLanguage } from '../../i18n/LanguageContext.jsx'
 
-export default function StartPage() {
+export default function PatientListPage() {
   const { t } = useLanguage()
   const [state, setState] = useState({ kind: 'checking' })
 
@@ -33,6 +34,9 @@ export default function StartPage() {
   return (
     <main>
       <h1>{t('app.title')}</h1>
+      <Card title={t('patients.title')}>
+        <p>{t('patients.placeholder')}</p>
+      </Card>
       <section role="status">
         {state.kind === 'checking' && <p>{t('health.checking')}</p>}
         {state.kind === 'ok' && (

@@ -1,9 +1,10 @@
 # PatientDeteriorationMonitor — Frontend
 
 React app (Vite, plain JavaScript) for the PatientDeteriorationMonitor prototype. It has
-authentication with a login page, a start page that shows whether the backend API and its database
-are working, a language switch, and the shared UI foundation (design tokens and reusable
-components) described below.
+authentication with a login page (`/login`), a patient list page (`/patients`, for now a placeholder
+that also shows whether the backend API and its database are working), a patient detail page
+(`/patients/<patient code>`, a placeholder), a not-found page, a language switch, and the shared UI
+foundation (design tokens and reusable components) described below. See "Pages and addresses".
 The UI is in Spanish by default, with an **ES / EN** switch to English (see "How to add or change texts").
 
 ## Prerequisites
@@ -92,7 +93,7 @@ frontend/src/
 ├── styles/       # tokens.css (design tokens), global.css (base styles)
 ├── components/   # AppShell and the shared components: Button, Card, StatusBadge,
 │                 #   TriageLevelBadge, Icons
-├── pages/        # one folder per page: pages/start/, pages/login/
+├── pages/        # one folder per page: login/, patient-list/, patient-detail/, not-found/
 ├── hooks/        # hooks shared by more than one page
 ├── utils/        # pure presentation helpers, e.g. monitoringStatus.js
 └── testing/      # test helpers such as fakeBackend
@@ -149,8 +150,9 @@ automatically.
 
 ## Sign-in
 
-- While signed out, the app shows the login page inside `AppShell` (with the disclaimer banner and
-  the language switch). The demo users (`demo.doctor`, `demo.nurse`) are created by the backend
+- While signed out, a clinical page redirects to the login page at `/login`, shown inside
+  `AppShell` (with the disclaimer banner and the language switch). After signing in, the app
+  returns to the page that was asked for. The demo users (`demo.doctor`, `demo.nurse`) are created by the backend
   command described in [backend/README.md](../backend/README.md#authentication).
 - The session (token and user) is kept in the browser under the `sessionStorage` key
   `pdm.session`. It belongs to one tab: a reload keeps it, closing the tab signs out. No cookies
@@ -158,23 +160,67 @@ automatically.
   out and shows "Tu sesión ha terminado. Inicia sesión de nuevo."
 - [`src/api/client.js`](src/api/client.js) adds `Authorization: Bearer <token>` automatically.
   Screens never handle the token and must call the backend only through the client.
-- To add a protected screen, render it inside `<RequireAuth>` (from
-  [`src/auth/RequireAuth.jsx`](src/auth/RequireAuth.jsx)), and get the signed-in user with
-  `useAuth()` (from [`src/auth/AuthContext.jsx`](src/auth/AuthContext.jsx)):
-
-  ```jsx
-  <RequireAuth>
-    <MyClinicalScreen />
-  </RequireAuth>
-  ```
+- To add a protected page, add its `<Route>` inside the `<RequireAuth>` group in `src/App.jsx`
+  (see "Pages and addresses"), and get the signed-in user with `useAuth()` (from
+  [`src/auth/AuthContext.jsx`](src/auth/AuthContext.jsx)).
 
 - Roles are shown with the `role.*` texts (`role.doctor`, `role.nurse`) from
   `src/i18n/translations.js`.
 
-## What the start page shows
+## Pages and addresses
 
-The start page is shown only after signing in, with the user's name, role and a sign-out button
-in the header.
+The app uses `react-router` (declarative mode): `BrowserRouter` in `src/main.jsx`, the route
+table (`<Routes>`) in `src/App.jsx`. Every page is drawn inside `AppShell`.
+
+| Address | Signed out | Signed in |
+|---|---|---|
+| `/` | → `/patients` (replace) → `/login` | → `/patients` (replace) |
+| `/login` | Login page | → remembered page or `/patients` (replace) |
+| `/patients` | → `/login` (replace, remembers `/patients`) | Patient list placeholder |
+| `/patients/PAT-001` | → `/login` (replace, remembers it) | Patient detail placeholder showing `PAT-001` |
+| `/patients/pat-001`, `/patients/<script>` | → `/login` (protected first) | Not-found page |
+| `/abc`, `/patients/PAT-001/extra`, `/login/x`, `/api/...`, `/health` | Not-found page | Not-found page |
+
+The page remembered for after sign-in is kept only in the router's navigation state, and only
+internal app paths are accepted (never `/login`). Signing out always ends on `/login` and
+remembers no page.
+
+### How to add a page
+
+A **protected** (clinical) page is one `<Route>` line inside the `<RequireAuth>` group in
+[`src/App.jsx`](src/App.jsx); a **public** page goes outside the group:
+
+```jsx
+// App.jsx, inside <Routes>
+<Route element={<RequireAuth />}>
+  <Route path="/patients" element={<PatientListPage />} />
+  <Route path="/patients/:identifier" element={<PatientDetailPage />} />
+  {/* protected pages go here */}
+</Route>
+{/* public pages go outside the group */}
+```
+
+Rules:
+
+- A fixed address such as `/patients/new` wins over `/patients/:identifier` by react-router's
+  route ranking (static segments rank above dynamic ones), with no extra code. The story that
+  adds it (US-01) verifies this with its own test.
+- Only the **patient code** may appear in an address (for example `/patients/PAT-001`). Never put
+  names, vital signs or any other patient data in an address. The detail page checks the code
+  with `isPatientCode` (`src/utils/patientCode.js`) and shows the not-found page for anything else.
+- No page path may start with `/api` or equal `/health`: those belong to the backend, which serves
+  the app's `index.html` for every other path (TS-11).
+- In-app links use `<Link to="...">` from `react-router` (never `react-router-dom`, never a plain
+  `<a href>` for in-app pages).
+- The global link style (`src/styles/global.css`) makes every link a standalone control at least
+  44px tall in `--color-primary`. An inline link inside running text needs its own rule (for
+  example `display: inline`).
+
+## What the patient list page shows
+
+The patient list page (`/patients`) is shown only after signing in, with the user's name, role and
+a sign-out button in the header. Until US-02 adds the real list, it shows a placeholder card and
+the backend status below.
 
 The page checks the backend's `GET /health` once when it loads:
 

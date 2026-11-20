@@ -1,4 +1,5 @@
-// Signed-in user (TS-06): React Context with { user, signIn, signOut, sessionExpired }.
+// Signed-in user (TS-06): React Context with { user, signIn, signOut, sessionExpired, loggedOut }.
+// loggedOut (TS-13) is true after the user signed out, so the guard does not remember a return-to page.
 // The session itself lives in src/auth/session.js; the API client adds the token to requests.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getMe, login, onUnauthorized } from '../api/client.js'
@@ -9,6 +10,7 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => getSession()?.user ?? null)
   const [sessionExpired, setSessionExpired] = useState(false)
+  const [loggedOut, setLoggedOut] = useState(false)
 
   // A 401 on a request that used the stored token: the client already cleared the session.
   useEffect(
@@ -16,6 +18,7 @@ export function AuthProvider({ children }) {
       onUnauthorized(() => {
         setUser(null)
         setSessionExpired(true)
+        setLoggedOut(false)
       }),
     [],
   )
@@ -56,17 +59,19 @@ export function AuthProvider({ children }) {
     saveSession({ token: access_token, user: me })
     setUser(me)
     setSessionExpired(false)
+    setLoggedOut(false)
   }, [])
 
   const signOut = useCallback(() => {
     clearSession()
     setUser(null)
     setSessionExpired(false)
+    setLoggedOut(true)
   }, [])
 
   const value = useMemo(
-    () => ({ user, signIn, signOut, sessionExpired }),
-    [user, signIn, signOut, sessionExpired],
+    () => ({ user, signIn, signOut, sessionExpired, loggedOut }),
+    [user, signIn, signOut, sessionExpired, loggedOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

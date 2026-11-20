@@ -3,9 +3,10 @@
 // Synthetic /health responses only; fetch is stubbed, no backend and no network.
 // TS-06 FR-018: every test starts signed in (synthetic session) and fetch is routed by path;
 // /me answers with the synthetic doctor.
+// TS-13 (AC12): rendered inside a router at /patients (renderApp); assertions are unchanged.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
-import App from '../App.jsx'
+import { screen, fireEvent, act } from '@testing-library/react'
+import { renderApp } from '../testing/renderApp.jsx'
 import { callsTo, resetSession, signInForTest, stubBackend } from '../testing/fakeBackend.js'
 
 const ES_BANNER = 'Prototipo académico: no es un dispositivo médico certificado.'
@@ -51,7 +52,7 @@ afterEach(() => {
 describe('TS-05 language and disclaimer', () => {
   it('AC2 Spanish by default', async () => {
     stubOkFetch()
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
     expect(screen.getByText(ES_BANNER)).toBeTruthy()
@@ -65,7 +66,7 @@ describe('TS-05 language and disclaimer', () => {
 
   it('AC3 AC5 switch to English and back without reload or new backend call', async () => {
     const fetchMock = stubOkFetch()
-    render(<App />)
+    renderApp(['/patients'])
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
 
     fireEvent.click(englishButton())
@@ -110,7 +111,7 @@ describe('TS-05 language and disclaimer', () => {
           resolveFetch = resolve
         }),
     })
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(screen.getByText(ES_CHECKING)).toBeTruthy()
     fireEvent.click(englishButton())
@@ -128,7 +129,7 @@ describe('TS-05 language and disclaimer', () => {
   it('AC4 remembered English starts in English', async () => {
     localStorage.setItem('pdm.language', 'en')
     stubOkFetch()
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(await screen.findByText('API: running')).toBeTruthy()
     expect(screen.getByText(EN_BANNER)).toBeTruthy()
@@ -138,7 +139,7 @@ describe('TS-05 language and disclaimer', () => {
 
   it('AC4 switching saves the choice', async () => {
     stubOkFetch()
-    render(<App />)
+    renderApp(['/patients'])
     await screen.findByText('API: funcionando')
 
     fireEvent.click(englishButton())
@@ -149,7 +150,7 @@ describe('TS-05 language and disclaimer', () => {
   it('AC4 unknown stored value falls back to Spanish', async () => {
     localStorage.setItem('pdm.language', 'fr')
     stubOkFetch()
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
     expect(screen.getByText(ES_BANNER)).toBeTruthy()
@@ -165,7 +166,7 @@ describe('TS-05 language and disclaimer', () => {
     })
     stubOkFetch()
 
-    expect(() => render(<App />)).not.toThrow()
+    expect(() => renderApp(['/patients'])).not.toThrow()
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
     expect(screen.getByText(ES_BANNER)).toBeTruthy()
 
@@ -208,7 +209,7 @@ describe('TS-05 language and disclaimer', () => {
 
     it.each(outcomes)('AC6 banner shown when /health is $name', async ({ fetchImpl, esText, enText }) => {
       stubBackend({ health: fetchImpl })
-      render(<App />)
+      renderApp(['/patients'])
 
       expect(await screen.findByText(esText)).toBeTruthy()
       expect(screen.getByText(ES_BANNER)).toBeTruthy()
@@ -222,7 +223,7 @@ describe('TS-05 language and disclaimer', () => {
 
   it('AC6 banner shown while checking', () => {
     stubBackend({ health: () => new Promise(() => {}) })
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(screen.getByText(ES_CHECKING)).toBeTruthy()
     expect(screen.getByText(ES_BANNER)).toBeTruthy()
@@ -235,7 +236,7 @@ describe('TS-05 language and disclaimer', () => {
 
   it('AC6 banner cannot be dismissed', async () => {
     stubOkFetch()
-    render(<App />)
+    renderApp(['/patients'])
     await screen.findByText('API: funcionando')
 
     // TS-06: signed in, the header also has the sign-out button; logout is not a close control for
@@ -251,7 +252,7 @@ describe('TS-05 language and disclaimer', () => {
 
   it('FR-004 switch is a labelled group', async () => {
     stubOkFetch()
-    render(<App />)
+    renderApp(['/patients'])
     await screen.findByText('API: funcionando')
 
     expect(screen.getByRole('group', { name: 'Idioma' })).toBeTruthy()

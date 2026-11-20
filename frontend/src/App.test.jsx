@@ -1,10 +1,12 @@
-// TS-04 start page tests: AC2, AC3, AC4, AC8 and FR-008, following
+// TS-04 backend status tests: AC2, AC3, AC4, AC8 and FR-008, following
 // specs/004-react-app-skeleton/contracts/health-ui.md. Synthetic responses only; fetch is mocked.
-// TS-06 FR-018: every test starts signed in (synthetic session) and fetch is routed by path, so
-// the start page behaves as before; /me answers with the synthetic doctor.
+// TS-06 FR-018: every test starts signed in (synthetic session) and fetch is routed by path;
+// /me answers with the synthetic doctor.
+// TS-13 (FR-004, AC12): the old start page is now the patient list placeholder at /patients, so
+// every test renders the app inside a router at /patients (renderApp); assertions are unchanged.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
-import App from './App.jsx'
+import { screen, act } from '@testing-library/react'
+import { renderApp } from './testing/renderApp.jsx'
 import { callsTo, resetSession, signInForTest, stubBackend } from './testing/fakeBackend.js'
 
 const CHECKING = 'Comprobando la conexión con el servidor…'
@@ -24,13 +26,13 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('App start page', () => {
+describe('Patient list page: backend status', () => {
   it('AC2 shows checking first, then API ok, version and database available', async () => {
     const fetchMock = stubBackend({
       health: async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'ok' }),
     })
 
-    render(<App />)
+    renderApp(['/patients'])
     expect(screen.getByText(CHECKING)).toBeTruthy()
 
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
@@ -45,7 +47,7 @@ describe('App start page', () => {
       health: async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'unavailable' }),
     })
 
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(await screen.findByText('Base de datos: no disponible')).toBeTruthy()
     expect(screen.getByText('API: funcionando')).toBeTruthy()
@@ -57,7 +59,7 @@ describe('App start page', () => {
       health: async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'weird' }),
     })
 
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(await screen.findByText('Base de datos: no disponible')).toBeTruthy()
     expect(screen.queryByText('Base de datos: disponible')).toBeNull()
@@ -70,7 +72,7 @@ describe('App start page', () => {
       },
     })
 
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(await screen.findByText(UNREACHABLE)).toBeTruthy()
     expect(screen.getByText(RELOAD_HINT)).toBeTruthy()
@@ -82,7 +84,7 @@ describe('App start page', () => {
   it('AC4 non-200 status shows backend unreachable', async () => {
     stubBackend({ health: async () => jsonResponse({}, 500) })
 
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(await screen.findByText(UNREACHABLE)).toBeTruthy()
     expect(screen.getByText(RELOAD_HINT)).toBeTruthy()
@@ -92,7 +94,7 @@ describe('App start page', () => {
   it('AC4 unexpected body shows backend unreachable', async () => {
     stubBackend({ health: async () => jsonResponse({ foo: 'bar' }) })
 
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(await screen.findByText(UNREACHABLE)).toBeTruthy()
     // FR-008: the response body is never shown.
@@ -111,7 +113,7 @@ describe('App start page', () => {
         }),
     })
 
-    render(<App />)
+    renderApp(['/patients'])
     expect(screen.getByText(CHECKING)).toBeTruthy()
 
     await act(async () => {

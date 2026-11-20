@@ -1,9 +1,11 @@
 // TS-06 sign-in tests: AC7, AC8, AC9 and FR-011 to FR-014, following
 // specs/006-authentication/contracts/auth-ui.md (../../../specs/006-authentication/contracts/auth-ui.md).
 // Synthetic users and tokens only; fetch is stubbed, no backend and no network.
+// TS-13 (AC12): rendered inside a router with renderApp; signed-out tests open /login (or
+// /patients, which redirects to /login); signed-in tests open /patients.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
-import App from '../App.jsx'
+import { screen, fireEvent, act, waitFor } from '@testing-library/react'
+import { currentPath, renderApp } from '../testing/renderApp.jsx'
 import {
   DOCTOR,
   NURSE,
@@ -58,8 +60,10 @@ afterEach(() => {
 describe('TS-06 sign-in', () => {
   it('AC7 signed out shows the login page and no clinical content', () => {
     const fetchMock = stubBackend()
-    render(<App />)
+    renderApp(['/patients'])
 
+    // TS-13 AC3: the protected page redirects to /login.
+    expect(currentPath()).toBe('/login')
     expect(loginHeading()).toBeTruthy()
     expect(screen.getByRole('heading', { name: ES_TITLE })).toBeTruthy()
     expect(screen.getByText(ES_BANNER)).toBeTruthy()
@@ -73,7 +77,7 @@ describe('TS-06 sign-in', () => {
 
   it('AC7 login page in English', () => {
     stubBackend()
-    render(<App />)
+    renderApp(['/login'])
 
     fireEvent.click(englishButton())
 
@@ -85,11 +89,13 @@ describe('TS-06 sign-in', () => {
 
   it('AC8 successful sign-in as the doctor', async () => {
     const fetchMock = stubBackend()
-    render(<App />)
+    renderApp(['/login'])
 
     fillAndSubmit('demo.doctor', 'pw-123456')
 
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
+    // TS-13 AC4: opened /login directly, so sign-in lands on /patients.
+    expect(currentPath()).toBe('/patients')
 
     const loginCalls = callsTo(fetchMock, '/api/auth/login')
     expect(loginCalls).toHaveLength(1)
@@ -122,7 +128,7 @@ describe('TS-06 sign-in', () => {
 
   it('AC8 nurse role is translated', async () => {
     stubBackend({ me: async () => jsonResponse(NURSE) })
-    render(<App />)
+    renderApp(['/login'])
 
     fillAndSubmit('demo.nurse', 'pw-nurse-1')
 
@@ -138,7 +144,7 @@ describe('TS-06 sign-in', () => {
     stubBackend({
       login: async () => jsonResponse({ detail: 'Incorrect username or password' }, 401),
     })
-    render(<App />)
+    renderApp(['/login'])
 
     fillAndSubmit('demo.doctor', 'wrong-pass')
 
@@ -163,7 +169,7 @@ describe('TS-06 sign-in', () => {
     { name: 'status 503', login: async () => jsonResponse({ detail: 'Service unavailable' }, 503) },
   ])('AC8 server unreachable ($name)', async ({ login }) => {
     stubBackend({ login })
-    render(<App />)
+    renderApp(['/login'])
 
     fillAndSubmit()
 
@@ -188,7 +194,7 @@ describe('TS-06 sign-in', () => {
     },
   ])('edge case: login ok but /me fails shows cannot connect ($name)', async ({ me }) => {
     const fetchMock = stubBackend({ me })
-    render(<App />)
+    renderApp(['/login'])
 
     fillAndSubmit()
 
@@ -201,7 +207,7 @@ describe('TS-06 sign-in', () => {
 
   it('edge case: double submit sends one request', async () => {
     const fetchMock = stubBackend({ login: () => new Promise(() => {}) })
-    render(<App />)
+    renderApp(['/login'])
 
     fillAndSubmit()
     const button = screen.getByRole('button', { name: 'Entrando…' })
@@ -215,11 +221,13 @@ describe('TS-06 sign-in', () => {
   it('AC9 logout', async () => {
     const fetchMock = stubBackend()
     signInForTest()
-    render(<App />)
+    renderApp(['/patients'])
     await screen.findByText('API: funcionando')
 
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
+    // TS-13 AC6: logout ends on /login.
+    expect(currentPath()).toBe('/login')
     expect(loginHeading()).toBeTruthy()
     expect(storedSession()).toBeNull()
     expect(screen.queryByText(ES_EXPIRED)).toBeNull()
@@ -233,7 +241,7 @@ describe('TS-06 sign-in', () => {
   it('AC9 logout keeps English', async () => {
     stubBackend()
     signInForTest()
-    render(<App />)
+    renderApp(['/patients'])
     await screen.findByText('API: funcionando')
     fireEvent.click(englishButton())
 
@@ -247,7 +255,7 @@ describe('TS-06 sign-in', () => {
   it('AC9 reload keeps the session', async () => {
     const fetchMock = stubBackend()
     signInForTest()
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(screen.getByText('Dra. Ana Demo')).toBeTruthy()
     expect(loginHeading()).toBeNull()
@@ -261,9 +269,11 @@ describe('TS-06 sign-in', () => {
   it('AC9 stored session rejected shows session expired', async () => {
     stubBackend({ me: async () => jsonResponse({ detail: 'Not authenticated' }, 401) })
     signInForTest()
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(await screen.findByText(ES_EXPIRED)).toBeTruthy()
+    // TS-13 AC6: a rejected stored session ends on /login with the "session expired" text.
+    expect(currentPath()).toBe('/login')
     expect(loginHeading()).toBeTruthy()
     expect(storedSession()).toBeNull()
     expect(screen.queryByText('Dra. Ana Demo')).toBeNull()
@@ -276,7 +286,7 @@ describe('TS-06 sign-in', () => {
   it('edge case: corrupted stored session is signed out', () => {
     const fetchMock = stubBackend()
     sessionStorage.setItem('pdm.session', '{bad')
-    render(<App />)
+    renderApp(['/patients'])
 
     expect(loginHeading()).toBeTruthy()
     expect(screen.queryByRole('alert')).toBeNull()
@@ -292,7 +302,7 @@ describe('TS-06 sign-in', () => {
     }
     stubBackend()
 
-    expect(() => render(<App />)).not.toThrow()
+    expect(() => renderApp(['/login'])).not.toThrow()
     expect(loginHeading()).toBeTruthy()
     expect(screen.queryByRole('alert')).toBeNull()
 
@@ -309,7 +319,7 @@ describe('TS-06 sign-in', () => {
       },
     })
     signInForTest()
-    render(<App />)
+    renderApp(['/patients'])
 
     await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
     await act(async () => {})

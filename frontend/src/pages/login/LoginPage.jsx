@@ -1,8 +1,12 @@
-// Login page (TS-06), shown inside AppShell while signed out. All texts from src/i18n/translations.js.
-// The message is kept as a key, so switching language translates a message already shown.
+// Login page at /login (TS-06, TS-13), shown inside AppShell. When signed in it redirects to the
+// remembered page (only safe internal paths, see returnPath) or /patients. All texts from
+// src/i18n/translations.js. The message is kept as a key, so switching language translates a
+// message already shown.
 import { useEffect, useRef, useState } from 'react'
+import { Navigate, useLocation } from 'react-router'
 import { ApiError } from '../../api/client.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
+import { returnPath } from '../../auth/returnPath.js'
 import { useLanguage } from '../../i18n/LanguageContext.jsx'
 import styles from './LoginPage.module.css'
 import Button from '../../components/Button.jsx'
@@ -10,8 +14,9 @@ import Card from '../../components/Card.jsx'
 import { OctagonXIcon } from '../../components/Icons.jsx'
 
 export default function LoginPage() {
-  const { signIn, sessionExpired } = useAuth()
+  const { user, signIn, sessionExpired } = useAuth()
   const { t } = useLanguage()
+  const location = useLocation()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -27,6 +32,9 @@ export default function LoginPage() {
       mounted.current = false
     }
   }, [])
+
+  // All hooks above run on every render; only now may the page leave.
+  if (user) return <Navigate to={returnPath(location.state)} replace />
 
   const shownKey = errorKey ?? (sessionExpired ? 'login.sessionExpired' : null)
 
