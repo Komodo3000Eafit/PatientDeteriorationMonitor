@@ -116,6 +116,7 @@ frontend/src/
 
 Icons:
 - Icons come from `lucide-react` (the single icon source, D-46); do not hand-draw SVG icons. `Icons.jsx` re-exports the status icons from `lucide-react` under the app's existing names.
+- Need an icon not in `Icons.jsx` yet? Import any icon from `lucide-react` directly (it has a large set); you are not limited to the four status icons. Add new shared status/semantic wrappers to `Icons.jsx` when they will be reused; one-off icons may be imported where used. Apply the same decorative rules below.
 - Keep icons decorative: `aria-hidden="true"`, `focusable="false"`, em-sized, drawn with `currentColor` (never a status color as the icon's text/fill).
 
 Accessibility:
