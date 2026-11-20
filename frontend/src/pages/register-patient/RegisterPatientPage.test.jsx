@@ -4,7 +4,7 @@
 //
 // Exact Spanish texts copied from frontend/src/i18n/translations.js:
 //   registerPatient.title        'Registrar paciente'
-//   registerPatient.name         'Nombre (ficticio)'
+//   registerPatient.name         'Nombre'
 //   registerPatient.nameHint     'No uses datos reales.'
 //   registerPatient.age          'Edad (años)'
 //   registerPatient.sex          'Sexo'
@@ -35,7 +35,7 @@ import {
 import { getSession } from '../../auth/session.js'
 
 const ES_TITLE = 'Registrar paciente'
-const ES_NAME = 'Nombre (ficticio)'
+const ES_NAME = 'Nombre'
 const ES_NAME_HINT = 'No uses datos reales.'
 const ES_AGE = 'Edad (años)'
 const ES_SEX = 'Sexo'
@@ -110,7 +110,7 @@ afterEach(() => {
 })
 
 describe('US-01 AC7 registration page', () => {
-  it('AC7 nurse sees the form in a card with the fictitious-name label and hint', async () => {
+  it('AC7 nurse sees the form in a card with the name label and hint', async () => {
     await openAsNurse()
 
     expect(currentPath()).toBe('/patients/new')
@@ -392,7 +392,7 @@ describe('US-01 AC14 Spanish by default, English switch', () => {
     fireEvent.click(screen.getByRole('button', { name: 'English' }))
 
     expect(screen.getByRole('heading', { level: 1, name: 'Register patient' })).toBeTruthy()
-    const name = screen.getByLabelText('Name (fictitious)')
+    const name = screen.getByLabelText('Name')
     expect(screen.getByText('Do not use real data.')).toBeTruthy()
     expect(name.value).toBe(SYNTHETIC_NAME)
     expect(screen.getByLabelText('Age (years)').value).toBe('40')
@@ -417,7 +417,7 @@ describe('US-01 AC14 Spanish by default, English switch', () => {
     fireEvent.click(screen.getByRole('button', { name: 'English' }))
 
     expect(screen.getByRole('alert').textContent).toBe('Could not assign a patient code. Try again.')
-    expect(screen.getByLabelText('Name (fictitious)').value).toBe(SYNTHETIC_NAME)
+    expect(screen.getByLabelText('Name').value).toBe(SYNTHETIC_NAME)
   })
 
   it('AC14 doctor sees the nurses-only message in English', async () => {

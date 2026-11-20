@@ -1,5 +1,5 @@
 // Register patient page at /patients/new (US-01), inside the <RequireAuth> group. A nurse fills
-// in a fictitious name, age, sex and the triage level already assigned; the backend generates the
+// in a synthetic name, age, sex and the triage level already assigned; the backend generates the
 // patient code and the admission time. Any other role sees a fixed message and a link back.
 // Contract: specs/015-register-patient/contracts/ui.md. Messages are kept as keys, so switching
 // language translates them; typed values live in component state and survive the switch.

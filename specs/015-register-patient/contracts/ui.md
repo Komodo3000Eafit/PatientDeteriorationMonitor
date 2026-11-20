@@ -51,7 +51,7 @@ decorative `lucide-react` `UserPlus` icon and `registerPatient.button`, navigati
 |---|---|---|
 | `registerPatient.button` | Registrar paciente | Register patient |
 | `registerPatient.title` | Registrar paciente | Register patient |
-| `registerPatient.name` | Nombre (ficticio) | Name (fictitious) |
+| `registerPatient.name` | Nombre | Name |
 | `registerPatient.nameHint` | No uses datos reales. | Do not use real data. |
 | `registerPatient.age` | Edad (años) | Age (years) |
 | `registerPatient.sex` | Sexo | Sex |

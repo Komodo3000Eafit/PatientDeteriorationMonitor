@@ -5,7 +5,7 @@
 // Exact Spanish texts copied from frontend/src/i18n/translations.js:
 //   registerPatient.button  'Registrar paciente'
 //   registerPatient.title   'Registrar paciente'
-//   registerPatient.name    'Nombre (ficticio)'
+//   registerPatient.name    'Nombre'
 //   patients.placeholder    'La lista de pacientes se mostrará aquí.'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, fireEvent, waitFor, act } from '@testing-library/react'
@@ -21,7 +21,7 @@ import {
 } from '../../testing/fakeBackend.js'
 
 const ES_BUTTON = 'Registrar paciente'
-const ES_NAME = 'Nombre (ficticio)'
+const ES_NAME = 'Nombre'
 const ES_LIST_PLACEHOLDER = 'La lista de pacientes se mostrará aquí.'
 
 async function openList(user) {
