@@ -3,9 +3,13 @@
 // Authorization header (never in the URL, never in a cookie).
 import { clearSession, getSession } from '../auth/session.js'
 
-// Backend base URL from VITE_API_BASE_URL (trimmed, no trailing slash), or the local default.
+// Backend base URL, configured only here. If VITE_API_BASE_URL is undefined (local dev, tests),
+// fall back to the local default. If it is defined, use it verbatim (trimmed, no trailing slash);
+// a defined-but-empty value stays '' so fetch issues same-origin relative requests (TS-11 build).
 export const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '') || 'http://localhost:8000'
+  import.meta.env.VITE_API_BASE_URL === undefined
+    ? 'http://localhost:8000'
+    : import.meta.env.VITE_API_BASE_URL.trim().replace(/\/+$/, '')
 
 // A request that takes longer than this is aborted and treated as a failure.
 export const REQUEST_TIMEOUT_MS = 10000
@@ -72,14 +76,14 @@ export async function apiPost(path, body, options) {
   return request('POST', path, { ...options, body })
 }
 
-// POST /auth/login. Returns { access_token, token_type, expires_in }; ApiError(401) on wrong credentials.
+// POST /api/auth/login. Returns { access_token, token_type, expires_in }; ApiError(401) on wrong credentials.
 export async function login(username, password) {
-  return apiPost('/auth/login', { username, password })
+  return apiPost('/api/auth/login', { username, password })
 }
 
-// GET /me with the given token, or the stored one. Returns { username, full_name, role }.
+// GET /api/me with the given token, or the stored one. Returns { username, full_name, role }.
 export async function getMe(token) {
-  return apiGet('/me', token ? { token } : undefined)
+  return apiGet('/api/me', token ? { token } : undefined)
 }
 
 // GET /health. Throws unless status and version are non-empty strings.

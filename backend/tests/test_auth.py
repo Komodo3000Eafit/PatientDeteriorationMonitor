@@ -97,12 +97,12 @@ def _b64url(data: dict) -> str:
 
 def _login(username, password):
     return _record(
-        client.post("/auth/login", json={"username": username, "password": password})
+        client.post("/api/auth/login", json={"username": username, "password": password})
     )
 
 
 def _me(headers=None):
-    return _record(client.get("/me", headers=headers or {}))
+    return _record(client.get("/api/me", headers=headers or {}))
 
 
 # --- Settings (FR-009, AC6) ---------------------------------------------------
@@ -293,7 +293,7 @@ def test_username_exact_match(fake_users, username):
 )
 def test_login_invalid_input_422(fake_users, kwargs, secret_value):
     """AC3, research R6: invalid login input gives 422 without echoing the submitted values (no "input"/"ctx")."""
-    response = _record(client.post("/auth/login", **kwargs))
+    response = _record(client.post("/api/auth/login", **kwargs))
 
     assert response.status_code == 422
     if secret_value is not None:
@@ -375,7 +375,7 @@ def test_lookup_is_lazy(monkeypatch):
     assert len(calls) == 1
 
 
-# --- /me (AC4, SC-002, FR-006) --------------------------------------------------
+# --- /api/me (AC4, SC-002, FR-006) --------------------------------------------------
 
 
 def _bearer(token):
@@ -397,7 +397,7 @@ def test_me_valid_token(fake_users):
 
 
 def test_me_with_login_token(fake_users):
-    """AC2, AC4: the token returned by /auth/login is accepted by /me."""
+    """AC2, AC4: the token returned by /api/auth/login is accepted by /api/me."""
     token = _login("demo.doctor", DOCTOR_PASSWORD).json()["access_token"]
 
     response = _me(_bearer(token))
@@ -528,7 +528,7 @@ def test_health_still_public():
 
 
 def test_no_secret_in_responses(fake_users):
-    """AC6, FR-009: the secret never appears in any response body (login ok/401, /me 401 and earlier tests)."""
+    """AC6, FR-009: the secret never appears in any response body (login ok/401, /api/me 401 and earlier tests)."""
     _login("demo.doctor", DOCTOR_PASSWORD)
     _login("demo.doctor", "wrong-password")
     _me({"Authorization": "Bearer not-a-jwt"})

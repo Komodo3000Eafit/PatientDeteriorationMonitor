@@ -91,19 +91,19 @@ describe('TS-06 sign-in', () => {
 
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
 
-    const loginCalls = callsTo(fetchMock, '/auth/login')
+    const loginCalls = callsTo(fetchMock, '/api/auth/login')
     expect(loginCalls).toHaveLength(1)
     const [, loginOptions] = loginCalls[0]
     expect(loginOptions.method).toBe('POST')
     expect(loginOptions.body).toBe('{"username":"demo.doctor","password":"pw-123456"}')
     expect(loginOptions.headers.Authorization).toBeUndefined()
 
-    const meCalls = callsTo(fetchMock, '/me')
+    const meCalls = callsTo(fetchMock, '/api/me')
     expect(meCalls).toHaveLength(1)
     expect(meCalls[0][1].headers.Authorization).toBe('Bearer test-token')
-    // /me comes after the login call.
-    expect(fetchMock.mock.calls.findIndex(([url]) => url.endsWith('/me'))).toBeGreaterThan(
-      fetchMock.mock.calls.findIndex(([url]) => url.endsWith('/auth/login')),
+    // /api/me comes after the login call.
+    expect(fetchMock.mock.calls.findIndex(([url]) => url.endsWith('/api/me'))).toBeGreaterThan(
+      fetchMock.mock.calls.findIndex(([url]) => url.endsWith('/api/auth/login')),
     )
 
     expect(screen.getByText('Dra. Ana Demo')).toBeTruthy()
@@ -209,7 +209,7 @@ describe('TS-06 sign-in', () => {
     fireEvent.submit(button.closest('form'))
 
     expect(button.disabled).toBe(true)
-    expect(callsTo(fetchMock, '/auth/login')).toHaveLength(1)
+    expect(callsTo(fetchMock, '/api/auth/login')).toHaveLength(1)
   })
 
   it('AC9 logout', async () => {
@@ -227,7 +227,7 @@ describe('TS-06 sign-in', () => {
     expect(screen.queryByText('Dra. Ana Demo')).toBeNull()
     expect(screen.queryByText('API: funcionando')).toBeNull()
     // Logout is client-side only: no backend call.
-    expect(callsTo(fetchMock, '/auth/login')).toHaveLength(0)
+    expect(callsTo(fetchMock, '/api/auth/login')).toHaveLength(0)
   })
 
   it('AC9 logout keeps English', async () => {
@@ -252,10 +252,10 @@ describe('TS-06 sign-in', () => {
     expect(screen.getByText('Dra. Ana Demo')).toBeTruthy()
     expect(loginHeading()).toBeNull()
 
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
-    expect(callsTo(fetchMock, '/me')[0][1].headers.Authorization).toBe('Bearer test-token')
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
+    expect(callsTo(fetchMock, '/api/me')[0][1].headers.Authorization).toBe('Bearer test-token')
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
-    expect(callsTo(fetchMock, '/me')).toHaveLength(1)
+    expect(callsTo(fetchMock, '/api/me')).toHaveLength(1)
   })
 
   it('AC9 stored session rejected shows session expired', async () => {
@@ -311,7 +311,7 @@ describe('TS-06 sign-in', () => {
     signInForTest()
     render(<App />)
 
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
     await act(async () => {})
 
     expect(screen.getByText('Dra. Ana Demo')).toBeTruthy()

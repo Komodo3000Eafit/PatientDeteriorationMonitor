@@ -119,7 +119,7 @@ PREFLIGHT_POST_HEADERS = {
 def test_preflight_post_with_authorization_allowed():
     """TS-06 AC10, FR-010: a POST preflight with Authorization and Content-Type from the default origin is allowed, without credentials."""
     response = client.options(
-        "/auth/login", headers={"Origin": DEFAULT_ORIGIN, **PREFLIGHT_POST_HEADERS}
+        "/api/auth/login", headers={"Origin": DEFAULT_ORIGIN, **PREFLIGHT_POST_HEADERS}
     )
 
     assert response.status_code == 200
@@ -133,7 +133,7 @@ def test_preflight_post_with_authorization_allowed():
 def test_preflight_other_origin_not_allowed():
     """TS-06 AC10, FR-010: the same preflight from an origin not on the list gets no allow-origin header."""
     response = client.options(
-        "/auth/login", headers={"Origin": "http://evil.example", **PREFLIGHT_POST_HEADERS}
+        "/api/auth/login", headers={"Origin": "http://evil.example", **PREFLIGHT_POST_HEADERS}
     )
 
     assert "access-control-allow-origin" not in response.headers
@@ -142,7 +142,7 @@ def test_preflight_other_origin_not_allowed():
 def test_preflight_delete_not_allowed():
     """TS-06 AC10, FR-010: only GET and POST are allowed; a DELETE preflight is rejected."""
     response = client.options(
-        "/auth/login",
+        "/api/auth/login",
         headers={"Origin": DEFAULT_ORIGIN, "Access-Control-Request-Method": "DELETE"},
     )
 
