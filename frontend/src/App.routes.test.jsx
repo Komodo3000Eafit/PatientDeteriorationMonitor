@@ -93,7 +93,7 @@ describe('TS-13 AC1 page addresses', () => {
     const fetchMock = stubBackend()
     signInForTest()
     renderApp(['/patients/PAT-001'])
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     expect(currentPath()).toBe('/patients/PAT-001')
     expect(screen.getByRole('heading', { level: 1, name: 'Paciente PAT-001' })).toBeTruthy()
@@ -103,7 +103,7 @@ describe('TS-13 AC1 page addresses', () => {
       'Paciente PAT-001' + ES_DETAIL_PLACEHOLDER + ES_BACK,
     )
     // No backend call from the placeholder: only the TS-06 /me check on load.
-    expect(fetchMock.mock.calls.every(([url]) => new URL(url).pathname === '/me')).toBe(true)
+    expect(fetchMock.mock.calls.every(([url]) => new URL(url).pathname === '/api/me')).toBe(true)
   })
 })
 
@@ -233,7 +233,7 @@ describe('TS-13 AC6 session expiry and logout', () => {
     const fetchMock = stubBackend()
     signInForTest()
     renderApp(['/patients/PAT-002'])
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
@@ -253,7 +253,7 @@ describe('TS-13 AC6 session expiry and logout', () => {
     const fetchMock = stubBackend()
     signInForTest()
     renderApp(['/abc'])
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
     expectNotFoundPage()
 
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
@@ -266,7 +266,7 @@ describe('TS-13 AC6 session expiry and logout', () => {
     const fetchMock = stubBackend()
     signInForTest()
     renderApp(['/patients', '/patients/PAT-002'])
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
     expect(currentPath()).toBe('/login')
@@ -294,7 +294,7 @@ describe('TS-13 AC7 not-found page', () => {
     const fetchMock = stubBackend()
     signInForTest()
     expect(() => renderApp([path])).not.toThrow()
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     expectNotFoundPage()
     expect(currentPath()).toBe(path)
@@ -325,7 +325,7 @@ describe('TS-13 edge case: trailing slash', () => {
     const fetchMock = stubBackend()
     signInForTest()
     renderApp(['/patients/PAT-001/'])
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     expect(screen.getByRole('heading', { level: 1, name: 'Paciente PAT-001' })).toBeTruthy()
     expect(screen.getByText(ES_DETAIL_PLACEHOLDER)).toBeTruthy()
@@ -343,7 +343,7 @@ describe('TS-13 AC8 page frame on every page', () => {
     const fetchMock = stubBackend()
     if (signedIn) signInForTest()
     renderApp([path])
-    if (signedIn) await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    if (signedIn) await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     expect(currentPath()).toBe(path)
     expect(screen.getByRole('note')).toBeTruthy()
@@ -378,7 +378,7 @@ describe('TS-13 AC9 language', () => {
     const fetchMock = stubBackend()
     signInForTest()
     renderApp(['/patients/PAT-001'])
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     fireEvent.click(screen.getByRole('button', { name: 'English' }))
 
@@ -393,7 +393,7 @@ describe('TS-13 AC9 language', () => {
     const fetchMock = stubBackend()
     signInForTest()
     renderApp(['/abc'])
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     fireEvent.click(screen.getByRole('button', { name: 'English' }))
 
@@ -410,7 +410,7 @@ describe('TS-13 AC10 browser navigation', () => {
     const fetchMock = stubBackend()
     signInForTest()
     const first = renderApp(['/patients', '/patients/PAT-001'])
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
     expect(currentPath()).toBe('/patients/PAT-001')
 
     fireEvent.click(screen.getByRole('link', { name: ES_BACK }))
@@ -445,7 +445,7 @@ describe('TS-13 edge case: /patients/new before US-01', () => {
     const fetchMock = stubBackend()
     signInForTest()
     renderApp(['/patients/new'])
-    await waitFor(() => expect(callsTo(fetchMock, '/me')).toHaveLength(1))
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     expectNotFoundPage()
     expect(currentPath()).toBe('/patients/new')

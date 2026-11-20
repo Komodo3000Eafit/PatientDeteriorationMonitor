@@ -28,8 +28,8 @@ export function resetSession() {
 export function stubBackend({ health, me, login } = {}) {
   const routes = {
     '/health': health ?? (async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'ok' })),
-    '/me': me ?? (async () => jsonResponse(DOCTOR)),
-    '/auth/login':
+    '/api/me': me ?? (async () => jsonResponse(DOCTOR)),
+    '/api/auth/login':
       login ??
       (async () => jsonResponse({ access_token: 'test-token', token_type: 'bearer', expires_in: 28800 })),
   }

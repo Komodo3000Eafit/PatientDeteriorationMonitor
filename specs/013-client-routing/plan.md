@@ -41,7 +41,7 @@ Give the React app real page addresses (`/login`, `/patients`, `/patients/:ident
 - [x] VII. Tests: security path covered (guard, redirects, return-to validation, logout vs expiry) by automated tests
 - [x] VIII. Security baseline: authentication on every clinical page through one guard; return-to accepts only internal paths (no open redirect); the URL parameter is validated and rendered as text
 - [x] IX. Deployable at low cost: no new service; relies on TS-11's `index.html` fallback on the same App Service
-- [x] X. Stack: React frontend; `react-router` is the standard React router (D-44)
+- [x] X. Stack: React frontend; `react-router` is the standard React router (D-45)
 - [x] XI. Language: English code and docs; new UI texts in Spanish and English in `translations.js`; new terms added to `docs/GLOSSARY.md` in this PR
 - [x] XII. Simplicity: declarative routes, no data router or loaders, no extra wrappers; two tiny pure helpers only where a rule must be tested; the new dependency and the `loggedOut` field are justified in Complexity Tracking
 
@@ -104,7 +104,7 @@ frontend/
         └── patientCode.test.js          # NEW
 
 docs/
-├── DECISIONS.md        # D-44 (AC13)
+├── DECISIONS.md        # D-45 (AC13)
 ├── GLOSSARY.md         # patient list, patient detail, not-found page, page address (AC13)
 ├── BACKLOG.md          # TS-13 ✅ + spec link
 └── PROJECT_STATUS.md   # TS-13 done
@@ -120,7 +120,7 @@ docs/
 3. **Login redirect** (R5): `LoginPage` returns `<Navigate to={returnPath(location.state)} replace />` when `user` is set; the form and `signIn` are unchanged.
 4. **Expiry vs logout** (R6): expiry uses the existing 401 path; logout sets `loggedOut` and navigates to `/login`.
 5. **Detail page** (R7): `isPatientCode(identifier)` false → render `NotFoundPage` in place.
-6. **D-44** (DECISIONS): adds `react-router` 8.5.2 (declarative mode, no data router); supersedes the "no router" part of D-33; D-35 stays (clinical screens inside `<RequireAuth>`), its behavior changes from rendering the login page in place to redirecting to `/login` with an in-memory return-to page; rejected alternatives from R1, R4.
+6. **D-45** (DECISIONS): adds `react-router` 8.5.2 (declarative mode, no data router); supersedes the "no router" part of D-33; D-35 stays (clinical screens inside `<RequireAuth>`), its behavior changes from rendering the login page in place to redirecting to `/login` with an in-memory return-to page; rejected alternatives from R1, R4.
 
 ### Agents
 

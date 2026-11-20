@@ -31,6 +31,28 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install -r backend/requirements.txt
+      # TS-11: build the React app and bundle it into the backend package so a
+      # single App Service serves the SPA and the API from one origin (FR-009,
+      # AC7; contracts/deploy-workflow.md section 1-2).
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+          cache: npm
+          # The lock file lives in frontend/, not the repo root (same as ci.yml).
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          # Same-origin: the SPA calls the API with relative URLs (D-39).
+          VITE_API_BASE_URL: ""
+        run: |
+          npm ci
+          npm run build
+      # Copy the built SPA into the backend package so it ships with the deploy.
+      - name: Stage build into backend package
+        run: |
+          rm -rf backend/app/static
+          cp -r frontend/dist backend/app/static
       # Forward-only. NEVER alembic downgrade (FR-006, AC5, D-30).
       # DATABASE_URL here is the Neon DIRECT (non-pooled) string, a production
       # environment secret; the App Service uses the pooled one.
@@ -50,3 +72,50 @@ jobs:
         with:
           app-name: pmd-backend
           package: backend
+      # TS-11: post-deploy end-to-end check against the live App Service URL
+      # (FR-012, AC9 partial; contracts/deploy-workflow.md section 3). Verifies
+      # the SPA shell is served at / and a deep link, and the API /health is up.
+      # One retry lets Neon wake from scale-to-zero (same as TS-10's check).
+      - name: Post-deploy end-to-end check
+        continue-on-error: true
+        run: |
+          BASE="https://pmd-backend-dndva3fceca5fvdy.brazilsouth-01.azurewebsites.net"
+
+          # Assert an endpoint returns the expected HTTP status and that either a
+          # Content-Type header or the response body matches a grep pattern.
+          check() {
+            path="$1"; want_code="$2"; match="$3"
+            echo "Checking GET ${path}"
+            body="$(mktemp)"
+            headers="$(mktemp)"
+            code="$(curl -sS -o "${body}" -D "${headers}" -w '%{http_code}' "${BASE}${path}" || true)"
+            if [ "${code}" != "${want_code}" ]; then
+              echo "  FAIL: expected HTTP ${want_code}, got ${code}"
+              return 1
+            fi
+            if ! { grep -iq "${match}" "${headers}" || grep -q "${match}" "${body}"; }; then
+              echo "  FAIL: '${match}' not found in response headers or body"
+              return 1
+            fi
+            echo "  OK: HTTP ${code}, matched '${match}'"
+            return 0
+          }
+
+          run_all() {
+            # SPA shell at root and at a deep client route (must be HTML, not a
+            # 404) so a refresh of a client route works (FR-012, AC1/AC2).
+            check "/" 200 "text/html" || return 1
+            check "/patients/PAT-001" 200 "text/html" || return 1
+            # API health must be JSON with the expected keys (AC4).
+            check "/health" 200 "status" || return 1
+            check "/health" 200 "version" || return 1
+            check "/health" 200 "database" || return 1
+            return 0
+          }
+
+          # Try once; on failure wait for Neon to wake and retry exactly once.
+          if ! run_all; then
+            echo "First attempt failed; waiting 20s for cold start and retrying once..."
+            sleep 20
+            run_all
+          fi
