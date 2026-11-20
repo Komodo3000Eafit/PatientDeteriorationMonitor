@@ -5,7 +5,7 @@
 
 **Last updated:** 2026-11-19
 **Current phase:** 2 — Baseline implementation
-**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅, TS-07 ✅, TS-08 ✅, TS-09 ✅, TS-10 ✅ (backend deployed to Azure)
+**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅, TS-07 ✅, TS-08 ✅, TS-09 ✅, TS-10 ✅ (backend deployed to Azure), TS-12 ✅ (UI foundation)
 **Next step:** TS-11 — Serve the React build from the same App Service (see [BACKLOG.md](BACKLOG.md))
 
 > **TS-10 (backend deployment) — done (2026-11-19, PR #19).** The backend deploys automatically to `https://pmd-backend-dndva3fceca5fvdy.brazilsouth-01.azurewebsites.net` after CI passes on `main`. Live check: `GET /health` → `{"status":"ok","version":"0.1.0","database":"ok"}`. What was built:
@@ -31,6 +31,7 @@
 >    - **US-03** (from TS-08): extend `record_reading` to score the reading and store the result. If US-03 adds a table that refers to `vital_signs` or `patients`, add it to the delete list in `reset_demo_patients`.
 >    - **US-01** (from TS-08): reject the six demo identifiers PAT-001 to PAT-006 when registering a patient, because `--reset` treats any patient with those identifiers as demo data. Also limit identifiers to `[A-Z0-9-]`, because the simulator prints them raw (TS-08 review).
 >    - **US-04** (from TS-07 and D-41): map the risk band to a **re-triage suggestion** alert (the triage level changes only through a manual triage event when a clinician accepts; don't let `source = 'automatic'` change it on its own); NEWS2 stays only in `app/scoring/news2.py`, and other code imports only from `app.scoring`.
+>    - **US-02, US-04 and US-05** (from TS-12): reuse the shared components `StatusBadge`, `TriageLevelBadge`, `Card` and `Button`; pass `monitoring_status` and `triage_level` from the API through unchanged; and add the time of the last reading beside a `no_data` badge themselves.
 >    - **Later**: NEWS2 SpO2 Scale 2 needs a per-patient hypercapnic flag.
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
 
@@ -60,13 +61,13 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 | 7 | Project context docs (this file, DECISIONS, ASSIGNMENT, agents, DEVELOPMENT, CLAUDE.md) | ✅ | Updated: Claude-only agents (D-15) |
 | 8 | Project constitution (`/speckit-constitution`) | ✅ | v1.2.0 in `.specify/memory/constitution.md` (D-19, D-26, D-41). Draft by one member, pending team review (D-14) |
 | 9 | Create the agent team files in `.claude/agents/` + agent activity log | ✅ | 6 agents (see [agents.md](agents.md)); CSV activity log per story via `scripts/log-agent.ps1` (D-22) |
-| 10 | Align Spec Kit templates with the constitution, then write the backlog | ✅ | Templates: D-24. Backlog: [BACKLOG.md](BACKLOG.md) — 11 TS + 10 US (D-25) |
+| 10 | Align Spec Kit templates with the constitution, then write the backlog | ✅ | Templates: D-24. Backlog: [BACKLOG.md](BACKLOG.md) — 13 TS + 10 US (D-25) |
 
 ### Phase 2 — Baseline implementation (one Spec Kit feature per user story)
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories TS-01 to TS-11: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). TS-07 ✅ (clinical scoring module, NEWS2). TS-08 ✅ (vital signs simulator). TS-09 ✅ (CI pipeline). TS-10 ✅ (backend on Azure App Service, OIDC deploy). Next: TS-11 |
+| 11 | Technical stories TS-01 to TS-13: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments, UI foundation, client routing | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). TS-07 ✅ (clinical scoring module, NEWS2). TS-08 ✅ (vital signs simulator). TS-09 ✅ (CI pipeline). TS-10 ✅ (backend on Azure App Service, OIDC deploy). TS-12 ✅ (UI foundation: design tokens, base styles, shared components StatusBadge/TriageLevelBadge/Card/Button). Next: TS-11, then TS-13 |
 | 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo

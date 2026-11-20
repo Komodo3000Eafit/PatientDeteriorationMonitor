@@ -23,16 +23,18 @@ Build these first, in order. Together they provide every resource the app needs.
 | TS-09 | **CI pipeline**: GitHub Actions runs backend and frontend tests and a dependency check on every pull request | TS-01, TS-04 | [009-ci-pipeline](../specs/009-ci-pipeline/spec.md) | ✅ |
 | TS-10 | **Backend deployment**: deploy the FastAPI backend to the existing Azure App Service (Brazil South, `rg-patient-monitor`, Linux, Python 3.13, Free F1); App Service environment variables (Neon `DATABASE_URL`, `AUTH_SECRET`, token lifetime) and Neon connection; automatic deploy from GitHub Actions using OIDC after the CI checks pass (D-39) | TS-03, TS-06, TS-09 | [010-backend-deployment](../specs/010-backend-deployment/spec.md) | ✅ |
 | TS-11 | **Frontend served by the backend**: CI builds the React app and deploys it with the backend to the same App Service; FastAPI serves the static files and falls back to `index.html` for client routes; the frontend calls the API with relative URLs (same origin, so CORS stays for local development only); end-to-end check on the deployed URL (D-39) | TS-05, TS-10 | | ⬜ |
+| TS-12 | **UI foundation**: design tokens in `frontend/src/styles/tokens.css` (colors, including the status colors `stable`, `warning`, `critical` and `no_data` with their soft variants, plus spacing, type scale, radius and focus) and base styles in `styles/global.css`; `App.css` migrated to tokens (no raw hex values); folder structure from the frontend-dev agent (`pages/`, `hooks/`, `utils/`, `styles/`), moving `StartPage` and `LoginPage` into `pages/`; shared components the baseline stories reuse (status badge with color, icon and label; triage level badge; card; button); status-to-token and status-to-label helpers in `utils/` with unit tests. WCAG AA contrast | TS-05, TS-06 | [012-ui-foundation](../specs/012-ui-foundation/spec.md) | ✅ |
+| TS-13 | **Client routing**: add `react-router` (DECISIONS entry for the new dependency); routes `/login`, `/patients` and `/patients/:identifier` (the patient code is synthetic, e.g. `PAT-001`, so it may appear in the URL); a not-found page; `<RequireAuth>` protects each clinical route and sends signed-out users to `/login`; each functional story only registers its route in `App.jsx`. Works with the `index.html` fallback from TS-11 | TS-06, TS-12 | | ⬜ |
 
 ## Functional stories (US): baseline, implemented first (5)
 
 | ID | Story | Depends on | Spec | Status |
 |---|---|---|---|---|
 | US-01 | As a nurse, I want to register a triaged patient with their initial triage level, so that the system starts monitoring them | TS-03, TS-06 | | ⬜ |
-| US-02 | As a nurse, I want a patient list showing each patient's current triage level and latest NEWS2 score, so that I see who needs attention first | TS-03, TS-06 | | ⬜ |
+| US-02 | As a nurse, I want a patient list showing each patient's current triage level and latest NEWS2 score, so that I see who needs attention first | TS-03, TS-06, TS-12, TS-13 | | ⬜ |
 | US-03 | As a nurse, I want each vital-signs reading to be saved and scored with the reason for each point, so that I understand the patient's risk | TS-07, TS-08 | | ⬜ |
-| US-04 | As a doctor, I want an alert suggesting re-triage to a more urgent level when a patient's NEWS2 risk band crosses the threshold, explaining why, so that I can decide sooner whether to change the triage level (the app never changes it on its own, D-41) | TS-07 | | ⬜ |
-| US-05 | As a doctor, I want a patient detail page with current vitals, NEWS2 score and triage history, so that I can review one patient at a glance | TS-03, TS-06 | | ⬜ |
+| US-04 | As a doctor, I want an alert suggesting re-triage to a more urgent level when a patient's NEWS2 risk band crosses the threshold, explaining why, so that I can decide sooner whether to change the triage level (the app never changes it on its own, D-41) | TS-07, TS-12 | | ⬜ |
+| US-05 | As a doctor, I want a patient detail page with current vitals, NEWS2 score and triage history, so that I can review one patient at a glance | TS-03, TS-06, TS-12, TS-13 | | ⬜ |
 
 ## Functional stories (US): built with the team in the final session (5)
 

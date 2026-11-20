@@ -24,8 +24,9 @@ Sources: `backend/app/models.py` (database models, TS-03), `backend/app/scoring/
 | `age` | — | Age in whole years, 0–130. | `models.py` |
 | `sex` | — | `female`, `male` or `other`. | `models.py` |
 | `admitted_at` | — | When the patient was registered. | `models.py` |
-| `status` (patient) | — | `active` (monitored; the simulator only reads active patients) or `discharged`. | `models.py`; TS-08 contract |
-| **triage level** = `triage_level` | — | The patient's **current** triage level: a clinical professional's classification, Triage I–V under Resolución 5596 de 2015, stored as a whole number 1–5 where **1 = Triage I = most urgent**. It is not computed from NEWS2. See §1.1. | `models.py`; TS-03 data model; Res. 5596 Art. 5 |
+| `status` (patient) | — | `active` (monitored; the simulator only reads active patients) or `discharged`. Not the monitoring status. | `models.py`; TS-08 contract |
+| **monitoring status** = `monitoring_status` (JS prop/param `monitoringStatus`; text keys `monitoringStatus.*`) | Estable · Vigilar · Crítico · Sin datos | The backend-computed monitoring status of a patient; one of `stable`, `warning`, `critical`, `no_data`; computed by the backend (the frontend only displays it). English UI texts: Stable / Watch / Critical / No data. Avoid the bare word "status" for this, because `status` alone is the patient `status` (`active` / `discharged`). | TS-12 contracts; `translations.js` |
+| **triage level** = `triage_level` | Triage I … Triage V (keys `triageLevel.1` to `triageLevel.5`, the same text in both languages) | The patient's **current** triage level: a clinical professional's classification, Triage I–V under Resolución 5596 de 2015, stored as a whole number 1–5 where **1 = Triage I = most urgent**. It is not computed from NEWS2. See §1.1. | `models.py`; TS-03 data model; Res. 5596 Art. 5 |
 | `TriageEvent` / `triage_events` | — | A change of (or the first) triage level for a patient, with the reason for it (constitution Principle V). | `models.py`; TS-03 spec |
 | `previous_level` / `new_level` | — | Triage level before and after the event. `previous_level` is empty for the initial event. | `models.py` |
 | `source` (triage event) | — | Who caused the event: `initial` (set at registration), `automatic` (escalation by the system, US-04) or `manual` (a clinician). | `models.py` |
@@ -59,7 +60,7 @@ Resolución 5596 de 2015 (Ministerio de Salud y Protección Social, Colombia), A
 
 **Mismatches (flagged, not fixed):**
 
-1. **Display name.** The rule names levels with Roman numerals ("Triage I" … "Triage V"). The repo stores plain integers and has no UI text for them yet. The story that first shows a level (US-02) should decide the label, e.g. "Triage I".
+1. **Display name.** The rule names levels with Roman numerals ("Triage I" … "Triage V"). The repo stores plain integers and has no UI text for them yet. The story that first shows a level (US-02) should decide the label, e.g. "Triage I". **Resolved by TS-12:** the shared TriageLevelBadge (TS-12) shows the levels as "Triage I" to "Triage V" (keys `triageLevel.1`..`5`).
 2. **"The Colombian scheme may replace NEWS2."** D-08, the constitution (Principle V) and the TS-03/TS-07 specs say so. Under the rule above they are different things: Resolución 5596 sets the triage level, while NEWS2 (or another score) stays in the scoring module. Reworded in the constitution v1.2.0 amendment (D-41); merged specs keep the old wording as history.
 3. **Automatic escalation.** `triage_events.source = 'automatic'` describes the app changing the level by itself. Under the rule above (constitution v1.2.0) the app only suggests it. The constitution and the US-04 backlog wording are updated; the US-04 spec resolves the `source` values, which stay until then.
 4. **Attention times** (Triage I immediate, Triage II ≤ 30 min; III–V set by each provider, and their reporting under Res. 373 de 2026) are not modelled anywhere. No story needs them yet.
