@@ -153,6 +153,8 @@ activemq-data/
 .env
 .env.*
 !.env.example
+# TS-11: committed so the deploy build picks up the same-origin relative API base. Carries no secret.
+!frontend/.env.production
 .envrc
 .venv
 env/
@@ -223,3 +225,6 @@ __marimo__/
 
 # Claude Code personal/local files
 .claude/settings.local.json
+
+# TS-11: React build output served by FastAPI (never commit)
+backend/app/static/

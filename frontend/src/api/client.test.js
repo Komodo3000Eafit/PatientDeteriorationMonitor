@@ -64,6 +64,57 @@ describe('api client', () => {
   })
 })
 
+// TS-11 API-base rule (AC5/AC6, SC-004/SC-007, contracts/static-serving.md section 4):
+//   API_BASE_URL = VITE_API_BASE_URL === undefined
+//     ? 'http://localhost:8000'
+//     : VITE_API_BASE_URL.trim().replace(/\/+$/, '')
+// API_BASE_URL is computed once at module load from import.meta.env, so each case stubs the env
+// var, resets the module registry and re-imports client.js to re-evaluate the expression.
+describe('TS-11 API base URL rule', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.resetModules()
+  })
+
+  it('AC5 undefined VITE_API_BASE_URL falls back to http://localhost:8000', async () => {
+    // Deleting the var makes import.meta.env.VITE_API_BASE_URL === undefined.
+    vi.stubEnv('VITE_API_BASE_URL', undefined)
+    vi.resetModules()
+
+    const mod = await import('./client.js')
+
+    expect(mod.API_BASE_URL).toBe('http://localhost:8000')
+  })
+
+  it('AC6 SC-004/SC-007 empty VITE_API_BASE_URL stays "" (same-origin relative)', async () => {
+    // A defined-but-empty value must NOT fall back; it yields '' so fetch is same-origin.
+    vi.stubEnv('VITE_API_BASE_URL', '')
+    vi.resetModules()
+
+    const mod = await import('./client.js')
+
+    expect(mod.API_BASE_URL).toBe('')
+  })
+
+  it('AC6 blank/whitespace VITE_API_BASE_URL is trimmed to "" (same-origin relative)', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', '   ')
+    vi.resetModules()
+
+    const mod = await import('./client.js')
+
+    expect(mod.API_BASE_URL).toBe('')
+  })
+
+  it('AC6 a set URL is trimmed and has its trailing slash stripped', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', ' https://x/ ')
+    vi.resetModules()
+
+    const mod = await import('./client.js')
+
+    expect(mod.API_BASE_URL).toBe('https://x')
+  })
+})
+
 describe('TS-06 api client sign-in', () => {
   it('TS-06 FR-012 no Authorization header without a session', async () => {
     const fetchMock = stubBackend()
@@ -106,7 +157,7 @@ describe('TS-06 api client sign-in', () => {
     const result = await login('demo.doctor', 'pw-123456')
 
     expect(result.access_token).toBe('test-token')
-    const calls = callsTo(fetchMock, '/auth/login')
+    const calls = callsTo(fetchMock, '/api/auth/login')
     expect(calls).toHaveLength(1)
     const [url, options] = calls[0]
     expect(options.method).toBe('POST')
@@ -121,10 +172,10 @@ describe('TS-06 api client sign-in', () => {
 
     await expect(getMe('given-token')).resolves.toEqual(DOCTOR)
 
-    const [url, options] = callsTo(fetchMock, '/me')[0]
+    const [url, options] = callsTo(fetchMock, '/api/me')[0]
     expect(options.method).toBe('GET')
     expect(options.headers.Authorization).toBe('Bearer given-token')
-    expect(url).toBe('http://localhost:8000/me')
+    expect(url).toBe('http://localhost:8000/api/me')
   })
 
   it('TS-06 AC9 401 with the stored token clears the session and calls the handler', async () => {

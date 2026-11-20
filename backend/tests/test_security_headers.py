@@ -36,15 +36,15 @@ def test_headers_on_ok_response():
 
 
 def test_headers_on_401_response():
-    """AC9: a 401 error response (/me without a token) carries all three headers."""
-    response = client.get("/me")
+    """AC9: a 401 error response (/api/me without a token) carries all three headers."""
+    response = client.get("/api/me")
     assert response.status_code == 401
     _assert_all_headers(response)
 
 
 def test_headers_on_422_response():
     """AC9: a 422 validation error response carries all three headers."""
-    response = client.post("/auth/login", json={"username": "only-user"})
+    response = client.post("/api/auth/login", json={"username": "only-user"})
     assert response.status_code == 422
     _assert_all_headers(response)
 

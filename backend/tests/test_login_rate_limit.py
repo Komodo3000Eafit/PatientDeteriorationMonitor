@@ -61,7 +61,7 @@ def small_limiter(monkeypatch):
 
 def _login(username, password, headers=None):
     return client.post(
-        "/auth/login",
+        "/api/auth/login",
         json={"username": username, "password": password},
         headers=headers or {"X-Forwarded-For": "203.0.113.10"},
     )

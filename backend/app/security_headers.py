@@ -7,9 +7,14 @@ section 3 (FR-010, AC9). No new dependency: a plain Starlette/ASGI middleware.
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-# TS-11: revisit the CSP when the React build is served from this origin. The
-# policy allows same-origin ('self') assets so TS-11's bundle is not blocked,
-# while forbidding framing and inline <base>/<object> abuse.
+# TS-11: reviewed (T009) against the served React (Vite) build. The CSP is kept
+# unchanged. Vite's default production build emits external, hashed .js/.css
+# under assets/, referenced from index.html; both index.html and those assets
+# are served from this same origin (see static_serving.py), so they load under
+# default-src 'self'. Vite does not emit inline scripts in the default build, so
+# no 'unsafe-inline' is added. frame-ancestors 'none', base-uri 'self' and
+# object-src 'none' are preserved (FR-011, AC8). AC8/SC-006 are confirmed at the
+# e2e check and in the browser.
 SECURITY_HEADERS: list[tuple[bytes, bytes]] = [
     (
         b"content-security-policy",

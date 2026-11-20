@@ -118,6 +118,10 @@ CLAUDE.md              Project context Claude Code reads automatically
   - **Functional (US-xx):** adds an app feature on top of that foundation. Functional stories may rely on the baseline, but **never on another functional story**.
 - **One user story = one Spec Kit feature** = one folder in `specs/` = one branch = one pull request.
 - **Use the glossary terms.** Specs, code, API fields and UI texts use the names in [docs/GLOSSARY.md](docs/GLOSSARY.md). A story that introduces a new term adds it to the glossary in the same PR (D-40).
+- **Creating routes — one origin, API under `/api`, pages at the root (TS-11, D-39, D-44).** FastAPI serves the React build, so the frontend and the API share one origin and FastAPI owns all routing. When a story adds a route, keep this model in mind:
+  - **Backend API routes go under `/api`** (the only exception is `/health`, which stays at `/health`). The existing routes are `/api/auth/login` and `/api/me`; register every new endpoint under `/api` as well (e.g. `/api/patients`) by mounting its router with `prefix="/api"` or giving the path an `/api/...` prefix. API routes are matched **first** and take priority over the static/SPA handler; an unknown `/api/...` path returns the **API's JSON 404**, never `index.html`.
+  - **Browser pages stay at the root.** The single-page-app fallback returns `index.html` for any **GET** that is not `/api/...`, not `/health` and not a real static file, so **client routes** (added in TS-13: `/login`, `/patients`, `/patients/:identifier`, …) work on a fresh load or refresh. A functional story only **registers its client route in `App.jsx`**; it does not add server routes for pages.
+  - **Front-end API calls** must use the **`/api/...` paths** through `frontend/src/api/client.js` (never a hard-coded `http://…:8000`), so they work in production (same-origin relative) and locally (default `http://localhost:8000`). **CORS is needed only for local development.** Do not add a new API base URL or a cross-origin call.
 
 ### 5.2 Spec Kit workflow for each story
 
@@ -271,6 +275,18 @@ $h = (Invoke-WebRequest "https://pmd-backend-dndva3fceca5fvdy.brazilsouth-01.azu
 ```
 
 Expected: `Content-Security-Policy` (including `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff` and `X-Frame-Options: DENY`.
+
+### 7.3 Frontend served by the backend (TS-11)
+
+**One App Service, one origin.** The same Azure App Service from §7.2 serves both the FastAPI API and the React production build; there is no separate frontend host (D-39). The frontend and the API share one origin, so the browser calls the API with relative URLs and CORS is only needed for local development.
+
+**API under `/api`, pages at the root.** Every API route lives under `/api` — `/api/auth/login`, `/api/me` and every future API route (e.g. `/api/patients`) — with one exception: `/health` stays at `/health` (the deploy docs and checks depend on it). Browser pages stay at the root: `/login` and `/patients/:identifier` (the client router that renders them is added in TS-13). The auth router is mounted with `prefix="/api"` in `main.py`; its route decorators are unchanged, so the effective paths become `/api/auth/login` and `/api/me`. See §5.1 for the routing rules a new story must follow.
+
+**How the deploy builds and ships the frontend.** [`deploy.yml`](.github/workflows/deploy.yml) builds the React app in the same job that ships the backend: `actions/setup-node` (Node 26) then `npm ci` and `npm run build` in `frontend`, with `VITE_API_BASE_URL=""` so the build uses a same-origin relative API base. The build output (`frontend/dist`) is staged into `backend/app/static/` (git-ignored, never committed), so the single existing `azure/webapps-deploy@v3` step ships the API and the build together — no second App Service, no extra credential. After the deploy, a post-deploy end-to-end check hits `/` (the shell), a deep client route, and `/health` to confirm the site is reachable.
+
+**SPA fallback rule.** At runtime FastAPI resolves a request in this order: API routes keep priority (`/api/...` and `/health` reach the API — an unknown `/api/...` path returns the API's JSON 404, never the shell); a request that matches a real static file is served with its own content type; any other safe GET returns `index.html`, so client routes resolve on a direct load or refresh. A non-GET to a non-API path is never served the shell. The backend starts fine with no build present (`backend/app/static/` absent): the static mount is skipped and the API still works, which is the normal local-dev mode where the Vite dev server serves the UI.
+
+**Building and serving locally.** To reproduce the deployed serving on your machine, follow [`specs/011-frontend-served-by-backend/quickstart.md`](specs/011-frontend-served-by-backend/quickstart.md) sections A–C: build the frontend into `backend/app/static/`, run the backend, and verify `/`, `/patients/PAT-001`, `/health` and `/api/nope`.
 
 ---
 
