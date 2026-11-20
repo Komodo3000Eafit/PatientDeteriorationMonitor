@@ -1,0 +1,11 @@
+/* Icon and label side by side inside the shared Button (US-01). */
+.content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Bottom spacing so the button does not touch the patient list Card below it. */
+.wrapper {
+  margin-block-end: var(--space-4);
+}
