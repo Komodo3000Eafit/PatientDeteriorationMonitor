@@ -5,7 +5,7 @@
 
 **Last updated:** 2026-11-19
 **Current phase:** 2 — Baseline implementation
-**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅, TS-07 ✅, TS-08 ✅, TS-09 ✅, TS-10 🔄 (code and tests done; awaiting the one-time Azure/OIDC setup and the live deploy), TS-12 ✅ (done — manual pass, commit and PR #20 open; awaiting team review to merge)
+**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅, TS-07 ✅, TS-08 ✅, TS-09 ✅, TS-10 🔄 (code and tests done; awaiting the one-time Azure/OIDC setup and the live deploy), TS-12 ✅ (done — manual pass)
 **Next step:** TS-11 — Serve the React build from the same App Service (see [BACKLOG.md](BACKLOG.md))
 
 > **TS-10 (backend deployment) — in progress (2026-11-19).** The agent-owned work is done on branch `010-backend-deployment`; the live deploy is a human step. What was built:
@@ -67,7 +67,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories TS-01 to TS-13: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments, UI foundation, client routing | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). TS-07 ✅ (clinical scoring module, NEWS2). TS-08 ✅ (vital signs simulator). TS-09 ✅ (CI pipeline). TS-12 ✅ (UI foundation: design tokens, base styles, shared components StatusBadge/TriageLevelBadge/Card/Button; done — manual pass, commit and PR #20 open; awaiting team review to merge). Next: TS-10 |
+| 11 | Technical stories TS-01 to TS-13: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments, UI foundation, client routing | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). TS-07 ✅ (clinical scoring module, NEWS2). TS-08 ✅ (vital signs simulator). TS-09 ✅ (CI pipeline). TS-12 ✅ (UI foundation: design tokens, base styles, shared components StatusBadge/TriageLevelBadge/Card/Button; done — manual pass). Next: TS-11 |
 | 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo
