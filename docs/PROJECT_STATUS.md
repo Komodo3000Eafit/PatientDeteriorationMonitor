@@ -5,8 +5,8 @@
 
 **Last updated:** 2026-11-19
 **Current phase:** 2 — Baseline implementation
-**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅, TS-07 ✅, TS-08 ✅, TS-09 ✅
-**Next step:** TS-10 — Backend deployment (see [BACKLOG.md](BACKLOG.md))
+**Current step:** Step 11 — Technical stories: TS-01 ✅, TS-02 ✅, TS-03 ✅, TS-04 ✅, TS-05 ✅, TS-06 ✅, TS-07 ✅, TS-08 ✅, TS-09 ✅, TS-12 ✅ (implementation complete; pending the T031 manual browser pass, commit, PR and CI — not yet merged)
+**Next step:** TS-10 — Backend deployment (see [BACKLOG.md](BACKLOG.md)), or as the team decides
 
 > **Where we left off (2026-11-19):** TS-01 to TS-09 are merged to `main` (TS-09 as PR #11). TS-09 (CI pipeline, D-38) adds no application code:
 > - One workflow, `.github/workflows/ci.yml`, with three independent checks on every PR to `main` and every push to `main`: **Backend tests** (pytest), **Frontend tests** (Vitest + build) and **Dependency check**. It uses `permissions: contents: read`, no secrets and official actions at `@v7`.
@@ -25,6 +25,7 @@
 >    - **US-03** (from TS-08): extend `record_reading` to score the reading and store the result. If US-03 adds a table that refers to `vital_signs` or `patients`, add it to the delete list in `reset_demo_patients`.
 >    - **US-01** (from TS-08): reject the six demo identifiers PAT-001 to PAT-006 when registering a patient, because `--reset` treats any patient with those identifiers as demo data. Also limit identifiers to `[A-Z0-9-]`, because the simulator prints them raw (TS-08 review).
 >    - **US-04** (from TS-07 and D-41): map the risk band to a **re-triage suggestion** alert (the triage level changes only through a manual triage event when a clinician accepts; don't let `source = 'automatic'` change it on its own); NEWS2 stays only in `app/scoring/news2.py`, and other code imports only from `app.scoring`.
+>    - **US-02, US-04 and US-05** (from TS-12): reuse the shared components `StatusBadge`, `TriageLevelBadge`, `Card` and `Button`; pass `monitoring_status` and `triage_level` from the API through unchanged; and add the time of the last reading beside a `no_data` badge themselves.
 >    - **Later**: NEWS2 SpO2 Scale 2 needs a per-patient hypercapnic flag.
 **Delivery deadline:** 2026-11-24 18:00 (see [ASSIGNMENT.md](ASSIGNMENT.md))
 
@@ -60,7 +61,7 @@ Legend: ✅ done · 🔄 in progress · ⏭ next · ⬜ pending
 
 | # | Step | Status | Notes |
 |---|---|---|---|
-| 11 | Technical stories TS-01 to TS-13: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments, UI foundation, client routing | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). TS-07 ✅ (clinical scoring module, NEWS2). TS-08 ✅ (vital signs simulator). TS-09 ✅ (CI pipeline). Next: TS-10 |
+| 11 | Technical stories TS-01 to TS-13: backend, Neon, tables, frontend, i18n, auth, scoring module, simulator, CI, Azure deployments, UI foundation, client routing | 🔄 | Foundation for every functional story. TS-01 ✅ (FastAPI skeleton). TS-02 ✅ (Neon database connection). TS-03 ✅ (tables + Alembic migrations, applied to Neon). TS-04 ✅ (React app skeleton + CORS). TS-05 ✅ (language switch ES/EN + disclaimer banner). TS-06 ✅ (authentication). TS-07 ✅ (clinical scoring module, NEWS2). TS-08 ✅ (vital signs simulator). TS-09 ✅ (CI pipeline). TS-12 ✅ (UI foundation: design tokens, base styles, shared components StatusBadge/TriageLevelBadge/Card/Button; implementation complete, not yet merged — pending the T031 manual browser pass, commit, PR and CI). Next: TS-10 |
 | 12 | Functional baseline stories US-01 to US-05 | ⬜ | Implemented by one member; US-06 to US-10 are built by the team in the final session |
 
 ### Phase 3 — Delivery and demo

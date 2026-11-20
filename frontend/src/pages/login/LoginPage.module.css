@@ -1,0 +1,37 @@
+.page {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+}
+.page h1 {
+  text-align: center;
+}
+.form {
+  display: grid;
+  gap: var(--space-3);
+  width: 20rem;
+  max-width: 100%;
+}
+.form input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+}
+.form button[type='submit'] {
+  margin-top: var(--space-3);
+  justify-self: center;
+  width: fit-content;
+  min-width: 12rem;
+}
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--color-critical-soft);
+  border: 2px solid var(--color-critical);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+}

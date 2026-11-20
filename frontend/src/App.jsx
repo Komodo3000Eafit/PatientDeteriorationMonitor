@@ -5,8 +5,7 @@ import AppShell from './components/AppShell.jsx'
 import { AuthProvider } from './auth/AuthContext.jsx'
 import RequireAuth from './auth/RequireAuth.jsx'
 import { LanguageProvider } from './i18n/LanguageContext.jsx'
-import StartPage from './StartPage.jsx'
-import './App.css'
+import StartPage from './pages/start/StartPage.jsx'
 
 export default function App() {
   return (

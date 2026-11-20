@@ -1,8 +1,8 @@
 // Start page (TS-04, texts from TS-05): shows the backend /health result once per page load.
 // All texts come from src/i18n/translations.js; switching language never calls /health again.
 import { useEffect, useState } from 'react'
-import { getHealth } from './api/client.js'
-import { useLanguage } from './i18n/LanguageContext.jsx'
+import { getHealth } from '../../api/client.js'
+import { useLanguage } from '../../i18n/LanguageContext.jsx'
 
 export default function StartPage() {
   const { t } = useLanguage()

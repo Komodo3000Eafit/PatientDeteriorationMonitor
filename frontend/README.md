@@ -1,7 +1,9 @@
 # PatientDeteriorationMonitor — Frontend
 
-React app (Vite, plain JavaScript) for the PatientDeteriorationMonitor prototype. This is the
-TS-04 skeleton: one start page that shows whether the backend API and its database are working.
+React app (Vite, plain JavaScript) for the PatientDeteriorationMonitor prototype. It has
+authentication with a login page, a start page that shows whether the backend API and its database
+are working, a language switch, and the shared UI foundation (design tokens and reusable
+components) described below.
 The UI is in Spanish by default, with an **ES / EN** switch to English (see "How to add or change texts").
 
 ## Prerequisites
@@ -74,6 +76,76 @@ key in `es` (the complete reference) and in `en`.
 - The language choice is remembered in the browser under the `localStorage` key `pdm.language`
   (`es` or `en`). When nothing valid is stored, the page is in Spanish. To reset it, run
   `localStorage.removeItem('pdm.language')` in the browser console.
+
+## UI foundation
+
+The shared UI foundation is the design tokens, folder layout and reusable components that every
+page builds on. Reuse what is here before adding anything new.
+
+### Folder structure of `src/`
+
+```
+frontend/src/
+├── api/          # client.js — the only place that calls fetch; one function per endpoint
+├── auth/         # AuthContext, RequireAuth, session
+├── i18n/         # translations.js, LanguageContext
+├── styles/       # tokens.css (design tokens), global.css (base styles)
+├── components/   # AppShell and the shared components: Button, Card, StatusBadge,
+│                 #   TriageLevelBadge, Icons
+├── pages/        # one folder per page: pages/start/, pages/login/
+├── hooks/        # hooks shared by more than one page
+├── utils/        # pure presentation helpers, e.g. monitoringStatus.js
+└── testing/      # test helpers such as fakeBackend
+```
+
+### The token rule
+
+Write color values **only** in [`src/styles/tokens.css`](src/styles/tokens.css). Everywhere else
+(component CSS Modules, global styles) use the token through `var(--token-name)`, never a raw hex
+or color name. The automated raw-color scan in `npm test` fails if a color value appears outside
+`tokens.css`.
+
+### The status-color rule
+
+The solid status colors (`--color-stable`, `--color-warning`, `--color-critical`,
+`--color-no-data`) are used **only** as borders and icon tints, never as text color. Labels and
+icons sit in `--color-text` on the soft background variant (`--color-stable-soft` and the others).
+This keeps status text readable and meeting WCAG AA contrast.
+
+### Shared components
+
+One-line usage of each shared component (full prop tables in
+[`specs/012-ui-foundation/contracts/components.md`](../specs/012-ui-foundation/contracts/components.md)):
+
+```jsx
+<Button variant="primary" onClick={save}>{t('area.save')}</Button>
+<Card title={t('area.title')} headingLevel={2}><p>…</p></Card>
+<StatusBadge monitoringStatus={patient.monitoring_status} />
+<TriageLevelBadge level={patient.triage_level} />
+```
+
+### How to add a token
+
+1. Add it to [`src/styles/tokens.css`](src/styles/tokens.css). A new color that text or a control
+   uses also gets a documented contrast pair in `contrast.test.js`.
+2. Add a row to
+   [`specs/012-ui-foundation/contracts/tokens.md`](../specs/012-ui-foundation/contracts/tokens.md).
+3. Mention it in the pull request.
+4. Use it as `var(--name)` — never copy its value into another file.
+
+### How to add a monitoring status
+
+Change these places, all of them:
+
+1. Add the token pair in [`src/styles/tokens.css`](src/styles/tokens.css).
+2. Add an icon in `src/components/Icons.jsx`.
+3. Add a class in `src/components/StatusBadge.module.css`.
+4. Add an entry in `src/utils/monitoringStatus.js`.
+5. Add the two texts (es + en) in [`src/i18n/translations.js`](src/i18n/translations.js).
+6. Add one contrast pair in `contrast.test.js`.
+
+`npm test` includes the contrast guard and the raw-color guard, so both rules above are checked
+automatically.
 
 ## Sign-in
 

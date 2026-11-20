@@ -4,6 +4,9 @@
 import { useAuth } from '../auth/AuthContext.jsx'
 import { useLanguage } from '../i18n/LanguageContext.jsx'
 import { LANGUAGES } from '../i18n/translations.js'
+import styles from './AppShell.module.css'
+import Button from './Button.jsx'
+import { TriangleAlertIcon } from './Icons.jsx'
 
 export default function AppShell({ children }) {
   const { lang, setLang, t } = useLanguage()
@@ -11,30 +14,31 @@ export default function AppShell({ children }) {
 
   return (
     <>
-      <header className="app-header">
-        <p className="disclaimer" role="note">
-          {t('disclaimer.text')}
+      <header className={styles.header}>
+        <p className={styles.disclaimer} role="note">
+          <TriangleAlertIcon />
+          <span>{t('disclaimer.text')}</span>
         </p>
         {user && (
-          <div className="user-block" role="group" aria-label={t('auth.signedInAs')}>
-            <span className="user-name">{user.full_name}</span>
-            <span className="user-role">{t('role.' + user.role)}</span>
-            <button type="button" onClick={signOut}>
+          <div className={styles.userBlock} role="group" aria-label={t('auth.signedInAs')}>
+            <span className={styles.userName}>{user.full_name}</span>
+            <span>{t('role.' + user.role)}</span>
+            <Button variant="secondary" onClick={signOut}>
               {t('auth.logout')}
-            </button>
+            </Button>
           </div>
         )}
-        <div className="language-switch" role="group" aria-label={t('language.label')}>
+        <div className={styles.languageSwitch} role="group" aria-label={t('language.label')}>
           {LANGUAGES.map(({ code, short, name }) => (
-            <button
+            <Button
               key={code}
-              type="button"
+              variant="secondary"
               aria-label={name}
               aria-pressed={lang === code}
               onClick={() => setLang(code)}
             >
               {short}
-            </button>
+            </Button>
           ))}
         </div>
       </header>

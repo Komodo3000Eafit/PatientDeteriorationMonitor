@@ -1,5 +1,5 @@
 // Guard for protected screens (TS-06): wrap every clinical screen in <RequireAuth>; signed out shows the login page.
-import LoginPage from '../LoginPage.jsx'
+import LoginPage from '../pages/login/LoginPage.jsx'
 import { useAuth } from './AuthContext.jsx'
 
 export default function RequireAuth({ children }) {
