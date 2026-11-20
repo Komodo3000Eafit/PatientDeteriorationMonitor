@@ -17,18 +17,23 @@ jobs:
   deploy:
     name: Deploy backend
     runs-on: ubuntu-latest
+    # Required: unlocks the production environment secrets and makes the OIDC
+    # subject match the Azure federated credential (...:environment:production).
+    environment: production
     timeout-minutes: 15
     # Only a green CI on main deploys; fork PRs and other branches never do.
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - run: pip install -r backend/requirements.txt
       # Forward-only. NEVER alembic downgrade (FR-006, AC5, D-30).
+      # DATABASE_URL here is the Neon DIRECT (non-pooled) string, a production
+      # environment secret; the App Service uses the pooled one.
       - name: Apply database migrations
         working-directory: backend
         env:
@@ -43,5 +48,5 @@ jobs:
       - name: Deploy to App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: <app-service-name>
+          app-name: pmd-backend
           package: backend
