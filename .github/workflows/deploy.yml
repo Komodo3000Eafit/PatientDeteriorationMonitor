@@ -38,6 +38,8 @@ jobs:
         with:
           node-version: "26"
           cache: npm
+          # The lock file lives in frontend/, not the repo root (same as ci.yml).
+          cache-dependency-path: frontend/package-lock.json
       - name: Build frontend
         working-directory: frontend
         env:
@@ -100,9 +102,11 @@ jobs:
           }
 
           run_all() {
-            # SPA shell at root and at a deep link (must be HTML, not a 404).
+            # SPA shell at root and at a deep client route (must be HTML, not a
+            # 404) so a refresh of a client route works (FR-012, AC1/AC2).
             check "/" 200 "text/html" || return 1
-            # API health must be JSON with the expected keys.
+            check "/patients/PAT-001" 200 "text/html" || return 1
+            # API health must be JSON with the expected keys (AC4).
             check "/health" 200 "status" || return 1
             check "/health" 200 "version" || return 1
             check "/health" 200 "database" || return 1
