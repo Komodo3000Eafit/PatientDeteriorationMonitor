@@ -229,6 +229,49 @@ Expected: all pytest and Vitest tests pass and `frontend/dist/` is built; pip-au
 3. Turn on **Require a pull request before merging** and **Require status checks to pass before merging**.
 4. Select `Backend tests`, `Frontend tests` and `Dependency check`, then save. **Require branches to be up to date before merging** is optional.
 
+### 7.2 Deployment (TS-10)
+
+The backend deploys automatically to the existing Azure App Service (Brazil South, resource group `rg-patient-monitor`, Linux, Python 3.13, Free F1) after CI passes on `main`. The workflow is [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) (`name: Deploy backend`); it never changes TS-09's `ci.yml` (D-38).
+
+**Trigger chain.** Push or merge to `main` → the `CI` workflow runs its three checks → when CI finishes **successfully on `main`**, the `Deploy backend` workflow starts through a `workflow_run` trigger. The job guard is `github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'`, so a red CI, any other branch, or a fork pull request never deploys.
+
+**One-time setup (repo owner).** Not automated (no workflow changes Azure tenant settings):
+
+1. **OIDC identity on Azure:** create an app registration (or a user-assigned managed identity) with a **federated credential** scoped to this repository and the `main` branch / the `Deploy backend` workflow, and grant it Contributor (or Website Contributor) on the App Service. No publish profile and no client secret are ever created or stored (D-18, OIDC only).
+2. **GitHub repository secrets:** `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (identifiers), plus `DATABASE_URL` (the Neon pooled connection string) and `AUTH_SECRET` (≥ 32 random characters). These are the only secrets; they are never printed in a workflow log.
+3. **App Service settings and startup command** (from [the deploy-workflow contract](specs/010-backend-deployment/contracts/deploy-workflow.md)):
+
+   | Setting | Value |
+   |---|---|
+   | `DATABASE_URL` | Neon pooled connection string |
+   | `AUTH_SECRET` | ≥ 32-char random value (stored as a secret) |
+   | `ACCESS_TOKEN_MINUTES` | 1–1440 (default 480) |
+   | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `true` (Oryx installs `requirements.txt`) |
+   | `WEBSITES_PORT` | `8000` |
+   | Startup Command | `gunicorn app.main:app -k uvicorn.workers.UvicornWorker --workers 2 --bind=0.0.0.0:8000 --timeout 120` |
+
+   **Always On is off** (Free F1 does not offer it) and **nothing probes `/health`**: `/health` checks the database on every call, so a frequent probe would keep the Neon database awake and burn free compute hours (D-30). If a warm-up ping is ever wanted, point it at a path that does not touch the database, never `/health`.
+4. **Replace the placeholder:** set `app-name: <app-service-name>` in `deploy.yml` to the real App Service name before the first deploy.
+
+**How migrations run.** The workflow runs `python -m alembic upgrade head` from `backend/` with `DATABASE_URL` from the GitHub secret, after OIDC authentication and before the app serves traffic. It is **forward-only**: the workflow never runs `alembic downgrade` (FR-006, AC5, D-30). A migration failure fails the job before anything is deployed.
+
+**Find the URL and check `/health`.** After a deploy, the App Service URL is `https://<app>.azurewebsites.net` (Overview blade on the Azure portal, or `az webapp show -g rg-patient-monitor -n <app>`). Verify end-to-end reachability (one retry lets the database wake from scale-to-zero):
+
+```powershell
+$url = "https://<app>.azurewebsites.net/health"
+try { $r = Invoke-RestMethod $url } catch { Start-Sleep 8; $r = Invoke-RestMethod $url }
+$r | ConvertTo-Json
+```
+
+Expected: HTTP 200 with `status: "ok"`, a `version`, and `database: "ok"`. Spot-check the security headers:
+
+```powershell
+(Invoke-WebRequest "https://<app>.azurewebsites.net/health").Headers |
+  Select-Object 'Content-Security-Policy','X-Content-Type-Options','X-Frame-Options'
+```
+
+Expected: `Content-Security-Policy` (including `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff` and `X-Frame-Options: DENY`.
+
 ---
 
 ## 8. Preparing for the live demo

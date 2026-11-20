@@ -1,0 +1,47 @@
+# Deploy backend for PatientDeteriorationMonitor (TS-10). Runs only after the CI
+# workflow succeeds on main, via OIDC. Never runs alembic downgrade.
+# See specs/010-backend-deployment/contracts/deploy-workflow.md.
+
+name: Deploy backend
+
+on:
+  workflow_run:
+    workflows: ["CI"] # TS-09's workflow name; must match exactly
+    types: [completed]
+
+permissions:
+  id-token: write # OIDC token request
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Only a green CI on main deploys; fork PRs and other branches never do.
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r backend/requirements.txt
+      # Forward-only. NEVER alembic downgrade (FR-006, AC5, D-30).
+      - name: Apply database migrations
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m alembic upgrade head
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: <app-service-name>
+          package: backend

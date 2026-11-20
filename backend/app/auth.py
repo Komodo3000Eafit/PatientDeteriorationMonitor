@@ -8,13 +8,14 @@ import logging
 import os
 import re
 import secrets
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import jwt
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -39,10 +40,23 @@ class AuthSettings:
 
     secret: str
     token_minutes: int
+    login_rate_limit: int
+    login_rate_window_seconds: int
+
+
+def _positive_int(environ, name: str, default: int) -> int:
+    """Read a whole number >= 1 from ``environ``; invalid values raise a fixed message."""
+    raw = (environ.get(name) or "").strip()
+    if not raw:
+        return default
+    if not re.fullmatch(r"\d+", raw, flags=re.ASCII) or int(raw) < 1:
+        raise RuntimeError(f"{name} must be a whole number of at least 1")
+    return int(raw)
 
 
 def load_auth_settings(environ) -> AuthSettings:
-    """Read ``AUTH_SECRET`` and ``ACCESS_TOKEN_MINUTES`` from ``environ``.
+    """Read ``AUTH_SECRET``, ``ACCESS_TOKEN_MINUTES`` and the login rate-limit
+    settings from ``environ``.
 
     Raises ``RuntimeError`` with a fixed message (never the value) when a setting
     is invalid.
@@ -61,7 +75,16 @@ def load_auth_settings(environ) -> AuthSettings:
                 "ACCESS_TOKEN_MINUTES must be a whole number of minutes from 1 to 1440"
             )
         token_minutes = int(raw)
-    return AuthSettings(secret=secret, token_minutes=token_minutes)
+    login_rate_limit = _positive_int(environ, "LOGIN_RATE_LIMIT", 10)
+    login_rate_window_seconds = _positive_int(
+        environ, "LOGIN_RATE_WINDOW_SECONDS", 60
+    )
+    return AuthSettings(
+        secret=secret,
+        token_minutes=token_minutes,
+        login_rate_limit=login_rate_limit,
+        login_rate_window_seconds=login_rate_window_seconds,
+    )
 
 
 SETTINGS = load_auth_settings(os.environ)
@@ -120,8 +143,66 @@ def _unauthorized(detail: str) -> HTTPException:
     return HTTPException(401, detail, headers={"WWW-Authenticate": "Bearer"})
 
 
+def _too_many_login_attempts() -> HTTPException:
+    """Return a new 429 exception with a fixed message (never reveals the client or user)."""
+    return HTTPException(429, "Too many login attempts")
+
+
 _LOGIN_FAILED = "Incorrect username or password"
 _NOT_AUTHENTICATED = "Not authenticated"
+
+
+# --- Login rate limiting (TS-10, FR-008, AC7) ---------------------------------
+
+
+def _client_identity(request: Request) -> str:
+    """Return the client identity used to key the rate limiter.
+
+    Behind the Azure App Service front end the real client address is the first
+    entry of ``X-Forwarded-For``; fall back to the direct peer address. The value
+    is used only as an opaque bucket key and is never logged or returned.
+    """
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        first = forwarded.split(",")[0].strip()
+        if first:
+            return first
+    client = request.client
+    return client.host if client is not None else "unknown"
+
+
+class LoginRateLimiter:
+    """In-memory fixed-window rate limiter, keyed per client (per worker process).
+
+    Counts every attempt (success or failure) from a client within the current
+    window; once the limit is exceeded the client is blocked until the window
+    elapses. State lives in module memory, so it is per worker (research R6); no
+    database and no new dependency.
+    """
+
+    def __init__(self, limit: int, window_seconds: int):
+        self._limit = limit
+        self._window = window_seconds
+        self._buckets: dict[str, tuple[float, int]] = {}
+
+    def allow(self, identity: str, *, now: float | None = None) -> bool:
+        """Record an attempt for ``identity`` and return whether it is allowed."""
+        now = time.monotonic() if now is None else now
+        window_start, count = self._buckets.get(identity, (now, 0))
+        if now - window_start >= self._window:
+            window_start, count = now, 0
+        count += 1
+        self._buckets[identity] = (window_start, count)
+        return count <= self._limit
+
+    def reset(self) -> None:
+        """Clear all counters (used by tests so per-worker state does not leak)."""
+        self._buckets.clear()
+
+
+login_rate_limiter = LoginRateLimiter(
+    SETTINGS.login_rate_limit, SETTINGS.login_rate_window_seconds
+)
 
 
 # --- User lookup --------------------------------------------------------------
@@ -238,8 +319,19 @@ router = APIRouter()
 
 
 @router.post("/auth/login", response_model=TokenResponse)
-def login(body: LoginRequest, users: DbUserLookup = Depends(get_user_lookup)):
-    """Exchange a username and password for a short-lived access token."""
+def login(
+    body: LoginRequest,
+    request: Request,
+    users: DbUserLookup = Depends(get_user_lookup),
+):
+    """Exchange a username and password for a short-lived access token.
+
+    Rate limited per client (FR-008, AC7): once the configured number of attempts
+    in the window is exceeded, further attempts get HTTP 429 until the window
+    elapses, without revealing whether the username exists.
+    """
+    if not login_rate_limiter.allow(_client_identity(request)):
+        raise _too_many_login_attempts()
     user = users.by_username(body.username)
     if user is None:
         verify_password(body.password, _dummy_hash())
