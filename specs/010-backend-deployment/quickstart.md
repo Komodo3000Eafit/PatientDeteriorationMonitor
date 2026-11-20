@@ -42,7 +42,7 @@ Expected: the deploy job runs only for `main` with a green CI; it does not run f
 
 ```powershell
 # Replace with the App Service default hostname.
-$url = "https://pmd-backend.azurewebsites.net/health"
+$url = "https://pmd-backend-dndva3fceca5fvdy.brazilsouth-01.azurewebsites.net/health"
 # One retry: the first call may wake Neon from scale-to-zero.
 try { $r = Invoke-RestMethod $url } catch { Start-Sleep 8; $r = Invoke-RestMethod $url }
 $r | ConvertTo-Json
@@ -55,8 +55,8 @@ If `database` is `"unavailable"` after the retry: check the App Service `DATABAS
 ## 5. Quick security spot-check on the deployed URL
 
 ```powershell
-(Invoke-WebRequest "https://pmd-backend.azurewebsites.net/health").Headers |
-  Select-Object 'Content-Security-Policy','X-Content-Type-Options','X-Frame-Options'
+$h = (Invoke-WebRequest "https://pmd-backend-dndva3fceca5fvdy.brazilsouth-01.azurewebsites.net/health" -UseBasicParsing).Headers
+'Content-Security-Policy','X-Content-Type-Options','X-Frame-Options' | ForEach-Object { "$_ = $($h[$_])" }
 ```
 
 Expected: all three headers present with the contract values. (Login rate limiting is verified by the automated tests in §2, not by hammering the live endpoint.)
