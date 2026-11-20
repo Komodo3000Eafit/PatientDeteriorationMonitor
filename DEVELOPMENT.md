@@ -255,10 +255,10 @@ The backend deploys automatically to the existing Azure App Service (Brazil Sout
 
 **How migrations run.** The workflow runs `python -m alembic upgrade head` from `backend/` with `DATABASE_URL` from the `production` environment secret (direct Neon string), after OIDC authentication and before the app serves traffic. It is **forward-only**: the workflow never runs `alembic downgrade` (FR-006, AC5, D-30). A migration failure fails the job before anything is deployed.
 
-**Find the URL and check `/health`.** After a deploy, the App Service URL is `https://pmd-backend.azurewebsites.net` (Overview blade on the Azure portal, or `az webapp show -g rg-patient-monitor -n pmd-backend`). Verify end-to-end reachability (one retry lets the database wake from scale-to-zero):
+**Find the URL and check `/health`.** After a deploy, the App Service URL is `https://pmd-backend-dndva3fceca5fvdy.brazilsouth-01.azurewebsites.net` (new App Services get a unique default hostname with a random part and the region, so `pmd-backend-dndva3fceca5fvdy.brazilsouth-01.azurewebsites.net` does not resolve; find it under **Información general → Dominio predeterminado** on the Azure portal, or `az webapp show -g rg-patient-monitor -n pmd-backend`). Verify end-to-end reachability (one retry lets the database wake from scale-to-zero):
 
 ```powershell
-$url = "https://pmd-backend.azurewebsites.net/health"
+$url = "https://pmd-backend-dndva3fceca5fvdy.brazilsouth-01.azurewebsites.net/health"
 try { $r = Invoke-RestMethod $url } catch { Start-Sleep 8; $r = Invoke-RestMethod $url }
 $r | ConvertTo-Json
 ```
@@ -266,8 +266,8 @@ $r | ConvertTo-Json
 Expected: HTTP 200 with `status: "ok"`, a `version`, and `database: "ok"`. Spot-check the security headers:
 
 ```powershell
-(Invoke-WebRequest "https://pmd-backend.azurewebsites.net/health").Headers |
-  Select-Object 'Content-Security-Policy','X-Content-Type-Options','X-Frame-Options'
+$h = (Invoke-WebRequest "https://pmd-backend-dndva3fceca5fvdy.brazilsouth-01.azurewebsites.net/health" -UseBasicParsing).Headers
+'Content-Security-Policy','X-Content-Type-Options','X-Frame-Options' | ForEach-Object { "$_ = $($h[$_])" }
 ```
 
 Expected: `Content-Security-Policy` (including `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff` and `X-Frame-Options: DENY`.
