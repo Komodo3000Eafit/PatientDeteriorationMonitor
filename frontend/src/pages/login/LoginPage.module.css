@@ -35,3 +35,11 @@
   border-radius: var(--radius-md);
   color: var(--color-text);
 }
+
+/* Tint the decorative alert icon in the critical color (icon tint, not text — D-43).
+   lucide draws with stroke="currentColor", so set stroke, not color: the raw-color
+   guard forbids var(--color-critical) on the `color` property. The label stays
+   --color-text, and the box + icon + text keep color from being the only signal. */
+.error svg {
+  stroke: var(--color-critical);
+}
