@@ -6,11 +6,11 @@ How to set up the one-time Azure/OIDC pieces, run the new tests locally, trigger
 
 Done once; not automated (no workflow changes Azure tenant settings).
 
-1. **Create the OIDC identity on Azure** (research R2): an app registration (or user-assigned managed identity) with a **federated credential** scoped to this repository and the `main` branch / the `Deploy backend` workflow. Grant it Contributor (or Website Contributor) on the existing App Service in `rg-patient-monitor`.
-2. **Add GitHub repository secrets**: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (identifiers), plus `DATABASE_URL` (already present from TS-09's absence — add the Neon pooled string) and `AUTH_SECRET` (≥ 32 random chars). No publish profile, no client secret.
+1. **Create the OIDC identity on Azure** (research R2): a **user-assigned managed identity** `id-patient-monitor-deploy` in `rg-patient-monitor` (Brazil South) with the role **Colaborador de sitio web (Website Contributor) on the Web App `pmd-backend` only** (not the resource group: least privilege, and the identity cannot edit its own federated credentials). Its **federated credential** `github-production` (issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`) trusts only the GitHub environment `production` of this repository, using GitHub's immutable subject (owner and repository IDs): `repo:Komodo3000Eafit@354689751/PatientDeteriorationMonitor@1452090878:environment:production`. If a deploy fails with "No matching federated identity record found", compare the subject in the error with this one.
+2. **Create the GitHub environment and its secrets**: a GitHub **environment** `production` (Settings → Environments), deployment branches restricted to `main`, with **environment secrets** (not repository secrets) `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (identifiers) and `DATABASE_URL` (the Neon **direct**, non-pooled connection string, used only by the migration step). Only a job with `environment: production` can read them. `AUTH_SECRET` is **not** a GitHub secret: it lives only in the App Service settings. No publish profile, no client secret.
 3. **Set App Service settings and startup command** (contract `deploy-workflow.md`): `DATABASE_URL`, `AUTH_SECRET`, `ACCESS_TOKEN_MINUTES`, `SCM_DO_BUILD_DURING_DEPLOYMENT=true`, `WEBSITES_PORT=8000`, and the gunicorn Startup Command. Confirm **Always On is off** and **no probe targets `/health`** (D-30).
 
-Expected: the App Service exists with the settings above; `az webapp show -g rg-patient-monitor -n <app>` lists it; no long-lived credential is stored anywhere.
+Expected: the App Service exists with the settings above; `az webapp show -g rg-patient-monitor -n pmd-backend` lists it; no long-lived credential is stored anywhere.
 
 ## 2. Run the new security-control tests locally
 
@@ -42,7 +42,7 @@ Expected: the deploy job runs only for `main` with a green CI; it does not run f
 
 ```powershell
 # Replace with the App Service default hostname.
-$url = "https://<app>.azurewebsites.net/health"
+$url = "https://pmd-backend.azurewebsites.net/health"
 # One retry: the first call may wake Neon from scale-to-zero.
 try { $r = Invoke-RestMethod $url } catch { Start-Sleep 8; $r = Invoke-RestMethod $url }
 $r | ConvertTo-Json
@@ -55,7 +55,7 @@ If `database` is `"unavailable"` after the retry: check the App Service `DATABAS
 ## 5. Quick security spot-check on the deployed URL
 
 ```powershell
-(Invoke-WebRequest "https://<app>.azurewebsites.net/health").Headers |
+(Invoke-WebRequest "https://pmd-backend.azurewebsites.net/health").Headers |
   Select-Object 'Content-Security-Policy','X-Content-Type-Options','X-Frame-Options'
 ```
 

@@ -237,28 +237,28 @@ The backend deploys automatically to the existing Azure App Service (Brazil Sout
 
 **One-time setup (repo owner).** Not automated (no workflow changes Azure tenant settings):
 
-1. **OIDC identity on Azure:** create an app registration (or a user-assigned managed identity) with a **federated credential** scoped to this repository and the `main` branch / the `Deploy backend` workflow, and grant it Contributor (or Website Contributor) on the App Service. No publish profile and no client secret are ever created or stored (D-18, OIDC only).
-2. **GitHub repository secrets:** `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (identifiers), plus `DATABASE_URL` (the Neon pooled connection string) and `AUTH_SECRET` (≥ 32 random characters). These are the only secrets; they are never printed in a workflow log.
+1. **OIDC identity on Azure:** a **user-assigned managed identity** `id-patient-monitor-deploy` in `rg-patient-monitor` (Brazil South) with the role **Colaborador de sitio web (Website Contributor) on the Web App `pmd-backend` only** (not the resource group: least privilege, and the identity cannot edit its own federated credentials). Its **federated credential** `github-production` (issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`) trusts only the GitHub environment `production` of this repository, using GitHub's immutable subject (owner and repository IDs): `repo:Komodo3000Eafit@354689751/PatientDeteriorationMonitor@1452090878:environment:production`. If a deploy fails with "No matching federated identity record found", compare the subject in the error with this one. No publish profile and no client secret are ever created or stored (D-18, OIDC only).
+2. **GitHub environment and secrets:** a GitHub **environment** `production` (Settings → Environments), deployment branches restricted to `main`, with **environment secrets** (not repository secrets) `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (identifiers) and `DATABASE_URL` (the Neon **direct**, non-pooled connection string, used only by the migration step). Only a job with `environment: production` can read them. `AUTH_SECRET` is **not** a GitHub secret: it lives only in the App Service settings. Secrets are never printed in a workflow log.
 3. **App Service settings and startup command** (from [the deploy-workflow contract](specs/010-backend-deployment/contracts/deploy-workflow.md)):
 
    | Setting | Value |
    |---|---|
-   | `DATABASE_URL` | Neon pooled connection string |
-   | `AUTH_SECRET` | ≥ 32-char random value (stored as a secret) |
+   | `DATABASE_URL` | Neon pooled connection string (Configuración → Variables de entorno) |
+   | `AUTH_SECRET` | ≥ 32-char random value, new for production (App Service setting only) |
    | `ACCESS_TOKEN_MINUTES` | 1–1440 (default 480) |
    | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `true` (Oryx installs `requirements.txt`) |
    | `WEBSITES_PORT` | `8000` |
    | Startup Command | `gunicorn app.main:app -k uvicorn.workers.UvicornWorker --workers 2 --bind=0.0.0.0:8000 --timeout 120` |
 
    **Always On is off** (Free F1 does not offer it) and **nothing probes `/health`**: `/health` checks the database on every call, so a frequent probe would keep the Neon database awake and burn free compute hours (D-30). If a warm-up ping is ever wanted, point it at a path that does not touch the database, never `/health`.
-4. **Replace the placeholder:** set `app-name: <app-service-name>` in `deploy.yml` to the real App Service name before the first deploy.
+4. **App name:** `deploy.yml` deploys to the Web App `pmd-backend`; the job declares `environment: production`, which both unlocks the environment secrets and produces the OIDC subject Azure trusts.
 
-**How migrations run.** The workflow runs `python -m alembic upgrade head` from `backend/` with `DATABASE_URL` from the GitHub secret, after OIDC authentication and before the app serves traffic. It is **forward-only**: the workflow never runs `alembic downgrade` (FR-006, AC5, D-30). A migration failure fails the job before anything is deployed.
+**How migrations run.** The workflow runs `python -m alembic upgrade head` from `backend/` with `DATABASE_URL` from the `production` environment secret (direct Neon string), after OIDC authentication and before the app serves traffic. It is **forward-only**: the workflow never runs `alembic downgrade` (FR-006, AC5, D-30). A migration failure fails the job before anything is deployed.
 
-**Find the URL and check `/health`.** After a deploy, the App Service URL is `https://<app>.azurewebsites.net` (Overview blade on the Azure portal, or `az webapp show -g rg-patient-monitor -n <app>`). Verify end-to-end reachability (one retry lets the database wake from scale-to-zero):
+**Find the URL and check `/health`.** After a deploy, the App Service URL is `https://pmd-backend.azurewebsites.net` (Overview blade on the Azure portal, or `az webapp show -g rg-patient-monitor -n pmd-backend`). Verify end-to-end reachability (one retry lets the database wake from scale-to-zero):
 
 ```powershell
-$url = "https://<app>.azurewebsites.net/health"
+$url = "https://pmd-backend.azurewebsites.net/health"
 try { $r = Invoke-RestMethod $url } catch { Start-Sleep 8; $r = Invoke-RestMethod $url }
 $r | ConvertTo-Json
 ```
@@ -266,7 +266,7 @@ $r | ConvertTo-Json
 Expected: HTTP 200 with `status: "ok"`, a `version`, and `database: "ok"`. Spot-check the security headers:
 
 ```powershell
-(Invoke-WebRequest "https://<app>.azurewebsites.net/health").Headers |
+(Invoke-WebRequest "https://pmd-backend.azurewebsites.net/health").Headers |
   Select-Object 'Content-Security-Policy','X-Content-Type-Options','X-Frame-Options'
 ```
 

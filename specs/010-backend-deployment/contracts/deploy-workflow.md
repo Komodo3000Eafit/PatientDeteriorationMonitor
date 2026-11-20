@@ -20,13 +20,14 @@ jobs:
   deploy:
     name: Deploy backend
     runs-on: ubuntu-latest
+    environment: production  # unlocks environment secrets; OIDC subject ...:environment:production
     timeout-minutes: 15
     # Only a green CI on main deploys; fork PRs and other branches never do.
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.13" }
       - run: pip install -r backend/requirements.txt
       # Forward-only. NEVER `alembic downgrade` (FR-006, AC5, D-30).
@@ -44,7 +45,7 @@ jobs:
       - name: Deploy to App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: <app-service-name>
+          app-name: pmd-backend
           package: backend
 ```
 
@@ -55,13 +56,14 @@ jobs:
 3. The migrate step MUST run only `alembic upgrade head`; `downgrade` MUST never appear in this or any CI/CD file (AC5, FR-006). A migration failure MUST fail the job before the deploy step (no partial release).
 4. `DATABASE_URL` and `AUTH_SECRET` MUST come from GitHub secrets / App Service settings and MUST NOT be echoed in any step or log (AC4, FR-004/005).
 5. `ci.yml` MUST NOT be modified by this story (D-38).
+6. The deploy job MUST declare `environment: production`: the `AZURE_*` and `DATABASE_URL` secrets are environment secrets, and the Azure federated credential trusts only the subject `...:environment:production`.
 
 ## App Service settings (set once; quickstart §1)
 
 | Setting | Value | Source |
 |---|---|---|
-| `DATABASE_URL` | Neon pooled connection string | GitHub secret → app setting |
-| `AUTH_SECRET` | ≥ 32-char random value | GitHub secret → app setting |
+| `DATABASE_URL` | Neon pooled connection string | app setting (the migration step uses a separate direct string from the `production` environment secret) |
+| `AUTH_SECRET` | ≥ 32-char random value | app setting only (not a GitHub secret) |
 | `ACCESS_TOKEN_MINUTES` | 1–1440 (default 480) | app setting |
 | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `true` | app setting |
 | `WEBSITES_PORT` | `8000` | app setting |
