@@ -35,7 +35,7 @@ Contract: [contracts/patients-api.md](contracts/patients-api.md).
 ## 3. UI check (`npm run dev`, backend running)
 
 1. Sign in as the nurse → patient list shows **Registrar paciente**. Sign in as the doctor → no button.
-2. Nurse: open it → `/patients/new`; nothing pre-selected; the name label says *ficticio* with
+2. Nurse: open it → `/patients/new`; nothing pre-selected; the name label is "Nombre" with the hint
    "No uses datos reales.".
 3. Submit empty → a message next to each field, no request sent (Network tab).
 4. Fill in valid data → the app goes to `/patients/PAT-NNN`.
