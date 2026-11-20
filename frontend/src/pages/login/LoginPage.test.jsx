@@ -1,12 +1,13 @@
 // TS-12 LoginPage: AC8 (native submit button, disabled in flight), AC11 (accessible error alert
 // with decorative icon). Fake backend only; no network.
+// TS-13 (AC12): rendered inside a router at /login (renderApp); assertions are unchanged.
 // Exact es strings copied from src/i18n/translations.js:
 //   login.submit             = 'Entrar'
 //   login.submitting         = 'Entrando…'
 //   login.invalidCredentials = 'Usuario o contraseña incorrectos.'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
-import App from '../../App.jsx'
+import { screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { renderApp } from '../../testing/renderApp.jsx'
 import { stubBackend, resetSession, jsonResponse } from '../../testing/fakeBackend.js'
 
 const ES_SUBMIT = 'Entrar'
@@ -27,7 +28,7 @@ describe('TS-12 LoginPage', () => {
   // AC11: wrong credentials show the exact error text with a single decorative icon.
   it('AC11 wrong credentials show the exact error with a decorative icon', async () => {
     stubBackend({ login: async () => jsonResponse({ detail: 'invalid' }, 401) })
-    render(<App />)
+    renderApp(['/login'])
 
     fireEvent.change(document.querySelector('#login-username'), {
       target: { value: 'demo.doctor' },
@@ -51,7 +52,7 @@ describe('TS-12 LoginPage', () => {
   it('AC8 submit button is a native submit that disables while the request is in flight', async () => {
     let resolveLogin
     stubBackend({ login: () => new Promise((resolve) => { resolveLogin = resolve }) })
-    render(<App />)
+    renderApp(['/login'])
 
     const button = screen.getByRole('button', { name: ES_SUBMIT })
     expect(button.tagName).toBe('BUTTON')

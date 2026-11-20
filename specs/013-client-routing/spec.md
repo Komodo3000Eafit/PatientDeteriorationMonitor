@@ -12,9 +12,9 @@
 
 ### Session 2026-11-19
 
-- Q: Where is the page a signed-out user asked for remembered until they sign in? → A: Only in the app's in-memory navigation state for the current visit (no `?next=` in the address, no browser storage); lost if the login page is reloaded, then the user lands on `/patients`.
+- Q: Where is the page a signed-out user asked for remembered until they sign in? → A: → A: Only in the browser tab's navigation history entry, through the router's navigation state (no `?next=` in the address, no localStorage or sessionStorage); it survives a reload of the login page in the same tab and is gone when the tab is closed. Without it, the user lands on `/patients`.
 - Q: What happens to the current start page (welcome text and backend `/health` result)? → A: It becomes the `/patients` placeholder, keeping the health check until US-02 replaces it; no separate start page remains.
-- Q: After the session expires on a clinical page and the user signs in again, where do they land? → A: Back on the page they were on (same in-memory mechanism as the return-to page); after logout they land on `/patients`.
+- Q: After the session expires on a clinical page and the user signs in again, where do they land? → A: Back on the page they were on (same navigation-state mechanism as the return-to page); after logout they land on `/patients`.
 
 ## User Story *(mandatory)*
 
@@ -73,7 +73,7 @@
 - **FR-002**: The app MUST offer exactly these page addresses: `/login` (public), `/patients` and `/patients/:identifier` (clinical, protected), `/` (redirects to `/patients`) and a catch-all not-found page for every other address.
 - **FR-003**: The patient code in `/patients/:identifier` MUST be the only patient data in any page address (no names, vital signs, scores or internal `patient_id`). A value that is not a valid patient code (upper-case letters, digits and `-` only, 1–20 characters) MUST show the not-found page.
 - **FR-004**: `/patients` and `/patients/:identifier` MUST show placeholder pages, written so that US-02 and US-05 can replace them without changing the routing. The patient list placeholder MUST take over the current start page's content (welcome text and backend `/health` result), and the start page MUST be removed. The detail placeholder MUST show the patient code from the address as plain text.
-- **FR-005**: `<RequireAuth>` MUST protect every clinical page. A signed-out user who opens a clinical page MUST be redirected to `/login` before any clinical content is shown, and the page they asked for MUST be remembered only in the app's in-memory navigation state for the current visit (not in the address and not in browser storage).
+- **FR-005**: `<RequireAuth>` MUST protect every clinical page. A signed-out user who opens a clinical page MUST be redirected to `/login` before any clinical content is shown, and the page they asked for MUST be remembered only in the router's navigation state for the current tab (not in the address and not in localStorage or sessionStorage).
 - **FR-006**: After a successful sign-in, the user MUST land on the remembered page if it is a page of this app other than `/login`; otherwise on `/patients`.
 - **FR-007**: A signed-in user who opens `/login` MUST be redirected to `/patients`.
 - **FR-008**: When the session ends by expiry (401, TS-06) the user MUST end on `/login` with the existing "session expired" message and the current page remembered; when the user logs out they MUST end on `/login` without that message and without a remembered page.
@@ -107,7 +107,7 @@
 ## Assumptions
 
 - The routing library is `react-router` (the current major line, which supports React 19); the plan picks the exact version and the routing style, and keeps it as plain as possible (Principle XII). Adding it supersedes the "no router" part of D-33 and the "router library" rejection in D-35; the rest of D-35 stays (clinical screens inside `<RequireAuth>`), and the new DECISIONS entry states that.
-- The remembered "return to" page is kept in the app's navigation memory for the current visit, not in the address (no `?next=` parameter) and not in browser storage; it is lost if the login page is reloaded, and the user then lands on `/patients`. This keeps patient codes out of extra addresses and avoids open-redirect risk (confirmed in Clarifications).
+- The remembered "return to" page is kept in the router's navigation state, which the browser stores in the tab's history entry: not in the address (no `?next=` parameter) and not in localStorage or sessionStorage. It survives a reload of the login page in the same tab and is gone when the tab is closed; without it the user lands on `/patients`. Only an internal path is stored (checked by `auth/returnPath.js`), which keeps patient codes out of extra addresses and avoids open-redirect risk (confirmed in Clarifications).
 - The current start page (TS-04/TS-05: welcome text and backend `/health` result) becomes the patient list placeholder, so the `/health` check still appears after sign-in; no separate start page remains (confirmed in Clarifications).
 - The patient detail placeholder does not call the backend; a non-existent but valid-looking code (`PAT-999`) still shows the placeholder. US-05 decides how to show "patient not found".
 - "Clinical page" means every page except `/login` and the not-found page.

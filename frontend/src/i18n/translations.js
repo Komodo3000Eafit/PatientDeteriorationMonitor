@@ -42,6 +42,13 @@ export const translations = {
     'triageLevel.4': 'Triage IV',
     'triageLevel.5': 'Triage V',
     'triageLevel.none': 'Sin nivel',
+    'patients.title': 'Pacientes',
+    'patients.placeholder': 'La lista de pacientes se mostrará aquí.',
+    'patientDetail.title': 'Paciente {code}',
+    'patientDetail.placeholder': 'El detalle del paciente se mostrará aquí.',
+    'nav.backToPatients': 'Volver a la lista de pacientes',
+    'notFound.title': 'Página no encontrada',
+    'notFound.message': 'La dirección que abriste no existe en esta aplicación.',
   },
   en: {
     'app.title': 'Patient Deterioration Monitor',
@@ -76,6 +83,13 @@ export const translations = {
     'triageLevel.4': 'Triage IV',
     'triageLevel.5': 'Triage V',
     'triageLevel.none': 'No level',
+    'patients.title': 'Patients',
+    'patients.placeholder': 'The patient list will be shown here.',
+    'patientDetail.title': 'Patient {code}',
+    'patientDetail.placeholder': 'The patient detail will be shown here.',
+    'nav.backToPatients': 'Back to the patient list',
+    'notFound.title': 'Page not found',
+    'notFound.message': 'The address you opened does not exist in this app.',
   },
 }
 

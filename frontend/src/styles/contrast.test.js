@@ -49,6 +49,8 @@ describe('text contrast >= 4.5:1 (AC10 / FR-013)', () => {
     { name: 'bg on primary', fg: 'bg', bg: 'primary' },
     { name: 'bg on primary-hover', fg: 'bg', bg: 'primary-hover' },
     { name: 'no-data on bg-subtle', fg: 'no-data', bg: 'bg-subtle' },
+    // TS-13 (FR-012): link text uses the primary color on the page background.
+    { name: 'primary on bg (links)', fg: 'primary', bg: 'bg' },
   ]
 
   it.each(textPairs)('$name is at least 4.5:1', ({ name, fg, bg }) => {
@@ -90,6 +92,15 @@ describe('static target-size and focus guards (AC11 / FR-015)', () => {
   it('global.css has a :focus-visible rule using the focus ring', () => {
     const text = fileText('styles/global.css')
     expect(text).toMatch(/:focus-visible[^}]*var\(\s*--focus-ring\s*\)/s)
+  })
+
+  // TS-13 (FR-012, research R8): links use the primary token and are 44px standalone targets.
+  it('global.css has an a rule with the primary color and a 44px min-height', () => {
+    const text = fileText('styles/global.css').replace(/\/\*[\s\S]*?\*\//g, '')
+    const rule = text.match(/(?:^|[}\s])a\s*\{([^}]*)\}/)
+    expect(rule, 'no `a { ... }` rule in global.css').not.toBeNull()
+    expect(rule[1]).toMatch(/color\s*:\s*var\(\s*--color-primary\s*\)/)
+    expect(rule[1]).toMatch(/min-height\s*:\s*var\(\s*--size-target\s*\)/)
   })
 
   it('Button.module.css sets 44px min-height and min-width', () => {
