@@ -114,6 +114,10 @@ frontend/src/
 - Each status token has a soft variant (`-soft`) for backgrounds, for example `--color-stable-soft`.
 - Missing data is never shown as stable: no recent reading means `no_data`, with the time of the last reading.
 
+Icons:
+- Icons come from `lucide-react` (the single icon source, D-46); do not hand-draw SVG icons. `Icons.jsx` re-exports the status icons from `lucide-react` under the app's existing names.
+- Keep icons decorative: `aria-hidden="true"`, `focusable="false"`, em-sized, drawn with `currentColor` (never a status color as the icon's text/fill).
+
 Accessibility:
 - Never use color as the only signal. Every status shows a color, an icon and a text label.
 - Meet WCAG AA contrast (4.5:1 for normal text). `--color-stable` and `--color-warning` do not reach it as text on light backgrounds: use them only for backgrounds, borders and icons, with `--color-text` on top. `--color-critical` passes on white but not on `--color-bg-subtle`. `--color-no-data`, `--color-primary` and `--color-text` pass as text on both light backgrounds.
