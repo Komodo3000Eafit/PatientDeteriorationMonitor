@@ -41,6 +41,29 @@ const REQUIRED_TOKENS = [
   '--line-height',
 ]
 
+// US-01 (FR-018): the ten triage tile colors added by specs/015-register-patient, exact values.
+const TRIAGE_COLORS = {
+  '--color-triage-1': '#DC2626',
+  '--color-triage-1-soft': '#FEE2E2',
+  '--color-triage-2': '#C2410C',
+  '--color-triage-2-soft': '#FFEDD5',
+  '--color-triage-3': '#A16207',
+  '--color-triage-3-soft': '#FEF9C3',
+  '--color-triage-4': '#15803D',
+  '--color-triage-4-soft': '#DCFCE7',
+  '--color-triage-5': '#1D4ED8',
+  '--color-triage-5-soft': '#DBEAFE',
+}
+
+describe('US-01 triage tile tokens (FR-018)', () => {
+  const tokens = readTokens()
+  for (const [name, value] of Object.entries(TRIAGE_COLORS)) {
+    it(`${name} is ${value}`, () => {
+      expect(tokens.get(name)).toBe(value)
+    })
+  }
+})
+
 describe('TS-12 token guard (AC1)', () => {
   // AC1: the 13 spec colors have exactly the values listed in tokens.md.
   describe('the 13 spec colors have exactly their spec values', () => {

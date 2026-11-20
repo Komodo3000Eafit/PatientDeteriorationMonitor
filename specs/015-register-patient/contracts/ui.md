@@ -24,10 +24,35 @@ After a 201 the page navigates to `/patients/<identifier>` (push, so Back return
 | Name | text input, `maxLength` 100, hint linked by `aria-describedby` | required after trimming | `name` (trimmed) |
 | Age | `type="number"`, `min` 0, `max` 130, `step` 1 | required; whole number 0–130 | `age` (number) |
 | Sex | radio group (`fieldset`/`legend`): female / male / other | one chosen | `sex` |
-| Triage level | radio group, five options, each with `TriageLevelBadge` (Triage I–V) and a hint | one chosen | `triage_level` (number) |
+| Triage level | radio group of five tiles (below), legend + hint | one chosen | `triage_level` (number) |
 
 No patient code field, no time field. Each invalid field shows its message next to it
 (`aria-invalid`, `aria-describedby`); the request is not sent.
+
+### Layout (top to bottom, every field full width)
+
+1. Name, with its hint.
+2. Age.
+3. Sex.
+4. Triage level tiles.
+5. Submit button "Registrar" / "Register", full width: the same width as the fields above it, aligned with their left and right edges.
+
+### Triage level tiles
+
+- One `fieldset` with `legend` `registerPatient.triageLevel`, then the hint `registerPatient.triageHint` ("El nivel asignado en el triage ya realizado."). No severity line.
+- Five native `<input type="radio" name="triage_level">` tiles, always in **one row of five equal columns**, in severity order 1 → 5 (Triage I left, Triage V right; no wrapping). Nothing checked on open; arrow keys move between them; visible focus ring.
+- Each tile: background `--color-triage-N-soft`, border `--color-triage-N`, text `--color-text` showing only `triageLevel.N` ("Triage I" … "Triage V"), once, centered. No separate Roman numeral. Never color alone, never white text on a solid color (D-43).
+- Selected tile: thicker border (still `--color-triage-N`) and a decorative `lucide-react` check icon (`aria-hidden`, `focusable="false"`, `currentColor`).
+
+| Level | Color | `--color-triage-N` (border/icon) | `--color-triage-N-soft` (background) |
+|---|---|---|---|
+| 1 Triage I | red | `#DC2626` | `#FEE2E2` |
+| 2 Triage II | orange | `#C2410C` | `#FFEDD5` |
+| 3 Triage III | yellow | `#A16207` | `#FEF9C3` |
+| 4 Triage IV | green | `#15803D` | `#DCFCE7` |
+| 5 Triage V | blue | `#1D4ED8` | `#DBEAFE` |
+
+Contrast (checked 2026-11-20 against `--color-text` `#1E293B` and white): dark text on soft 11.98–13.62:1 (≥ 4.5 required); solid on white 4.83–6.70:1 (≥ 3 required). The contrast guard test covers these pairs.
 
 ## Error mapping (status from `ApiError`, never the server text)
 

@@ -4,13 +4,13 @@
 // Contract: specs/015-register-patient/contracts/ui.md. Messages are kept as keys, so switching
 // language translates them; typed values live in component state and survive the switch.
 import { useEffect, useRef, useState } from 'react'
+import { Check } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 import { ApiError, apiPost } from '../../api/client.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import Button from '../../components/Button.jsx'
 import Card from '../../components/Card.jsx'
 import { OctagonXIcon } from '../../components/Icons.jsx'
-import TriageLevelBadge from '../../components/TriageLevelBadge.jsx'
 import { useLanguage } from '../../i18n/LanguageContext.jsx'
 import styles from './RegisterPatientPage.module.css'
 
@@ -217,22 +217,33 @@ export default function RegisterPatientPage() {
             <p id="register-level-hint" className={styles.hint}>
               {t('registerPatient.triageHint')}
             </p>
-            <div className={styles.options}>
-              {TRIAGE_LEVELS.map((option) => (
-                <label key={option} className={styles.option}>
-                  <input
-                    type="radio"
-                    name="triage_level"
-                    value={option}
-                    checked={level === String(option)}
-                    onChange={() => {
-                      setLevel(String(option))
-                      clearFieldError('level')
-                    }}
-                  />
-                  <TriageLevelBadge level={option} />
-                </label>
-              ))}
+            <div className={styles.tiles}>
+              {TRIAGE_LEVELS.map((option) => {
+                const isChecked = level === String(option)
+                const labelId = `register-level-${option}-label`
+                return (
+                  <label key={option} className={`${styles.tile} ${styles[`level${option}`]}`}>
+                    <input
+                      type="radio"
+                      name="triage_level"
+                      value={option}
+                      className={styles.tileInput}
+                      checked={isChecked}
+                      aria-labelledby={labelId}
+                      onChange={() => {
+                        setLevel(String(option))
+                        clearFieldError('level')
+                      }}
+                    />
+                    <span id={labelId} className={styles.tileLabel}>
+                      {t(`triageLevel.${option}`)}
+                    </span>
+                    {isChecked && (
+                      <Check aria-hidden="true" focusable="false" size="1.25em" className={styles.check} />
+                    )}
+                  </label>
+                )
+              })}
             </div>
             <FieldError id="register-level-error" messageKey={fieldErrors.level} />
           </fieldset>

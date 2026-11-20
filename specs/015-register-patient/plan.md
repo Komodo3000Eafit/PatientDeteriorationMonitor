@@ -91,12 +91,16 @@ frontend/src/
 │   │   ├── RegisterPatientButton.jsx      # NEW: nurse-only button, UserPlus icon (AC11)
 │   │   └── RegisterPatientButton.test.jsx # NEW
 │   └── patient-list/PatientListPage.jsx   # EDIT: mount <RegisterPatientButton /> (one import, one element)
-├── i18n/translations.js         # EDIT: registerPatient.* and sex.* keys, es + en (AC14)
+├── i18n/translations.js         # EDIT: registerPatient.* and sex.* keys, es + en (AC14); a registerPatient.triageScale key added in the first rework was removed in the second (2026-11-20)
+├── styles/
+│   ├── tokens.css               # EDIT (rework 2026-11-20): ten tokens --color-triage-1..5 and -soft (FR-018, D-48)
+│   ├── contrast.test.js         # EDIT (rework 2026-11-20): text on each triage soft ≥ 4.5, each triage solid on white ≥ 3
+│   └── tokens.test.js           # EDIT (rework 2026-11-20): pins the ten triage token values
 └── testing/fakeBackend.js       # EDIT: optional `patients` handler for /api/patients
 
 docs/
 ├── GLOSSARY.md        # EDIT: UI texts for register, name/age/sex/triage level fields, nurses-only message
-├── DECISIONS.md       # EDIT: D-47 patient code rule
+├── DECISIONS.md       # EDIT: D-47 patient code rule; D-48 triage level color tokens (rework 2026-11-20, amends D-43)
 ├── BACKLOG.md         # EDIT: US-01 done, spec link
 └── PROJECT_STATUS.md  # EDIT: US-01 done
 ```

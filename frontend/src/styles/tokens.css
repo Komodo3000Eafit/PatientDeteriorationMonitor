@@ -22,6 +22,18 @@
   --color-border: #CBD5E1;
   --color-border-strong: #64748B;
 
+  /* Triage level colors (US-01 / D-48): solid = border and icon only, never text color; soft = tile background */
+  --color-triage-1: #DC2626; /* border and icon only, never text color */
+  --color-triage-1-soft: #FEE2E2;
+  --color-triage-2: #C2410C; /* border and icon only, never text color */
+  --color-triage-2-soft: #FFEDD5;
+  --color-triage-3: #A16207; /* border and icon only, never text color */
+  --color-triage-3-soft: #FEF9C3;
+  --color-triage-4: #15803D; /* border and icon only, never text color */
+  --color-triage-4-soft: #DCFCE7;
+  --color-triage-5: #1D4ED8; /* border and icon only, never text color */
+  --color-triage-5-soft: #DBEAFE;
+
   /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;

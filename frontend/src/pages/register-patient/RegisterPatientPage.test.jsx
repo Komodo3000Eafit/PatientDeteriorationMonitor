@@ -10,6 +10,7 @@
 //   registerPatient.sex          'Sexo'
 //   sex.female / male / other    'Femenino' / 'Masculino' / 'Otro'
 //   registerPatient.triageLevel  'Nivel de triage'
+//   registerPatient.triageHint   'El nivel asignado en el triage ya realizado.'
 //   triageLevel.1..5             'Triage I' .. 'Triage V'
 //   registerPatient.submit       'Registrar'
 //   registerPatient.submitting   'Registrando…'
@@ -51,6 +52,7 @@ const ES_NURSES_ONLY = 'Solo el personal de enfermería puede registrar paciente
 const ES_BACK = 'Volver a la lista de pacientes'
 const ES_LOGIN = 'Iniciar sesión'
 const TRIAGE_LABELS = ['Triage I', 'Triage II', 'Triage III', 'Triage IV', 'Triage V']
+const ES_TRIAGE_HINT = 'El nivel asignado en el triage ya realizado.'
 
 const SYNTHETIC_NAME = 'Paciente Demo Uno'
 const CREATED = {
@@ -87,6 +89,30 @@ function fillValidForm({ name = SYNTHETIC_NAME, age = '40', sex = 'Femenino', le
   fireEvent.change(ageInput(), { target: { value: age } })
   fireEvent.click(within(screen.getByRole('group', { name: ES_SEX })).getByLabelText(sex))
   fireEvent.click(within(screen.getByRole('group', { name: ES_LEVEL })).getByLabelText(level))
+}
+
+function levelGroup(name = ES_LEVEL) {
+  return screen.getByRole('group', { name })
+}
+
+// The tile (<label>) that wraps a triage radio.
+function tileOf(radio) {
+  return radio.closest('label')
+}
+
+// Decorative check icons rendered inside the triage tiles.
+function checkIcons() {
+  return levelGroup().querySelectorAll('label svg[aria-hidden="true"]')
+}
+
+// Accessible description built from aria-describedby (no jest-dom in this repo): the referenced
+// elements' text joined with spaces, as the accessible-description algorithm does.
+function describedText(element) {
+  return (element.getAttribute('aria-describedby') || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((id) => document.getElementById(id)?.textContent ?? '')
+    .join(' ')
 }
 
 function expectValuesKept() {
@@ -159,6 +185,165 @@ describe('US-01 AC7 registration page', () => {
     expect(within(form).queryByLabelText(/código|hora|fecha/i)).toBeNull()
     expect(nameInput().value).toBe('')
     expect(ageInput().value).toBe('')
+  })
+})
+
+describe('US-01 AC7 triage level tiles (FR-011, FR-018)', () => {
+  it('AC7 the five triage radios appear in order Triage I, II, III, IV, V by accessible name', async () => {
+    await openAsNurse()
+
+    const radios = within(levelGroup()).getAllByRole('radio')
+    expect(radios).toHaveLength(5)
+    expect(radios.map((r) => r.value)).toEqual(['1', '2', '3', '4', '5'])
+    // Accessible name of each radio, in DOM order, comes from its visible "Triage N" label.
+    const names = radios.map((r) => document.getElementById(r.getAttribute('aria-labelledby')).textContent)
+    expect(names).toEqual(TRIAGE_LABELS)
+    TRIAGE_LABELS.forEach((label, index) => {
+      expect(within(levelGroup()).getByRole('radio', { name: label })).toBe(radios[index])
+    })
+    // One tile per level, each tile wraps exactly one radio.
+    expect(radios.map((r) => tileOf(r)).every((tile) => tile.querySelectorAll('input').length === 1)).toBe(true)
+  })
+
+  it('AC7 no triage tile is pre-selected and no check icon is shown', async () => {
+    await openAsNurse()
+
+    const radios = within(levelGroup()).getAllByRole('radio')
+    expect(radios.filter((r) => r.checked)).toHaveLength(0)
+    expect(checkIcons()).toHaveLength(0)
+    expect(levelGroup().querySelectorAll('svg')).toHaveLength(0)
+  })
+
+  it('AC7 clicking the "Triage III" text checks that radio and only its tile shows the check icon', async () => {
+    await openAsNurse()
+
+    fireEvent.click(within(levelGroup()).getByText('Triage III'))
+
+    const radios = within(levelGroup()).getAllByRole('radio')
+    const third = within(levelGroup()).getByRole('radio', { name: 'Triage III' })
+    expect(third.checked).toBe(true)
+    expect(radios.filter((r) => r.checked)).toEqual([third])
+    const icons = checkIcons()
+    expect(icons).toHaveLength(1)
+    expect(tileOf(third).contains(icons[0])).toBe(true)
+    expect(icons[0].getAttribute('focusable')).toBe('false')
+    for (const other of radios.filter((r) => r !== third)) {
+      expect(tileOf(other).querySelector('svg')).toBeNull()
+    }
+
+    // Choosing another tile moves both the checked state and the icon.
+    fireEvent.click(within(levelGroup()).getByText('Triage I'))
+    const first = within(levelGroup()).getByRole('radio', { name: 'Triage I' })
+    expect(first.checked).toBe(true)
+    expect(third.checked).toBe(false)
+    expect(checkIcons()).toHaveLength(1)
+    expect(tileOf(first).querySelector('svg[aria-hidden="true"]')).toBeTruthy()
+    expect(tileOf(third).querySelector('svg')).toBeNull()
+  })
+
+  it('AC7 keyboard: the tiles are one native radio group, so the arrow keys move between them', async () => {
+    // jsdom does not implement the browser's arrow-key navigation of radio groups, and
+    // @testing-library/user-event (which simulates it) is not a dependency of this repo; adding it
+    // would change package.json, which this story does not touch. So the arrow-key behavior is
+    // asserted through the semantics the browser relies on: real <input type="radio"> elements with
+    // the same name, inside one fieldset (role group), focusable (not disabled, not hidden, no
+    // tabIndex -1). A manual keyboard check covers the actual key presses (quickstart).
+    await openAsNurse()
+
+    const group = levelGroup()
+    expect(group.tagName).toBe('FIELDSET')
+    const radios = within(group).getAllByRole('radio')
+    for (const radio of radios) {
+      expect(radio.tagName).toBe('INPUT')
+      expect(radio.type).toBe('radio')
+      expect(radio.name).toBe('triage_level')
+      expect(radio.closest('fieldset')).toBe(group)
+      expect(radio.disabled).toBe(false)
+      expect(radio.hidden).toBe(false)
+      expect(radio.getAttribute('aria-hidden')).toBeNull()
+      expect(radio.tabIndex).not.toBe(-1)
+      expect(radio.style.display).not.toBe('none')
+      expect(radio.style.visibility).not.toBe('hidden')
+    }
+    // No other control in the form shares the triage radio name.
+    const form = group.closest('form')
+    expect(form.querySelectorAll('input[name="triage_level"]')).toHaveLength(5)
+
+    // Each radio can take focus, and a checked radio keeps focus (the starting point of arrow keys).
+    const third = within(group).getByRole('radio', { name: 'Triage III' })
+    fireEvent.click(third)
+    third.focus()
+    expect(document.activeElement).toBe(third)
+    expect(third.checked).toBe(true)
+    for (const radio of radios) {
+      radio.focus()
+      expect(document.activeElement).toBe(radio)
+    }
+  })
+
+  it('AC7 each tile shows only its "Triage N" label, exactly once within the triage group', async () => {
+    await openAsNurse()
+
+    const group = levelGroup()
+    for (const label of TRIAGE_LABELS) {
+      expect(within(group).getAllByText(label)).toHaveLength(1)
+    }
+    // No extra text in a tile (no separate Roman numeral, no severity words).
+    const tiles = within(group).getAllByRole('radio').map((r) => tileOf(r))
+    expect(tiles.map((tile) => tile.textContent)).toEqual(TRIAGE_LABELS)
+  })
+
+  it('AC7 there is no severity line ("más urgente" / "most urgent") in Spanish or English', async () => {
+    await openAsNurse()
+
+    expect(screen.queryByText(/más urgente/)).toBeNull()
+    expect(screen.queryByText(/menos urgente/)).toBeNull()
+    expect(document.getElementById('register-level-scale')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+
+    const group = levelGroup('Triage level')
+    expect(screen.queryByText(/most urgent/)).toBeNull()
+    expect(screen.queryByText(/least urgent/)).toBeNull()
+    expect(screen.queryByText(/más urgente/)).toBeNull()
+    // The tile labels stay "Triage I" .. "Triage V" in English too.
+    expect(within(group).getAllByRole('radio').map((r) => document.getElementById(r.getAttribute('aria-labelledby')).textContent)).toEqual(TRIAGE_LABELS)
+  })
+
+  it('AC7 the group description is the hint on open and hint plus error after an empty submit', async () => {
+    await openAsNurse()
+
+    expect(levelGroup().getAttribute('aria-describedby').split(' ')).toEqual(['register-level-hint'])
+    expect(describedText(levelGroup())).toBe(ES_TRIAGE_HINT)
+
+    fireEvent.click(submitButton())
+
+    expect(levelGroup().getAttribute('aria-invalid')).toBe('true')
+    expect(levelGroup().getAttribute('aria-describedby').split(' ')).toEqual([
+      'register-level-hint',
+      'register-level-error',
+    ])
+    expect(describedText(levelGroup())).toBe(`${ES_TRIAGE_HINT} ${ES_REQUIRED}`)
+
+    fireEvent.click(within(levelGroup()).getByText('Triage II'))
+    expect(levelGroup().getAttribute('aria-invalid')).toBeNull()
+    expect(levelGroup().getAttribute('aria-describedby').split(' ')).not.toContain('register-level-error')
+  })
+
+  it.each([
+    ['Triage I', 1],
+    ['Triage V', 5],
+  ])('AC7 AC9 the selected tile %s is checked and the submit sends triage_level %i as a number', async (label, value) => {
+    const fetchMock = await openAsNurse(async () => jsonResponse({ ...CREATED, triage_level: value }, 201))
+    fillValidForm({ level: label })
+
+    expect(within(levelGroup()).getByRole('radio', { name: label }).checked).toBe(true)
+    fireEvent.click(submitButton())
+
+    await waitFor(() => expect(callsTo(fetchMock, '/api/patients')).toHaveLength(1))
+    const body = JSON.parse(callsTo(fetchMock, '/api/patients')[0][1].body)
+    expect(body.triage_level).toBe(value)
+    expect(typeof body.triage_level).toBe('number')
   })
 })
 

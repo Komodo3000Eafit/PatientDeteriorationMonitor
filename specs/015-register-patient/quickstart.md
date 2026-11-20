@@ -36,7 +36,17 @@ Contract: [contracts/patients-api.md](contracts/patients-api.md).
 
 1. Sign in as the nurse → patient list shows **Registrar paciente**. Sign in as the doctor → no button.
 2. Nurse: open it → `/patients/new`; nothing pre-selected; the name label is "Nombre" with the hint
-   "No uses datos reales.".
+   "No uses datos reales.". Layout: every field full width, one below the other: name, age, sex,
+   triage level; "Registrar" last, full width (its left and right edges line up with the fields
+   above it, at desktop and at about 360px). Under the legend there is only the hint "El nivel asignado en el
+   triage ya realizado." (no severity line). The triage level shows five tiles in one row of five
+   equal columns, in order Triage I → Triage V (red, orange, yellow, green, blue: soft background,
+   solid border, dark text), each showing only its label "Triage N", once, centered (no separate
+   numeral). Click a tile → thicker border and a check icon; Tab into the group and use the arrow
+   keys → the selection moves between tiles and the focus ring is visible (the arrow keys are
+   checked here by hand; jsdom cannot simulate them). Narrow the window to about 360px → the five
+   tiles stay in one row; a label may wrap to two lines inside its tile but never overflows or is
+   clipped, and the check icon does not cover it.
 3. Submit empty → a message next to each field, no request sent (Network tab).
 4. Fill in valid data → the app goes to `/patients/PAT-NNN`.
 5. Switch to EN while typing → texts change, typed values stay.
