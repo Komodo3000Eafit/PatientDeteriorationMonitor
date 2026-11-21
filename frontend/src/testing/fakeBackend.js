@@ -29,8 +29,12 @@ export function resetSession() {
 // readings (US-03): optional handler for any /api/patients/<code>/readings path; when not given
 // those paths answer 404 as before.
 const READINGS_PATH = /^\/api\/patients\/[^/]+\/readings$/
+// suggestions (US-04): optional handler for any /api/patients/<code>/suggestions path (the list
+// endpoint and the /accept and /dismiss actions under it); when not given those paths answer 404
+// as before, so the mounted RetriageSuggestion shows its load-error message.
+const SUGGESTIONS_PATH = /^\/api\/patients\/[^/]+\/suggestions/
 
-export function stubBackend({ health, me, login, patients, readings } = {}) {
+export function stubBackend({ health, me, login, patients, readings, suggestions } = {}) {
   const routes = {
     '/health': health ?? (async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'ok' })),
     '/api/me': me ?? (async () => jsonResponse(DOCTOR)),
@@ -41,7 +45,13 @@ export function stubBackend({ health, me, login, patients, readings } = {}) {
   if (patients) routes['/api/patients'] = patients
   const mock = vi.fn(async (url, options) => {
     const path = new URL(url).pathname
-    const handler = routes[path] ?? (readings && READINGS_PATH.test(path) ? readings : undefined)
+    const handler =
+      routes[path] ??
+      (readings && READINGS_PATH.test(path)
+        ? readings
+        : suggestions && SUGGESTIONS_PATH.test(path)
+          ? suggestions
+          : undefined)
     return handler ? handler(url, options) : jsonResponse({}, 404)
   })
   vi.stubGlobal('fetch', mock)
