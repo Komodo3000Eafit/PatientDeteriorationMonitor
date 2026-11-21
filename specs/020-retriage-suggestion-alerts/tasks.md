@@ -122,6 +122,35 @@ None. TS-03 (tables `alerts`, `triage_events`, `patients`, `vital_signs`; `0001_
 
 ---
 
+## Phase 4: Change request 2026-11-21 (list-page banner + translatable reason)
+
+Spec CR1/CR2, AC21–AC24, FR-018–FR-021; contract [retriage-api.md](contracts/retriage-api.md) (`GET /api/suggestions`, structured `reason`). Depends on the merged Phase 3 work. Allowed paths add: `backend/app/retriage.py`, `backend/app/retriage_api.py`, `backend/tests/test_retriage.py`, `backend/tests/test_retriage_api.py`, `frontend/src/pages/patient-list/OpenSuggestionsBanner.jsx` (+ `.module.css`, `.test.jsx`, new), `frontend/src/pages/patient-list/PatientListPage.jsx`, `frontend/src/pages/patient-detail/RetriageSuggestion.jsx`, `frontend/src/pages/patient-detail/RetriageSuggestion.test.jsx`, `frontend/src/i18n/translations.js`, `frontend/src/testing/fakeBackend.js`, `docs/DECISIONS.md`, `docs/GLOSSARY.md`. Still **no migration, no new dependency, no new token**.
+
+### Backend (backend-dev)
+
+- [X] T018 [US-04] CR2 — in `backend/app/retriage.py` change the reason from a string to **structured data**: replace `reason_from_entries(entries) -> str` with a builder returning a list of `{"parameter": <code>, "points": <int>}` for entries scoring > 0, in `PARAMETERS` order (no vital value). Keep `build_message`/`read_tag`/`strip_tag` and the machine tag unchanged — but the reason is **no longer stored in `alerts.message`**; the `message` holds only the tag + human sentence. The reason is rebuilt from the triggering reading's stored `reading_scores.entries` when the API responds (see T019), so `evaluate_retriage` no longer needs to embed it. Keep `evaluate_retriage` reading the stored band only; no scoring import. Depends on merged Phase 3 (AC24, FR-004, FR-021) (backend-dev)
+- [X] T019 [US-04] CR1+CR2 — in `backend/app/retriage_api.py`: (a) change `SuggestionResponse.reason` to `list[ReasonEntry]` where `ReasonEntry` is `{parameter: str, points: int}`; `to_response` builds it from the alert's triggering reading's stored `reading_scores.entries` (join the patient's reading that produced the alert, or the latest scored reading as the source of entries — read-only, never recompute). (b) Add `GET /api/suggestions` (any `get_current_user`; 401 otherwise) returning all `status='open'` alerts across patients, newest first (`created_at` desc, `id` desc), each a `SuggestionResponse` plus `patient_code` (the patient's `identifier`); no `patient_id`/`acknowledged_by_id`/tag; `SQLAlchemyError` → 503. Register nothing new in `main.py` (same router, already mounted). Depends on T018 (AC23, AC24, FR-018, FR-021) (backend-dev)
+
+### Frontend (frontend-dev)
+
+- [X] T020 [P] [US-04] CR1 — add `retriage.listTitle` (banner heading), `retriage.listEmpty` ("no open suggestions"), `retriage.listError`, `retriage.patient` ("Paciente {code}" / "Patient {code}"), and a reason-join key if needed, to `frontend/src/i18n/translations.js` (es+en), matching glossary terms. Depends on merged Phase 3 (AC21, FR-020) (frontend-dev)
+- [X] T021 [US-04] CR2 — in `frontend/src/pages/patient-detail/RetriageSuggestion.jsx` render the reason from the structured `reason` list: for each `{parameter, points}` show `t('parameter.'+parameter)` and `t('recordReading.points')` with the number (e.g. "Frecuencia respiratoria: 3 Puntos"), joined for display; remove the raw-string render (`{suggestion.reason}`). No other behavior change. Depends on T019, T020 (AC24, FR-021) (frontend-dev)
+- [X] T022 [US-04] CR1 — create `frontend/src/pages/patient-list/OpenSuggestionsBanner.jsx` (+ `.module.css`): on mount `apiGet('/api/suggestions')`; render a banner at the top listing each open suggestion with the patient code, a severity badge (icon + text label; `high` → critical tokens/`OctagonXIcon`, `medium` → warning tokens/`TriangleAlertIcon`), and the suggested triage level (`TriageLevelBadge`); each row links to `/patients/<patient_code>` (react-router `Link`). No accept/dismiss. Empty → `retriage.listEmpty` (or render nothing); load error → `retriage.listError`; 401 → nothing (session handling). Tokens only, no raw color, no new token; icons from `lucide-react`; reason not shown here (CR2 reason is detail-page only). Mount it with one line at the top of `frontend/src/pages/patient-list/PatientListPage.jsx` (keep the existing `RegisterPatientButton` and `/health` block). Depends on T020 (AC21, AC22, FR-019, FR-020) (frontend-dev)
+
+### Tests (qa-tester)
+
+- [X] T023 [P] [US-04] Backend tests: extend `backend/tests/test_retriage.py` for the structured reason builder (list of `{parameter, points}`, only > 0, PARAMETERS order, no vital value); extend `backend/tests/test_retriage_api.py` for `reason` being the structured list on the per-patient endpoint, and for `GET /api/suggestions` (200 all open across patients newest first, includes `patient_code`, excludes `patient_id`/`acknowledged_by_id`/tag; 401 signed out; 503 on DB error; acknowledged alerts excluded). Depends on T019 (AC23, AC24, FR-018, FR-021) (qa-tester)
+- [X] T024 [US-04] Frontend tests + full validation: create `frontend/src/pages/patient-list/OpenSuggestionsBanner.test.jsx` (lists open suggestions with severity color/icon/label and suggested level; row links to the patient; empty → listEmpty; load error → listError; English after switch) and add an `/api/suggestions` handler to `frontend/src/testing/fakeBackend.js`; extend `RetriageSuggestion.test.jsx` to assert the reason renders translated from the structured list (ES default + EN) and that no English parameter code or bare number leaks. Then run the full gate: backend `pytest`, frontend `npm test`, `npm run build`, `npm audit --audit-level=high`; guards green; counts ≥ the post-Phase-3 counts plus the new tests; diff-stat of the must-not-change files still empty. Report counts. Depends on T021, T022, T023 (AC21–AC24, FR-018–FR-021) (qa-tester)
+
+### Security review + docs
+
+- [X] T025 [US-04] Read-only security review of the CR: `GET /api/suggestions` requires auth (401) and leaks no `patient_id`/`acknowledged_by_id`/tag/vital value; the structured reason carries only codes + points; no new secret or dependency. Report findings (orchestrator logs them). Depends on T024 (VIII, FR-011, FR-018) (security-reviewer)
+- [X] T026 [P] [US-04] Update D-51 in `docs/DECISIONS.md` and the glossary in `docs/GLOSSARY.md` to record CR1 (list-page banner, `GET /api/suggestions`) and CR2 (structured translatable reason; `reason` is now a list of `{parameter, points}`). Depends on T024 (FR-017, FR-021) (backend-dev)
+
+**CR checkpoint**: list-page banner shows open suggestions (high red / medium yellow, icon + label, links to the patient); the detail-page reason is translated from structured data; all suites and guards pass; no migration/new dependency/new token.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase dependencies

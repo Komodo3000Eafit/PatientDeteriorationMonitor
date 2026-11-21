@@ -29,12 +29,15 @@ from app.retriage import (
     BAND_SEVERITY,
     BAND_STEP,
     accept_suggestion,
+    build_message,
     dismiss_suggestion,
     evaluate_retriage,
     read_tag,
+    reason_from_entries,
+    strip_tag,
     suggested_level,
 )
-from app.scoring import VitalSigns, get_scoring_system
+from app.scoring import PARAMETERS, VitalSigns, get_scoring_system
 
 # Synthetic vital signs whose stored band is known. Each parameter scores 0 for
 # the "low" reading; the medium/high readings reach the band thresholds
@@ -121,8 +124,8 @@ def _count(session, model) -> int:
 
 
 def test_ac1_crossing_up_into_medium_raises_one_open_alert(engine):
-    """AC1 (FR-001, FR-002, FR-004): low-medium -> medium raises one open alert, severity medium,
-    tag (medium, 2), reason naming the scoring parameters, no raw value leaked."""
+    """AC1 (FR-001, FR-002): low-medium -> medium raises one open alert, severity medium,
+    tag (medium, 2); the stored message carries only the tag + human sentence (no reason, CR2)."""
     with Session(engine) as session:
         patient = _add_patient(session, triage_level=3)
         _save(session, patient, LOW_MEDIUM_VITALS)   # previous, less urgent
@@ -133,28 +136,39 @@ def test_ac1_crossing_up_into_medium_raises_one_open_alert(engine):
         alert = alerts[0]
         assert alert.severity == "medium"
         assert read_tag(alert.message) == ("medium", 2)
-        # The reason names the parameters that scored points, with their points,
-        # and never a raw vital value (e.g. no "22", "95" from the reading).
-        _human, _, reason = alert.message.partition("\n")
-        assert "respiratory_rate +" in reason
-        assert "spo2 +" in reason
+        # CR2 (FR-021): the reason is no longer baked into the stored message; the
+        # message is only the machine tag plus the fixed human sentence. No reason
+        # text (no "<param> +<points>") and no raw vital value is in the message.
+        human = strip_tag(alert.message)
+        assert isinstance(human, str)
+        assert " +" not in human
         for raw_value in ("22", "95", "96", "38.4"):
-            assert raw_value not in reason
+            assert raw_value not in alert.message
 
 
-def test_ac1_reason_lists_vitals_and_points_only(engine):
-    """AC1/AC19 (FR-004): the reason lists parameters and their points, nothing else."""
+def test_ac24_reason_from_entries_is_structured_points_only(engine):
+    """AC24 (FR-021): reason_from_entries returns a list of {parameter, points} for the
+    scored reading, only parameters scoring > 0, in PARAMETERS order, with no vital value."""
     with Session(engine) as session:
         patient = _add_patient(session, triage_level=3)
         _save(session, patient, LOW_VITALS)
-        _save(session, patient, HIGH_VITALS)
+        high_score = _save(session, patient, HIGH_VITALS)
 
-        alert = _open_alerts(session, patient.id)[0]
-        _human, _, reason = alert.message.partition("\n")
-        # Every listed token has the "<parameter> +<points>" shape.
-        for part in reason.split(", "):
-            name, _, points = part.partition(" +")
-            assert name and points.isdigit() and int(points) > 0
+        reason = reason_from_entries(high_score.entries)
+        # Every item is exactly {parameter, points} with points a positive int.
+        assert reason  # HIGH_VITALS scores several parameters
+        for item in reason:
+            assert set(item) == {"parameter", "points"}
+            assert isinstance(item["points"], int) and item["points"] > 0
+            assert item["parameter"] in PARAMETERS
+        # Only parameters that scored > 0 are present, matching the stored entries.
+        scored = {
+            e["parameter"] for e in high_score.entries if e.get("points", 0) > 0
+        }
+        assert {item["parameter"] for item in reason} == scored
+        # The order follows PARAMETERS (no vital value, no extra keys).
+        names = [item["parameter"] for item in reason]
+        assert names == [name for name in PARAMETERS if name in scored]
 
 
 # --- AC2: the app never changes the triage level on its own ---------------------
@@ -211,6 +225,39 @@ def test_ac3_crossing_into_low_medium_raises_nothing(engine):
 
 
 # --- AC5 and the band mappings --------------------------------------------------
+
+
+def test_build_message_takes_three_args_and_stores_no_reason():
+    """CR2 (FR-004, FR-021): build_message(band, current, suggested) takes no reason arg;
+    the stored message is the machine tag + human sentence only (read_tag/strip_tag round-trip)."""
+    message = build_message("high", 3, 1)
+    assert read_tag(message) == ("high", 1)
+    human = strip_tag(message)
+    assert isinstance(human, str)
+    # No reason line and no "<param> +<points>" fragment is baked into the message.
+    assert "\n" not in message
+    assert " +" not in human
+    # strip_tag of an untagged message returns the message unchanged (a str).
+    assert strip_tag("no tag here") == "no tag here"
+
+
+def test_reason_from_entries_skips_zero_and_keeps_parameters_order():
+    """CR2 (FR-021): reason_from_entries keeps only entries scoring > 0, in PARAMETERS order,
+    and never carries a vital value (unit test on hand-built synthetic entries)."""
+    entries = [
+        {"parameter": "temperature", "value": 38.4, "points": 1},
+        {"parameter": "respiratory_rate", "value": 25, "points": 3},
+        {"parameter": "spo2", "value": 91, "points": 0},   # scored 0 -> skipped
+        {"parameter": "heart_rate", "value": 131, "points": 3},
+    ]
+    reason = reason_from_entries(entries)
+    assert reason == [
+        {"parameter": "respiratory_rate", "points": 3},
+        {"parameter": "heart_rate", "points": 3},
+        {"parameter": "temperature", "points": 1},
+    ]
+    # No "value" key leaks into the structured reason.
+    assert all(set(item) == {"parameter", "points"} for item in reason)
 
 
 def test_ac5_mappings_are_the_documented_values():

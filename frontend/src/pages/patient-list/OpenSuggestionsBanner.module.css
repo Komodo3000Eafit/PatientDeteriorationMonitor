@@ -1,0 +1,87 @@
+/* Open re-triage suggestions banner (US-04 CR1). Design tokens only; see src/styles/tokens.css
+   (D-43). The severity chip follows RiskBandBadge: soft background, solid border and icon tint,
+   dark --color-text label; color is never the only cue (icon + text label always present). */
+.banner {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.message {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+}
+
+.patient {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Current level, an arrow, then the suggested level. The arrow is a decorative lucide icon
+   (aria-hidden); the span carries an aria-label describing the transition for screen readers. */
+.transition {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.arrow {
+  color: var(--color-text);
+}
+
+.severity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* The label text stays dark (--color-text): the solid severity colors fail WCAG AA as text on the
+   soft background (D-43), so they are used only for the border. */
+.label {
+  color: var(--color-text);
+}
+
+/* Soft background + solid border in the severity color; the icon is tinted the same color (via
+   stroke, since the guard forbids that token on `color`). The icon is decorative and the dark
+   label carries the meaning, so color is never the only cue. Matches the patient detail chip. */
+.medium {
+  border: 2px solid var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.medium .icon {
+  stroke: var(--color-warning);
+}
+
+.high {
+  border: 2px solid var(--color-critical);
+  background: var(--color-critical-soft);
+}
+
+.high .icon {
+  stroke: var(--color-critical);
+}

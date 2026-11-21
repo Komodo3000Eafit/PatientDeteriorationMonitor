@@ -15,7 +15,7 @@ Each item of the read response, and the body returned by accept/dismiss.
   "id": 42,
   "severity": "high",
   "message": "Risk is high. Suggest re-triage from Triage III to Triage I.",
-  "reason": "respiratory_rate +3, spo2 +3, temperature +1",
+  "reason": [{"parameter": "respiratory_rate", "points": 3}, {"parameter": "spo2", "points": 3}, {"parameter": "temperature", "points": 1}],
   "current_level": 3,
   "suggested_level": 1,
   "status": "open",
@@ -28,7 +28,7 @@ Each item of the read response, and the body returned by accept/dismiss.
 | `id` | integer | `alerts.id`; used in the accept/dismiss address |
 | `severity` | string | `medium` or `high` (alert severity, mapped from the raising band) |
 | `message` | string | Fixed-shape human text, returned already stripped of the internal `[retriage band=…;suggested=…]` tag (see data-model.md §"Message/reason shape"); the tag is never sent to the client |
-| `reason` | string | Vital signs and points that produced the score (from the stored entries) |
+| `reason` | array | **CR2 (2026-11-21):** list of `{parameter, points}` (parameter code + integer points, only parameters scoring > 0, in `PARAMETERS` order), from the stored entries; the frontend translates it. No submitted vital value. Was a string before CR2. |
 | `current_level` | integer 1–5 | The patient's triage level when the suggestion is shown |
 | `suggested_level` | integer 1–5 | The more urgent level suggested (always < `current_level` at creation) |
 | `status` | string | `open` or `acknowledged` |
@@ -79,6 +79,18 @@ Check order: 401 → 403 → 404 → 409 → 200. Nothing is stored on any error
 | 404 | Unknown/malformed code, or no such alert for this patient | `{"detail": "Suggestion not found"}` |
 | 409 | Alert already `acknowledged` | `{"detail": "Suggestion already handled"}` |
 | 503 | Database unavailable | `{"detail": "Service unavailable"}` |
+
+## `GET /api/suggestions` — all open suggestions (CR1, any signed-in clinician)
+
+Returns every **open** re-triage suggestion across all patients, newest first, for the list-page banner.
+
+| Status | When | Body |
+|---|---|---|
+| 200 | Signed in | `{"suggestions": [SuggestionResponse + "patient_code", …]}` newest first (`created_at` desc, then `id` desc); `[]` when none |
+| 401 | Not signed in | `{"detail": "Not authenticated"}` + `WWW-Authenticate: Bearer` |
+| 503 | Database unavailable | `{"detail": "Service unavailable"}` |
+
+Each item is a `SuggestionResponse` with an added **`patient_code`** (`PAT-NNN`) so the banner can link to `/patients/<code>`, and the `reason` as the CR2 structured list. It never includes `patient_id`, `acknowledged_by_id` or the machine tag. Only `status = 'open'` alerts are returned.
 
 ## Creation (not an endpoint)
 
