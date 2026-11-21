@@ -1,0 +1,36 @@
+/* Score badge (US-02 change request 2026-11-21): same tokens per tone as RiskBandBadge (US-03); tokens only. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stable {
+  border: 2px solid var(--color-stable);
+  background: var(--color-stable-soft);
+}
+
+.warning {
+  border: 2px solid var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.band-medium {
+  border: 2px solid var(--color-band-medium);
+  background: var(--color-band-medium-soft);
+}
+
+.critical {
+  border: 2px solid var(--color-critical);
+  background: var(--color-critical-soft);
+}
+
+.no-data {
+  border: 2px solid var(--color-no-data);
+  background: var(--color-no-data-soft);
+}
