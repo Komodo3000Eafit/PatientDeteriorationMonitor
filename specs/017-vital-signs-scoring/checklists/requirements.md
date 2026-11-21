@@ -41,7 +41,7 @@
 - Success criteria mention HTTP status codes only as the user-visible refusal outcomes the input
   fixed; they stay verifiable without knowing the implementation.
 - No [NEEDS CLARIFICATION] markers. The four open points named in the input (discharged patients,
-  doctors entering readings, history limit and order, `recorded_at`) have informed defaults in
-  Assumptions (409 for discharged, nurses only, newest first 50 default / 1–200, server time),
-  marked "to be confirmed in `/speckit-clarify`".
+  doctors entering readings, history limit and order, `recorded_at`) were confirmed in
+  `/speckit-clarify` on 2026-11-20 (409 for discharged, nurses only, newest first 50 default /
+  1–200, server time).
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
