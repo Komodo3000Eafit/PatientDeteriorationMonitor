@@ -4,7 +4,7 @@
 // Every date is built with the local-time Date constructor, so the clock part does not depend on
 // the machine's time zone. Pure function, no React, no backend.
 import { describe, it, expect } from 'vitest'
-import { formatSince } from './formatTime.js'
+import { formatClockSeconds, formatSince } from './formatTime.js'
 
 // Fixed "now": 21 November 2026, 14:35:00 local time.
 const NOW = new Date(2026, 10, 21, 14, 35, 0)
@@ -50,5 +50,32 @@ describe('US-02 formatSince relative and clock text', () => {
     expect(formatSince(NOW, NOW, 'es')).toBe('hace 0 s (14:35)')
     expect(formatSince(new Date(NOW.getTime() + 10000), NOW, 'es')).toBe('hace 0 s (14:35)')
     expect(formatSince(NOW, NOW, 'en')).toBe('0 sec. ago (14:35)')
+  })
+})
+
+// Change request 2026-11-21: the last-update line shows the exact local time with seconds on the
+// 24-hour clock (contracts/ui.md "Last-update line"; AC6, AC11, AC15).
+describe('US-02 formatClockSeconds (last-update line)', () => {
+  it('AC6 AC11 afternoon time with seconds, 24-hour, in Spanish and English', () => {
+    const date = new Date(2026, 10, 21, 16, 5, 12)
+    expect(formatClockSeconds(date, 'es')).toBe('16:05:12')
+    expect(formatClockSeconds(date, 'en')).toBe('16:05:12')
+  })
+
+  it('AC11 just after midnight is 00, never 24 or 12 AM', () => {
+    const date = new Date(2026, 10, 22, 0, 5, 9)
+    expect(formatClockSeconds(date, 'es')).toBe('00:05:09')
+    expect(formatClockSeconds(date, 'en')).toBe('00:05:09')
+  })
+
+  it('AC11 noon and the last second of the day', () => {
+    expect(formatClockSeconds(new Date(2026, 10, 21, 12, 0, 0), 'en')).toBe('12:00:00')
+    expect(formatClockSeconds(new Date(2026, 10, 21, 23, 59, 59), 'es')).toBe('23:59:59')
+  })
+
+  it('AC6 no relative part and no date, even for another day', () => {
+    const text = formatClockSeconds(new Date(2026, 10, 19, 9, 1, 2), 'es')
+    expect(text).toBe('09:01:02')
+    expect(text).not.toMatch(/hace|nov/)
   })
 })

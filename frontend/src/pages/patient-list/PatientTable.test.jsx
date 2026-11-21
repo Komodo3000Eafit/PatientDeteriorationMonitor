@@ -3,13 +3,17 @@
 // runs in an in-memory router (renderApp); fetch is stubbed (stubBackend), no backend and no
 // network. Synthetic patients (PAT-NNN, "Paciente Ficticio ...") and demo users only.
 // Fake timers with shouldAdvanceTime drive the 15 s refresh.
+// Change request 2026-11-21: the score cell is one ScoreBadge ("7 · Alta", role="img" named
+// "Puntaje NEWS2 7, riesgo Alta"), the header shows the range "(0–20)", and the last-update line is
+// the exact 24-hour time with seconds ("Actualizado: 14:34:50"); the list page <main> is wider.
 //
 // Exact Spanish texts copied from frontend/src/i18n/translations.js:
 //   patients.title             'Pacientes'
 //   patientList.colCode        'Código'
 //   patientList.colName        'Nombre'
 //   patientList.colTriage      'Nivel de triage'
-//   patientList.colScore       'Puntaje NEWS2'
+//   patientList.colScore       'Puntaje NEWS2 (0–20)'
+//   patientList.scoreLabel     'Puntaje NEWS2 {score}, riesgo {band}'
 //   patientList.colLatest      'Última lectura'
 //   patientList.noData         'Sin datos'
 //   patientList.empty          'No hay pacientes activos.'
@@ -39,8 +43,8 @@ import {
   stubBackend,
 } from '../../testing/fakeBackend.js'
 
-const ES_HEADERS = ['Código', 'Nombre', 'Nivel de triage', 'Puntaje NEWS2', 'Última lectura']
-const EN_HEADERS = ['Code', 'Name', 'Triage level', 'NEWS2 score', 'Latest reading']
+const ES_HEADERS = ['Código', 'Nombre', 'Nivel de triage', 'Puntaje NEWS2 (0–20)', 'Última lectura']
+const EN_HEADERS = ['Code', 'Name', 'Triage level', 'NEWS2 score (0–20)', 'Latest reading']
 const ES_NO_DATA = 'Sin datos'
 const ES_UNKNOWN_BAND = 'Desconocida'
 const ES_EMPTY = 'No hay pacientes activos.'
@@ -52,7 +56,8 @@ const ES_PLACEHOLDER = 'La lista de pacientes se mostrará aquí.'
 const ES_LOGIN = 'Iniciar sesión'
 
 // Fixed start time: 21 November 2026, 14:34:50 local time. A refresh 15 s later is at 14:35:05,
-// so the clock in "Actualizado: ..." changes from 14:34 to 14:35.
+// so "Actualizado: 14:34:50" changes to "Actualizado: 14:35:05". shouldAdvanceTime lets the fake
+// clock move with real time too, which is milliseconds here, so the seconds stay exact.
 const START = new Date(2026, 10, 21, 14, 34, 50)
 const THREE_MIN_AGO = new Date(2026, 10, 21, 14, 31, 50).toISOString()
 
@@ -155,7 +160,7 @@ describe('US-02 AC6 list on the page', () => {
     expect(screen.queryByText(ES_PLACEHOLDER)).toBeNull()
   })
 
-  it('AC6 a row shows code, name, "Triage II", score number with band badge and the latest time', async () => {
+  it('AC6 a row shows code, name, "Triage II", one score badge "7 · Alta" and the latest time', async () => {
     await openList({ patients: listHandler({ patients: LIST }) })
 
     const cells = within(rowOf('PAT-005')).getAllByRole('cell')
@@ -163,16 +168,40 @@ describe('US-02 AC6 list on the page', () => {
     expect(cells[0].textContent).toBe('PAT-005')
     expect(cells[1].textContent).toBe('Paciente Ficticio PAT-005')
     expect(cells[2].textContent).toBe('Triage II')
-    expect(cells[3].textContent).toBe('7 Alta')
-    expect(within(cells[3]).getByText('Alta')).toBeTruthy()
+    expect(cells[3].textContent).toBe('7 · Alta')
     expect(cells[4].textContent).toBe('hace 3 min (14:31)')
-    expect(within(rowOf('PAT-002')).getAllByRole('cell')[3].textContent).toBe('1 Baja')
+    expect(within(rowOf('PAT-002')).getAllByRole('cell')[3].textContent).toBe('1 · Baja')
   })
 
-  it('AC6 AC11 shows the time of the last update', async () => {
+  it('AC6 FR-007 the score cell has exactly one badge named "Puntaje NEWS2 7, riesgo Alta"', async () => {
     await openList({ patients: listHandler({ patients: LIST }) })
 
-    expect(screen.getByText('Actualizado: hace 0 s (14:34)')).toBeTruthy()
+    const scoreCell = within(rowOf('PAT-005')).getAllByRole('cell')[3]
+    const badges = within(scoreCell).getAllByRole('img')
+    expect(badges).toHaveLength(1)
+    expect(within(scoreCell).getByRole('img', { name: 'Puntaje NEWS2 7, riesgo Alta' })).toBe(
+      badges[0],
+    )
+    expect(badges[0].textContent).toBe('7 · Alta')
+    // No separate RiskBandBadge: no element whose whole text is just the band label.
+    expect(within(scoreCell).queryByText('Alta')).toBeNull()
+    expect(scoreCell.querySelectorAll('svg')).toHaveLength(1)
+    expect(
+      within(rowOf('PAT-002')).getByRole('img', { name: 'Puntaje NEWS2 1, riesgo Baja' }),
+    ).toBeTruthy()
+  })
+
+  it('AC6 AC11 shows the exact time of the last update with seconds (24-hour)', async () => {
+    await openList({ patients: listHandler({ patients: LIST }) })
+
+    expect(screen.getByText('Actualizado: 14:34:50')).toBeTruthy()
+  })
+
+  it('page width: the patient list <main> has its own wider CSS module class', async () => {
+    await openList({ patients: listHandler({ patients: LIST }) })
+
+    const main = screen.getByRole('main')
+    expect(main.className).toMatch(/page/)
   })
 })
 
@@ -186,15 +215,19 @@ describe('US-02 AC7 patient without readings vs unknown band', () => {
     const cells = within(row).getAllByRole('cell')
     expect(cells[3].textContent).toBe(ES_NO_DATA)
     expect(cells[4].textContent).toBe(ES_NO_DATA)
+    expect(within(row).queryByRole('img')).toBeNull()
+    expect(row.querySelector('svg')).toBeNull()
   })
 
-  it('AC7 edge case: band "bogus" shows its number and "Desconocida", not "Sin datos"', async () => {
+  it('AC7 edge case: band "bogus" shows "3 · Desconocida", not "Sin datos"', async () => {
     await openList({ patients: listHandler({ patients: LIST }) })
 
     const row = rowOf('PAT-003')
     const scoreCell = within(row).getAllByRole('cell')[3]
-    expect(scoreCell.textContent).toBe('3 Desconocida')
-    expect(within(scoreCell).getByText(ES_UNKNOWN_BAND)).toBeTruthy()
+    expect(scoreCell.textContent).toBe(`3 · ${ES_UNKNOWN_BAND}`)
+    expect(
+      within(scoreCell).getByRole('img', { name: `Puntaje NEWS2 3, riesgo ${ES_UNKNOWN_BAND}` }),
+    ).toBeTruthy()
     expect(within(scoreCell).queryByText(ES_NO_DATA)).toBeNull()
     expect(within(row).queryByText(ES_NO_DATA)).toBeNull()
   })
@@ -249,12 +282,12 @@ describe('US-02 AC10 empty list', () => {
 })
 
 describe('US-02 AC11 automatic refresh', () => {
-  it('AC11 after 15 s a second GET redraws the table and the "Actualizado:" text', async () => {
+  it('AC11 after 15 s a second GET redraws the table and the "Actualizado: HH:MM:SS" text', async () => {
     const changed = [patient('PAT-009', 1, { recorded_at: THREE_MIN_AGO, total: 9, band: 'high' })]
     const patients = listHandler({ patients: LIST }, { patients: changed })
     const { fetchMock } = await openList({ patients })
     expect(listCalls(fetchMock)).toHaveLength(1)
-    expect(screen.getByText('Actualizado: hace 0 s (14:34)')).toBeTruthy()
+    expect(screen.getByText('Actualizado: 14:34:50')).toBeTruthy()
 
     await advance(14000)
     expect(listCalls(fetchMock)).toHaveLength(1)
@@ -263,8 +296,8 @@ describe('US-02 AC11 automatic refresh', () => {
     expect(listCalls(fetchMock)).toHaveLength(2)
     expect(bodyRows().map((row) => within(row).getByRole('link').textContent)).toEqual(['PAT-009'])
     expect(screen.queryByRole('link', { name: 'PAT-005' })).toBeNull()
-    expect(screen.getByText('Actualizado: hace 0 s (14:35)')).toBeTruthy()
-    expect(screen.queryByText('Actualizado: hace 0 s (14:34)')).toBeNull()
+    expect(screen.getByText('Actualizado: 14:35:05')).toBeTruthy()
+    expect(screen.queryByText('Actualizado: 14:34:50')).toBeNull()
   })
 
   it('AC11 edge case: no second request while the previous one is still pending', async () => {
@@ -336,8 +369,9 @@ describe('US-02 AC12 failed refresh', () => {
     expect(screen.getByRole('alert').textContent).toBe(ES_REFRESH_ERROR)
     expect(bodyRows()).toHaveLength(LIST.length)
     expect(screen.getByRole('link', { name: 'PAT-005' })).toBeTruthy()
-    // The last update time stays the one of the last success (14:34:50, now about 15 s ago).
-    expect(screen.getByText(/^Actualizado: hace 1[5-9] s \(14:34\)$/)).toBeTruthy()
+    // The last update time stays the one of the last success (14:34:50), not the failed 14:35:05.
+    expect(screen.getByText('Actualizado: 14:34:50')).toBeTruthy()
+    expect(screen.queryByText('Actualizado: 14:35:05')).toBeNull()
     expect(screen.queryByText('Internal server text')).toBeNull()
 
     await advance(15000)
@@ -424,12 +458,18 @@ describe('US-02 AC15 English switch', () => {
     expect(screen.getAllByRole('columnheader').map((th) => th.textContent)).toEqual(EN_HEADERS)
     expect(within(rowOf('PAT-001')).getAllByText('No data')).toHaveLength(2)
     expect(screen.queryByText(ES_NO_DATA)).toBeNull()
-    expect(within(rowOf('PAT-005')).getAllByRole('cell')[3].textContent).toBe('7 High')
+    expect(within(rowOf('PAT-005')).getAllByRole('cell')[3].textContent).toBe('7 · High')
+    expect(
+      within(rowOf('PAT-005')).getByRole('img', { name: 'NEWS2 score 7, risk High' }),
+    ).toBeTruthy()
     expect(within(rowOf('PAT-005')).getAllByRole('cell')[4].textContent).toBe(
       '3 min. ago (14:31)',
     )
-    expect(within(rowOf('PAT-003')).getAllByRole('cell')[3].textContent).toBe('3 Unknown')
-    expect(screen.getByText('Updated: 0 sec. ago (14:34)')).toBeTruthy()
+    expect(within(rowOf('PAT-003')).getAllByRole('cell')[3].textContent).toBe('3 · Unknown')
+    expect(
+      within(rowOf('PAT-003')).getByRole('img', { name: 'NEWS2 score 3, risk Unknown' }),
+    ).toBeTruthy()
+    expect(screen.getByText('Updated: 14:34:50')).toBeTruthy()
     expect(bodyRows().map((row) => within(row).getByRole('link').textContent)).toEqual([
       'PAT-002',
       'PAT-005',

@@ -4,8 +4,8 @@
 // Contract: specs/016-patient-list/contracts/ui.md "Patient table area" and "Table".
 import { Link } from 'react-router'
 import { useLanguage } from '../../i18n/LanguageContext.jsx'
-import RiskBandBadge from '../record-reading/RiskBandBadge.jsx'
-import { formatSince } from './formatTime.js'
+import { formatClockSeconds, formatSince } from './formatTime.js'
+import ScoreBadge from './ScoreBadge.jsx'
 import { usePatientList } from './usePatientList.js'
 import styles from './PatientTable.module.css'
 
@@ -46,9 +46,7 @@ export default function PatientTable() {
                   </td>
                   <td>
                     {p.latest_score ? (
-                      <>
-                        {p.latest_score.total} <RiskBandBadge band={p.latest_score.band} />
-                      </>
+                      <ScoreBadge total={p.latest_score.total} band={p.latest_score.band} />
                     ) : (
                       t('patientList.noData')
                     )}
@@ -65,7 +63,7 @@ export default function PatientTable() {
         </div>
       )}
       {lastUpdated && (
-        <p>{t('patientList.lastUpdated', { time: formatSince(lastUpdated, new Date(), lang) })}</p>
+        <p>{t('patientList.lastUpdated', { time: formatClockSeconds(lastUpdated, lang) })}</p>
       )}
       {refreshFailed && <p role="alert">{t('patientList.refreshError')}</p>}
     </>

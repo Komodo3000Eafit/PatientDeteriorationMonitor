@@ -39,3 +39,14 @@ function formatClock(date, now, lang) {
 export function formatSince(date, now, lang) {
   return `${formatRelative(date, now, lang)} (${formatClock(date, now, lang)})`
 }
+
+// Exact local time with seconds on the 24-hour clock, e.g. "16:05:12", for the last-update line.
+// Contract: specs/016-patient-list/contracts/ui.md "Last-update line".
+export function formatClockSeconds(date, lang) {
+  return new Intl.DateTimeFormat(lang, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).format(date)
+}

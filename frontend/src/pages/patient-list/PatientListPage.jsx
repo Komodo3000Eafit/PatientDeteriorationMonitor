@@ -6,6 +6,7 @@ import Card from '../../components/Card.jsx'
 import { useLanguage } from '../../i18n/LanguageContext.jsx'
 import RegisterPatientButton from '../register-patient/RegisterPatientButton.jsx'
 import PatientTable from './PatientTable.jsx'
+import styles from './PatientListPage.module.css'
 
 export default function PatientListPage() {
   const { t } = useLanguage()
@@ -34,7 +35,7 @@ export default function PatientListPage() {
   }, [])
 
   return (
-    <main>
+    <main className={styles.page}>
       <h1>{t('app.title')}</h1>
       <RegisterPatientButton />
       <Card title={t('patients.title')}>
