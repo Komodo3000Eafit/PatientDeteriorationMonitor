@@ -14,6 +14,18 @@
   color: var(--color-text);
 }
 
+/* US-05 one-line variant: title and recorded_at on one line, wrapping gracefully. Additive;
+   does not affect the default .title / .time markup. */
+.titleWithDate {
+  margin: 0;
+}
+
+/* US-05: the date reads as part of the same bold heading line, not a lighter tail. */
+.titleDate {
+  font-weight: inherit;
+  color: var(--color-text);
+}
+
 .summary {
   margin: 0;
   font-size: var(--font-size-lg);
