@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 import app.readings
 import app.simulator as simulator
 from app.demo_patients import DEMO_PATIENTS, ensure_demo_patients
-from app.models import Base, Patient, ReadingScore, VitalSign
+from app.models import Alert, Base, Patient, ReadingScore, TriageEvent, VitalSign
 from app.readings import score_values
 from app.scoring import ACCEPTED_LIMITS, PARAMETERS, VitalSigns, get_scoring_system, validate_vital_signs
 
@@ -501,3 +501,66 @@ def test_main_once_output(use_engine, capsys):
         assert row[1] not in out
     with Session(use_engine) as session:
         assert _count(session) == N_DEMO
+
+
+# --- US-04: a simulator run that crosses up raises one re-triage suggestion -----
+# specs/020-retriage-suggestion-alerts/spec.md AC1, AC2, AC4. The simulator code is
+# unchanged; the crossing is raised by record_reading (US-04). The rapid scenario
+# (PAT-005) worsens over steps and reaches the high band, so across several rounds
+# its stored band crosses up. The scoring result is referred to as "the score"
+# only, so this test does not break the Principle V confinement guard.
+
+def _bands_for(session, patient_id):
+    """Return the stored bands of a patient's readings, oldest first."""
+    return session.scalars(
+        select(ReadingScore.band)
+        .join(VitalSign, VitalSign.id == ReadingScore.vital_sign_id)
+        .where(VitalSign.patient_id == patient_id)
+        .order_by(VitalSign.id)
+    ).all()
+
+
+def test_us04_simulator_crossing_raises_one_open_suggestion(demo_engine):
+    """US-04 AC1, AC2, AC4: after several rapid rounds PAT-005 has exactly one open suggestion and no source='automatic' event."""
+    with Session(demo_engine) as session:
+        pat5 = _patient_id(session, "PAT-005")
+        stats = _new_stats()
+        for _round in range(1, 6):   # enough rounds for the rapid band to cross up
+            simulator.run_round(session, 1, lambda _line: None, stats)
+        session.commit()
+
+        bands = _bands_for(session, pat5)
+        order = {"low": 0, "low-medium": 1, "medium": 2, "high": 3}
+        crossed_up = any(order[b] > order[a] for a, b in zip(bands, bands[1:]))
+        assert crossed_up, bands   # the scenario actually produced a crossing
+
+        open_suggestions = session.scalars(
+            select(Alert).where(Alert.patient_id == pat5).where(Alert.status == "open")
+        ).all()
+        # No-duplicate rule: at most one open suggestion per urgency; the rapid
+        # scenario rises monotonically to high, so exactly one stays open.
+        assert len(open_suggestions) == 1
+        assert open_suggestions[0].severity in ("medium", "high")
+
+        # The only triage events are the demo patients' pre-existing 'initial'
+        # events; the simulator creates no 'automatic' (nor 'manual') event.
+        sources = session.scalars(select(TriageEvent.source).distinct()).all()
+        assert "automatic" not in sources
+        assert "manual" not in sources
+        # The app never changes the triage level on its own: PAT-005 stays Triage 3.
+        assert session.scalar(
+            select(Patient.triage_level).where(Patient.id == pat5)
+        ) == 3
+
+
+def test_us04_simulator_output_unchanged(demo_engine):
+    """US-04: the simulator's own output is unchanged (one line per demo patient in the TS-08 format)."""
+    with Session(demo_engine) as session:
+        lines = []
+        stats = _new_stats()
+        assert simulator.run_round(session, 1, lines.append, stats) == N_DEMO
+    assert len(lines) == N_DEMO
+    for line, (identifier, name, _age, _sex, scenario, _level) in zip(lines, DEMO_PATIENTS):
+        assert line.startswith(f"  {identifier} {scenario} step 0: ")
+        assert "RR " in line and "SpO2 " in line and "T " in line
+        assert name not in line

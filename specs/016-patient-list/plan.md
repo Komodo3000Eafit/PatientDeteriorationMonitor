@@ -31,7 +31,7 @@ a hidden tab), and keeps the last list when a refresh fails. No migration, no ne
 
 **Performance Goals**: one database query per list request (SC-003); one request every 15 s per open, visible page
 
-**Constraints**: route under `/api` (D-44); no NEWS2 rules outside `app.scoring` (Principle V); no change to code of US-01 or US-03 except the allowed placeholder test assertions (D-51); tokens only, no raw colors; icons only from `lucide-react`; Spanish default + English
+**Constraints**: route under `/api` (D-44); no NEWS2 rules outside `app.scoring` (Principle V); no change to code of US-01 or US-03 except the allowed placeholder test assertions (D-52); tokens only, no raw colors; icons only from `lucide-react`; Spanish default + English
 
 **Scale/Scope**: 1 endpoint, 1 page body + 1 table component + 1 hook + 1 time helper, 11 translation keys per language, ~15 backend and ~25 frontend tests; tens of active patients, no pagination
 
@@ -43,7 +43,7 @@ Check each principle of `.specify/memory/constitution.md` (v1.3.0). Any unchecke
 
 - [x] I. Spec-driven and traceable: every file below maps to AC1–AC15; tests name the AC they verify
 - [x] II. Small Scrum story: one story (US-02): one read endpoint and one page body
-- [x] III. Independence: dependencies TS-03, TS-06, TS-12, TS-13, US-01, US-03 match `docs/BACKLOG.md`; US-01 and US-03 are merged (v1.3.0, D-51). Their code is only imported (`get_session`, `RiskBandBadge`, `RegisterPatientButton`), never modified; the only edits to their files are the placeholder-constant lines in two tests (allowed by D-51); new backend code is in a new module, not in `patients.py`
+- [x] III. Independence: dependencies TS-03, TS-06, TS-12, TS-13, US-01, US-03 match `docs/BACKLOG.md`; US-01 and US-03 are merged (v1.3.0, D-52). Their code is only imported (`get_session`, `RiskBandBadge`, `RegisterPatientButton`), never modified; the only edits to their files are the placeholder-constant lines in two tests (allowed by D-52); new backend code is in a new module, not in `patients.py`
 - [x] IV. Multi-agent: backend-dev (endpoint), frontend-dev (page, table, hook, texts), qa-tester (tests), security-reviewer (auth, no ids, no echo), orchestrator (docs, D-49, log)
 - [x] V. Clinical logic: scores are read as stored; ordering uses only the stored total and the clinician's triage level, no NEWS2 thresholds; no re-triage suggestion in this story; the app does not change any triage level
 - [x] VI. Data privacy: synthetic patients only; no internal ids in the answer; no secrets
@@ -96,8 +96,8 @@ frontend/src/
 │   ├── usePatientList.test.jsx      # NEW (or within PatientTable.test.jsx)
 │   └── formatTime.test.js           # NEW
 ├── i18n/translations.js             # EDIT: patientList.* keys (es, en); remove patients.placeholder
-├── App.routes.test.jsx              # EDIT: ES_LIST_PLACEHOLDER constant only → 'Pacientes' (D-51)
-└── pages/register-patient/RegisterPatientButton.test.jsx  # EDIT: same constant only (D-51)
+├── App.routes.test.jsx              # EDIT: ES_LIST_PLACEHOLDER constant only → 'Pacientes' (D-52)
+└── pages/register-patient/RegisterPatientButton.test.jsx  # EDIT: same constant only (D-52)
 
 docs/
 ├── GLOSSARY.md        # EDIT: patient list row (now a table), latest score, last update, "Sin datos" text
@@ -124,7 +124,7 @@ PROJECT_STATUS note that US-02 maps risk bands to `monitoring_status`.
 ## Notes for later stories
 
 - **US-09** (filter/sort) works on this list's response; the default order stays the server's.
-- **US-04 / US-05** may reuse `formatTime.js` by import (D-51) for reading times.
+- **US-04 / US-05** may reuse `formatTime.js` by import (D-52) for reading times.
 
 ## Complexity Tracking
 

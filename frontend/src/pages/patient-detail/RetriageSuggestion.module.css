@@ -1,0 +1,54 @@
+/* Re-triage suggestion component (US-04). Design tokens only; see src/styles/tokens.css (D-43). */
+.content {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.message {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.severity {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+}
+
+.level {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.levelLabel {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.reason {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+}
+
+.result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}

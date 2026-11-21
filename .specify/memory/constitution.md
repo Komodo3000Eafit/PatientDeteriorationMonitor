@@ -2,7 +2,7 @@
 Sync Impact Report
 ==================
 Version change: 1.2.0 → 1.3.0 (MINOR)
-Bump rationale: Principle III materially expanded (DECISIONS D-51); no principle removed or
+Bump rationale: Principle III materially expanded (DECISIONS D-52); no principle removed or
 redefined incompatibly:
 - Baseline functional stories (US-01 to US-05) MAY now depend on baseline functional stories
   already merged into `main` (the rule US-06 to US-10 already had), never on unmerged ones.
@@ -31,7 +31,7 @@ Runtime guidance flagged (not modified by this command; follow-up):
 - ⚠ CLAUDE.md "functional stories (US-xx) depend only on that foundation, never on each other"
   contradicts v1.3.0 for merged baseline stories.
 - ⚠ .specify/templates/spec-template.md comment (see above).
-- docs/BACKLOG.md US-02 dependencies updated in the same change (D-51).
+- docs/BACKLOG.md US-02 dependencies updated in the same change (D-52).
 
 Follow-up TODOs: none.
 

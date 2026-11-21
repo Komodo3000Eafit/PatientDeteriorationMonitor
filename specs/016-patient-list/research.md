@@ -10,7 +10,7 @@ records a design choice in the format Decision / Rationale / Alternatives.
   the static-serving block, D-44). It imports `get_session` from `app.patients` and
   `get_current_user` from `app.auth` without changing them.
 - **Rationale**: `app/patients.py` was introduced by US-01; constitution v1.3.0 Principle III
-  (D-51) allows importing it but not modifying it. A separate router on the same path is valid
+  (D-52) allows importing it but not modifying it. A separate router on the same path is valid
   (FastAPI matches method + path), and keeps US-02's code in a file it owns.
 - **Alternatives**: add the GET to `patients.py` (modifies US-01 code); put the query in
   `readings_api.py` (US-03 code, same problem).
@@ -45,7 +45,7 @@ records a design choice in the format Decision / Rationale / Alternatives.
   as stored. No `id`, `patient_id`, `vital_sign_id` or score id; no `system` or `entries` (not needed
   by the list; US-05 reads the full reading).
 - **Rationale**: same object-with-list style as `GET …/readings` (`{"readings": […]}`); field names
-  reused from the readings contract (D-51 allows reusing merged contracts).
+  reused from the readings contract (D-52 allows reusing merged contracts).
 - **Errors**: 401 (TS-06 `get_current_user`), 503 "Service unavailable" when `DATABASE_URL` is unset
   (`get_session`) or a database error occurs (logged by error type only, like US-01/US-03).
 
@@ -65,7 +65,7 @@ records a design choice in the format Decision / Rationale / Alternatives.
   - New files in `pages/patient-list/`: `PatientTable.jsx` (+ `.module.css`) renders loading /
     first-load error / empty / table + last-update line + refresh-error alert;
     `usePatientList.js` holds the fetch-and-refresh logic; `formatTime.js` the time text.
-  - `RiskBandBadge` imported from `../record-reading/RiskBandBadge.jsx` (not moved or changed, D-51).
+  - `RiskBandBadge` imported from `../record-reading/RiskBandBadge.jsx` (not moved or changed, D-52).
 - **Rationale**: the page file stays small and the health block untouched (AC14); the hook is
   testable with fake timers; all new code lives in files US-02 owns.
 
@@ -121,7 +121,7 @@ records a design choice in the format Decision / Rationale / Alternatives.
 - **Decision**: in `src/App.routes.test.jsx` (TS-13) and
   `src/pages/register-patient/RegisterPatientButton.test.jsx` (US-01), change only the constant
   `ES_LIST_PLACEHOLDER` (and its header comment) to the Card heading "Pacientes", which the page
-  still shows; no assertion logic changes. Allowed by constitution v1.3.0 (D-51: "update a test
+  still shows; no assertion logic changes. Allowed by constitution v1.3.0 (D-52: "update a test
   assertion that depends only on placeholder content it replaces"). Those tests now also trigger
   `GET /api/patients`; with no `patients` stub the fake backend answers 404 and the table shows its
   first-load error, which does not affect their assertions (checked during implementation).

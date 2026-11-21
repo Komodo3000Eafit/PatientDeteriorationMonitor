@@ -89,8 +89,14 @@ describe('TS-13 AC1 page addresses', () => {
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
   })
 
-  it('AC1 signed in /patients/PAT-001 shows the detail placeholder with only the patient code', async () => {
-    const fetchMock = stubBackend()
+  it('AC1 signed in /patients/PAT-001 shows the detail page (title, placeholder, back link)', async () => {
+    // Migrated for US-04 (tasks.md T012, the way US-01 migrated its TS-13 case): the detail page
+    // now mounts RecordReadingButton and RetriageSuggestion, which fetches the patient's
+    // suggestions on mount. An empty suggestions list keeps the detail page free of a load error
+    // (it shows retriage.none). The case still proves the detail route wins over not-found and the
+    // page holds its title, placeholder and back link; it no longer asserts an exact
+    // main.textContent or that only /me was called, because the mounted component fetches.
+    const fetchMock = stubBackend({ suggestions: async () => jsonResponse({ suggestions: [] }) })
     signInForTest()
     renderApp(['/patients/PAT-001'])
     await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
@@ -98,12 +104,16 @@ describe('TS-13 AC1 page addresses', () => {
     expect(currentPath()).toBe('/patients/PAT-001')
     expect(screen.getByRole('heading', { level: 1, name: 'Paciente PAT-001' })).toBeTruthy()
     expect(screen.getByText(ES_DETAIL_PLACEHOLDER)).toBeTruthy()
-    // FR-003: the page holds the title, the placeholder and the back link, nothing else.
-    expect(screen.getByRole('main').textContent).toBe(
-      'Paciente PAT-001' + ES_DETAIL_PLACEHOLDER + ES_BACK,
+    expect(screen.getByRole('link', { name: ES_BACK }).getAttribute('href')).toBe('/patients')
+    // The detail route won, not the not-found page.
+    expect(screen.queryByText(ES_NOT_FOUND)).toBeNull()
+    // The mounted suggestion component fetched the patient's suggestions on load.
+    await waitFor(() =>
+      expect(callsTo(fetchMock, '/api/patients/PAT-001/suggestions')).toHaveLength(1),
     )
-    // No backend call from the placeholder: only the TS-06 /me check on load.
-    expect(fetchMock.mock.calls.every(([url]) => new URL(url).pathname === '/api/me')).toBe(true)
+    // With no open suggestion it shows the translated "none" message, not a load error.
+    expect(await screen.findByText('No hay sugerencias de retriage abiertas.')).toBeTruthy()
+    expect(screen.queryByText('No se pudieron cargar las sugerencias.')).toBeNull()
   })
 })
 
