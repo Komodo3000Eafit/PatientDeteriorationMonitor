@@ -6,18 +6,19 @@
 // patterns: a `mounted` ref, a synchronous double-submit guard, and state kept as translation keys
 // so switching language keeps what is shown and re-renders it in the new language.
 import { useEffect, useRef, useState } from 'react'
+import { OctagonXIcon, TriangleAlertIcon } from 'lucide-react'
 import { ApiError, apiGet, apiPost } from '../../api/client.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import Button from '../../components/Button.jsx'
 import Card from '../../components/Card.jsx'
 import TriageLevelBadge from '../../components/TriageLevelBadge.jsx'
 import { useLanguage } from '../../i18n/LanguageContext.jsx'
-import RiskBandBadge from '../record-reading/RiskBandBadge.jsx'
 import styles from './RetriageSuggestion.module.css'
 
-// The raising risk band shown by the badge is derived from the alert severity only (never computed
-// another way): severity 'medium' -> band 'medium', 'high' -> band 'high'.
-const SEVERITY_TO_BAND = { medium: 'medium', high: 'high' }
+// Severity chip, matching the patient list banner (US-04 CR): the solid severity color is the
+// border and the icon tint, the label stays var(--color-text). high -> critical tokens + OctagonX
+// (red); medium -> warning tokens + TriangleAlert (yellow). Color is never the only cue.
+const SEVERITY_ICON = { high: OctagonXIcon, medium: TriangleAlertIcon }
 
 export default function RetriageSuggestion({ identifier }) {
   const { user } = useAuth()
@@ -77,7 +78,6 @@ export default function RetriageSuggestion({ identifier }) {
   }
 
   const isDoctor = user?.role === 'doctor'
-  const band = SEVERITY_TO_BAND[suggestion.severity]
 
   async function act(action) {
     if (isActing || inFlight.current) return
@@ -109,8 +109,24 @@ export default function RetriageSuggestion({ identifier }) {
   return (
     <Card title={t('retriage.title')}>
       <div className={styles.content}>
-        <RiskBandBadge band={band} />
-        <p className={styles.severity}>{t('retriage.severity.' + suggestion.severity)}</p>
+        {(() => {
+          const SeverityIcon = SEVERITY_ICON[suggestion.severity]
+          return (
+            <span className={`${styles.severity} ${styles[suggestion.severity]}`}>
+              {SeverityIcon && (
+                <SeverityIcon
+                  className={styles.icon}
+                  aria-hidden="true"
+                  focusable="false"
+                  size="1.25em"
+                />
+              )}
+              <span className={styles.severityLabel}>
+                {t('retriage.severity.' + suggestion.severity)}
+              </span>
+            </span>
+          )
+        })()}
         <div className={styles.levels}>
           <div className={styles.level}>
             <span className={styles.levelLabel}>{t('retriage.currentLevel')}</span>
@@ -121,7 +137,13 @@ export default function RetriageSuggestion({ identifier }) {
             <TriageLevelBadge level={suggestion.suggested_level} />
           </div>
         </div>
-        <p className={styles.reason}>{suggestion.reason}</p>
+        <ul className={styles.reason}>
+          {(suggestion.reason ?? []).map((entry) => (
+            <li key={entry.parameter}>
+              {t('parameter.' + entry.parameter)}: {entry.points} {t('recordReading.points')}
+            </li>
+          ))}
+        </ul>
 
         {isDoctor && (
           <div className={styles.actions}>

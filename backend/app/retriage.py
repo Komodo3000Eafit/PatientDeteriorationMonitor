@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 
 from app.models import Alert, ReadingScore, TriageEvent, VitalSign
+from app.scoring import PARAMETERS
 
 # Band order and mappings (research R2, R3). The four values are US-03's
 # RISK_BANDS; the integer order makes "strictly more urgent" one comparison.
@@ -22,12 +23,6 @@ _TAG_PATTERN = re.compile(
     r"^\[retriage band=(?P<band>medium|high);suggested=(?P<n>[1-5])\]\s*(?P<human>.*)$"
 )
 
-# The human sentence and the reason are stored in one Text column (alerts has no
-# reason column). They are joined with this separator so the API can split the
-# human sentence (returned as ``message``) from the reason (returned as
-# ``reason``) after stripping the tag.
-REASON_SEPARATOR = "\n"
-
 
 def suggested_level(current_level: int, band: str) -> int:
     """Return the suggested, more urgent triage level, clamped at Triage I (1)."""
@@ -40,65 +35,65 @@ def _triage_label(level: int) -> str:
     return f"Triage {numerals.get(level, level)}"
 
 
-def build_message(
-    band: str, current_level: int, suggested_lvl: int, reason_text: str
-) -> str:
-    """Return the stored ``message``: machine tag, a fixed human sentence, then the reason.
+def build_message(band: str, current_level: int, suggested_lvl: int) -> str:
+    """Return the stored ``message``: the machine tag followed by a fixed human sentence.
 
     The leading ``[retriage band=...;suggested=...]`` tag records the raising
     band and the suggested level for the no-duplicate comparison (read back with
     ``read_tag``). The human sentence names the band and the current and
-    suggested triage level. The reason (vital signs and points) follows on its
-    own line so the API can return the human sentence and the reason separately.
-    All text is fixed-shape and value-safe (no submitted values, no internal
-    ids).
+    suggested triage level. The reason is no longer baked into the stored
+    message (CR2): it is rebuilt from the triggering reading's stored score
+    entries when the API responds. All text is fixed-shape and value-safe (no
+    submitted values, no internal ids).
     """
     human = (
         f"Risk is {band}. Suggest re-triage from "
         f"{_triage_label(current_level)} to {_triage_label(suggested_lvl)}."
     )
-    return f"[retriage band={band};suggested={suggested_lvl}] {human}{REASON_SEPARATOR}{reason_text}"
+    return f"[retriage band={band};suggested={suggested_lvl}] {human}"
 
 
 def read_tag(message: str) -> tuple[str, int] | None:
     """Parse the leading machine tag of ``message`` into ``(band, suggested_level)``.
 
-    Returns ``None`` when the tag is absent. Only the first line is inspected,
-    so a reason stored on a later line never affects the match.
+    Returns ``None`` when the tag is absent.
     """
-    first_line = message.split(REASON_SEPARATOR, 1)[0]
-    match = _TAG_PATTERN.match(first_line)
+    match = _TAG_PATTERN.match(message)
     if match is None:
         return None
     return match.group("band"), int(match.group("n"))
 
 
-def strip_tag(message: str) -> tuple[str, str]:
-    """Return ``(human_sentence, reason)`` from a stored ``message``.
+def strip_tag(message: str) -> str:
+    """Return the human sentence of a stored ``message`` with the machine tag removed.
 
-    The machine tag is removed and never returned to the client. When the tag is
-    absent the whole first line is treated as the human sentence.
+    The machine tag is never returned to the client. When the tag is absent the
+    whole message is treated as the human sentence.
     """
-    first_line, _, reason = message.partition(REASON_SEPARATOR)
-    match = _TAG_PATTERN.match(first_line)
-    human = match.group("human") if match else first_line
-    return human, reason
+    match = _TAG_PATTERN.match(message)
+    return match.group("human") if match else message
 
 
-def reason_from_entries(entries: list) -> str:
-    """Return a fixed-shape, value-safe line of the parameters that scored points.
+def reason_from_entries(entries: list) -> list[dict]:
+    """Return the structured, value-safe reason: a list of ``{parameter, points}`` (CR2).
 
     Built only from the stored explanation ``entries`` of a reading's score
     (US-03). Each entry that scored one or more points contributes
-    ``"<parameter> +<points>"``; entries scoring zero are omitted. No raw vital
-    value is included, so no submitted value is echoed. Never recomputes a score.
+    ``{"parameter": <code>, "points": <int>}``; entries scoring zero are
+    omitted. The result is ordered by ``PARAMETERS`` so the frontend can
+    translate and display it consistently. No raw vital value is included, so no
+    submitted value is echoed. Never recomputes a score.
     """
-    parts = [
-        f"{entry['parameter']} +{entry['points']}"
+    scored = {
+        entry["parameter"]: int(entry["points"])
         for entry in entries
         if entry.get("points", 0) > 0
+    }
+    return [
+        {"parameter": name, "points": scored[name]}
+        for name in PARAMETERS
+        if name in scored
     ]
-    return ", ".join(parts)
 
 
 def _previous_band(session, patient_id: int, current_vital_sign_id: int) -> str | None:
@@ -170,12 +165,7 @@ def evaluate_retriage(session, patient, score) -> None:
     open_band = _open_suggestion_band(session, patient.id)
     if open_band is not None and BAND_ORDER[score.band] <= BAND_ORDER[open_band]:
         return
-    message = build_message(
-        score.band,
-        patient.triage_level,
-        new_level,
-        reason_from_entries(score.entries),
-    )
+    message = build_message(score.band, patient.triage_level, new_level)
     session.add(
         Alert(
             patient_id=patient.id,
@@ -199,7 +189,7 @@ def accept_suggestion(session, patient, alert, user_id: int) -> None:
     previous_level = patient.triage_level
     now = datetime.now(timezone.utc)
     patient.triage_level = suggested
-    _, reason = strip_tag(alert.message)
+    human = strip_tag(alert.message)
     session.add(
         TriageEvent(
             patient_id=patient.id,
@@ -207,7 +197,7 @@ def accept_suggestion(session, patient, alert, user_id: int) -> None:
             previous_level=previous_level,
             new_level=suggested,
             score=None,
-            reason=f"Accepted re-triage suggestion. {reason}".strip(),
+            reason=f"Accepted re-triage suggestion. {human}".strip(),
             source="manual",
             created_by_id=user_id,
         )

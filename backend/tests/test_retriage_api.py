@@ -29,7 +29,7 @@ from sqlalchemy.pool import StaticPool
 import app.auth
 import app.main
 import app.patients
-from app.models import Alert, Base, Patient, TriageEvent, User
+from app.models import Alert, Base, Patient, ReadingScore, TriageEvent, User, VitalSign
 from app.retriage import build_message
 
 NOT_FOUND = {"detail": "Patient not found"}
@@ -129,20 +129,21 @@ def _patient_id(engine, code):
 
 
 def seed_suggestion(
-    engine, code, *, band="medium", suggested=2, status="open",
-    created_at=None, reason="respiratory_rate +3, spo2 +3",
+    engine, code, *, band="medium", suggested=2, status="open", created_at=None,
 ):
     """Add one synthetic suggestion alert for a patient; return its id.
 
     The message carries the canonical machine tag so the API can read the
-    suggested level back and strip the tag before sending the response.
+    suggested level back and strip the tag before sending the response. CR2: the
+    reason is no longer stored in the message; the API rebuilds it from the
+    patient's latest scored reading (see ``seed_scored_reading``).
     """
     pid = _patient_id(engine, code)
     with Session(engine) as session:
         alert = Alert(
             patient_id=pid,
             severity=band,
-            message=build_message(band, 3, suggested, reason),
+            message=build_message(band, 3, suggested),
             status=status,
         )
         if created_at is not None:
@@ -150,6 +151,43 @@ def seed_suggestion(
         session.add(alert)
         session.commit()
         return alert.id
+
+
+# The structured reason the API rebuilds from the latest scored reading (CR2):
+# only parameters scoring > 0, in PARAMETERS order, parameter code + integer
+# points, never a submitted vital value. Synthetic, hand-built entries.
+SCORED_ENTRIES = [
+    {"parameter": "respiratory_rate", "value": 25, "points": 3, "low": None, "high": None, "category": []},
+    {"parameter": "spo2", "value": 91, "points": 3, "low": None, "high": None, "category": []},
+    {"parameter": "on_oxygen", "value": False, "points": 0, "low": None, "high": None, "category": []},
+    {"parameter": "temperature", "value": 38.4, "points": 1, "low": None, "high": None, "category": []},
+]
+EXPECTED_REASON = [
+    {"parameter": "respiratory_rate", "points": 3},
+    {"parameter": "spo2", "points": 3},
+    {"parameter": "temperature", "points": 1},
+]
+
+
+def seed_scored_reading(engine, code, *, band="high", entries=None):
+    """Add one synthetic scored reading (vital_signs + reading_scores) for a patient.
+
+    This is the source the API uses to rebuild the structured ``reason`` (CR2).
+    The values are synthetic; ``entries`` defaults to ``SCORED_ENTRIES``.
+    """
+    pid = _patient_id(engine, code)
+    with Session(engine) as session:
+        vital = VitalSign(
+            patient_id=pid, respiratory_rate=25, spo2=91, on_oxygen=False,
+            systolic_bp=118, heart_rate=131, consciousness="A", temperature=38.4,
+        )
+        session.add(vital)
+        session.flush()
+        session.add(ReadingScore(
+            vital_sign_id=vital.id, system="synthetic-system", total=7, band=band,
+            entries=entries if entries is not None else SCORED_ENTRIES,
+        ))
+        session.commit()
 
 
 def _counts(engine):
@@ -194,6 +232,33 @@ def test_ac8_doctor_and_nurse_read_200(as_doctor, db):
     assert "[retriage" not in response.text
     assert "suggested=" not in response.text
     assert item["message"] == "Risk is high. Suggest re-triage from Triage III to Triage I."
+
+
+def test_ac24_per_patient_reason_is_structured_list(as_doctor, db):
+    """AC24 (FR-021): the per-patient endpoint `reason` is the structured list of
+    {parameter, points} rebuilt from the patient's latest scored reading, not a string."""
+    seed_scored_reading(db, "PAT-001", band="high")
+    seed_suggestion(db, "PAT-001", band="high", suggested=1)
+    response = client.get("/api/patients/PAT-001/suggestions")
+    assert response.status_code == 200
+    item = response.json()["suggestions"][0]
+    assert isinstance(item["reason"], list)
+    assert item["reason"] == EXPECTED_REASON
+    # Only {parameter, points}, no submitted vital value (e.g. no 25/91/38.4) in the reason.
+    for entry in item["reason"]:
+        assert set(entry) == {"parameter", "points"}
+    import json
+    reason_text = json.dumps(item["reason"])
+    for raw_value in ("25", "91", "38.4", "118", "131"):
+        assert raw_value not in reason_text
+
+
+def test_ac24_reason_empty_when_no_scored_reading(as_doctor, db):
+    """AC24 (FR-021): with no scored reading to source entries, the reason is an empty list (never an error)."""
+    seed_suggestion(db, "PAT-001", band="medium", suggested=2)
+    response = client.get("/api/patients/PAT-001/suggestions")
+    assert response.status_code == 200
+    assert response.json()["suggestions"][0]["reason"] == []
 
 
 def test_ac8_nurse_may_read(as_nurse, db):
@@ -422,6 +487,93 @@ def test_ac11_accept_discharged_patient_409(as_doctor, db):
     assert _triage_level(db, "PAT-003") == 3
     assert _alert_status(db, alert_id) == "open"
     assert _counts(db)[1] == 0
+
+
+# --- AC23 (CR1): GET /api/suggestions, all open suggestions across patients -----
+
+
+def test_ac23_lists_all_open_across_patients_newest_first(as_doctor, db):
+    """AC23 (FR-018): GET /api/suggestions returns every open suggestion across patients,
+    newest first (created_at desc, then id desc), each carrying its patient_code."""
+    older = datetime(2026, 11, 20, 10, 0, 0)
+    same = datetime(2026, 11, 20, 12, 0, 0)
+    a1 = seed_suggestion(db, "PAT-001", band="medium", suggested=2, created_at=older)
+    a2 = seed_suggestion(db, "PAT-003", band="high", suggested=1, created_at=same)
+    a3 = seed_suggestion(db, "PAT-001", band="high", suggested=1, created_at=same)
+
+    response = client.get("/api/suggestions")
+    assert response.status_code == 200
+    suggestions = response.json()["suggestions"]
+    assert [s["id"] for s in suggestions] == [a3, a2, a1]
+    # Each item carries the patient code so the banner can link to the patient.
+    by_id = {s["id"]: s for s in suggestions}
+    assert by_id[a1]["patient_code"] == "PAT-001"
+    assert by_id[a2]["patient_code"] == "PAT-003"
+    assert by_id[a3]["patient_code"] == "PAT-001"
+
+
+def test_ac23_item_shape_excludes_patient_id_ack_and_tag(as_doctor, db):
+    """AC23 (FR-018): each item is a SuggestionResponse + patient_code; it never includes
+    patient_id, acknowledged_by_id or the internal machine tag."""
+    seed_scored_reading(db, "PAT-001", band="high")
+    seed_suggestion(db, "PAT-001", band="high", suggested=1)
+    response = client.get("/api/suggestions")
+    assert response.status_code == 200
+    item = response.json()["suggestions"][0]
+    assert set(item) == {
+        "id", "severity", "message", "reason", "current_level",
+        "suggested_level", "status", "created_at", "patient_code",
+    }
+    assert "patient_id" not in item
+    assert "acknowledged_by_id" not in item
+    assert "[retriage" not in response.text
+    assert "suggested=" not in response.text
+    # CR2 structured reason is carried here too.
+    assert item["reason"] == EXPECTED_REASON
+
+
+def test_ac23_excludes_acknowledged_suggestions(as_doctor, db):
+    """AC23 (FR-018): only status='open' alerts are returned; acknowledged ones are excluded."""
+    open_id = seed_suggestion(db, "PAT-001", band="high", suggested=1)
+    seed_suggestion(db, "PAT-003", band="medium", suggested=2, status="acknowledged")
+    response = client.get("/api/suggestions")
+    assert response.status_code == 200
+    ids = [s["id"] for s in response.json()["suggestions"]]
+    assert ids == [open_id]
+
+
+def test_ac23_empty_list_when_no_open_suggestions(as_doctor, db):
+    """AC23 (FR-018): no open suggestions -> an empty list, not an error."""
+    response = client.get("/api/suggestions")
+    assert response.status_code == 200
+    assert response.json() == {"suggestions": []}
+
+
+def test_ac23_nurse_may_read(as_nurse, db):
+    """AC23 (FR-018): any signed-in clinician may read the open suggestions (a nurse gets 200)."""
+    seed_suggestion(db, "PAT-001", band="medium", suggested=2)
+    response = client.get("/api/suggestions")
+    assert response.status_code == 200
+    assert len(response.json()["suggestions"]) == 1
+
+
+def test_ac23_no_token_401(db, users):
+    """AC23 (FR-018): signed out -> 401, no body leak."""
+    seed_suggestion(db, "PAT-001", band="medium", suggested=2)
+    assert app.auth.get_current_user not in app.main.app.dependency_overrides
+    response = client.get("/api/suggestions")
+    assert response.status_code == 401
+    assert response.json() == NOT_AUTHENTICATED
+
+
+def test_ac23_no_database_url_503(users, monkeypatch):
+    """AC23 (FR-018, FR-011): DATABASE_URL unset and get_session not overridden -> 503 fixed message."""
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    sign_in(users["doctor"])
+    assert app.patients.get_session not in app.main.app.dependency_overrides
+    response = client.get("/api/suggestions")
+    assert response.status_code == 503
+    assert response.json() == SERVICE_UNAVAILABLE
 
 
 # --- AC13: safe errors and the database-unavailable case ------------------------

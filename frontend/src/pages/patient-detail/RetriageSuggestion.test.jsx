@@ -41,12 +41,18 @@ const ES_LOAD_ERROR = 'No se pudieron cargar las sugerencias.'
 const ES_ACTION_ERROR = 'No se pudo completar la acción. Inténtalo de nuevo.'
 const SUGGESTIONS_PATH = '/api/patients/PAT-001/suggestions'
 
-// A high open suggestion: Triage III -> Triage I.
+// A high open suggestion: Triage III -> Triage I. CR2: `reason` is the structured list of
+// {parameter, points} (only parameters scoring > 0, in PARAMETERS order, no vital value); the
+// component builds the displayed reason from parameter.* + recordReading.points, translated.
 const OPEN_HIGH = {
   id: 7,
   severity: 'high',
   message: 'Risk is high. Suggest re-triage from Triage III to Triage I.',
-  reason: 'respiratory_rate +3, spo2 +3, temperature +1',
+  reason: [
+    { parameter: 'respiratory_rate', points: 3 },
+    { parameter: 'spo2', points: 3 },
+    { parameter: 'temperature', points: 1 },
+  ],
   current_level: 3,
   suggested_level: 1,
   status: 'open',
@@ -110,16 +116,28 @@ describe('US-04 AC14/AC16 doctor sees an open suggestion with actions', () => {
 
     const card = retriageCard()
     expect(within(card).getByText(ES_TITLE)).toBeTruthy()
-    // Band badge for the high band (derived from severity): label "Alta".
-    expect(within(card).getByText('Alta')).toBeTruthy()
+    // The redundant risk-band badge was removed (CR 2026-11-21): the severity chip conveys
+    // urgency, so the band badge is no longer shown on the detail page.
+    expect(within(card).queryByText('Alta')).toBeNull()
     // Current and suggested triage labels and their badges.
     expect(within(card).getByText('Nivel actual')).toBeTruthy()
     expect(within(card).getByText('Nivel sugerido')).toBeTruthy()
     expect(within(card).getByText('Triage III')).toBeTruthy()
     expect(within(card).getByText('Triage I')).toBeTruthy()
-    // Severity label and the reason text, shown as given.
+    // Severity label and the reason, built from the structured list and translated (CR2/AC24):
+    // Spanish parameter names and the "Puntos" label, never the English code or a bare number.
     expect(within(card).getByText('Severidad alta')).toBeTruthy()
-    expect(within(card).getByText(OPEN_HIGH.reason)).toBeTruthy()
+    expect(within(card).getByText(/Frecuencia respiratoria/)).toBeTruthy()
+    expect(within(card).getByText(/Saturación de oxígeno/)).toBeTruthy()
+    expect(within(card).getByText(/Temperatura/)).toBeTruthy()
+    // Each reason entry shows the translated "Puntos" label with its points.
+    expect(within(card).getAllByText(/Puntos/).length).toBeGreaterThanOrEqual(3)
+    // No English parameter code is surfaced to the user.
+    expect(within(card).queryByText(/respiratory_rate/)).toBeNull()
+    expect(within(card).queryByText(/\bspo2\b/)).toBeNull()
+    expect(within(card).queryByText(/temperature/)).toBeNull()
+    // No bare, unlabelled points number (the number always carries the "Puntos" label).
+    expect(within(card).queryByText('3')).toBeNull()
     // Doctor sees both action buttons.
     expect(within(card).getByRole('button', { name: ES_ACCEPT })).toBeTruthy()
     expect(within(card).getByRole('button', { name: ES_DISMISS })).toBeTruthy()
@@ -273,7 +291,11 @@ describe('US-04 AC18 language', () => {
     expect(within(card).getByText('Current level')).toBeTruthy()
     expect(within(card).getByText('Suggested level')).toBeTruthy()
     expect(within(card).getByText('High severity')).toBeTruthy()
-    expect(within(card).getByText('High')).toBeTruthy()   // band badge in English
+    // The reason is re-rendered in English from the structured list (CR2/AC24).
+    expect(within(card).getByText(/Respiratory rate/)).toBeTruthy()
+    expect(within(card).getByText(/Oxygen saturation/)).toBeTruthy()
+    expect(within(card).getAllByText(/Points/).length).toBeGreaterThanOrEqual(3)
+    expect(within(card).queryByText(/respiratory_rate/)).toBeNull()
     expect(within(card).getByRole('button', { name: 'Accept' })).toBeTruthy()
     expect(within(card).getByRole('button', { name: 'Dismiss' })).toBeTruthy()
     // Spanish labels are gone.
