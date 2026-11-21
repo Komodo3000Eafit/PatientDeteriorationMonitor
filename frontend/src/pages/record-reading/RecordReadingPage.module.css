@@ -1,0 +1,104 @@
+/* Reading entry page (US-03). Design tokens only; see src/styles/tokens.css. */
+.form,
+.result {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.field label,
+.group legend {
+  font-weight: 600;
+}
+
+/* Every field full width (contracts/ui.md). */
+.field input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.group {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.group legend {
+  padding: 0 var(--space-2);
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+/* The whole label is the click target: at least 44px tall. */
+.option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-target);
+  cursor: pointer;
+}
+
+/* Undo the base text-input box for radio buttons. */
+.option input {
+  min-height: 0;
+  width: 1.25em;
+  height: 1.25em;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--color-primary);
+}
+
+.fieldError {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--color-critical-soft);
+  border: 2px solid var(--color-critical);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+}
+
+/* Decorative icons tinted with stroke, never the text color (D-43). */
+.fieldError svg,
+.error svg {
+  stroke: var(--color-critical);
+  flex-shrink: 0;
+}
+
+.form button[type='submit'] {
+  justify-self: stretch;
+  width: 100%;
+}
+
+.field input[aria-invalid='true'] {
+  border-color: var(--color-critical);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+}

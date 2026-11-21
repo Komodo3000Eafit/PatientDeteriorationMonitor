@@ -22,8 +22,9 @@ from sqlalchemy.orm import Session
 import app.readings
 import app.simulator as simulator
 from app.demo_patients import DEMO_PATIENTS, ensure_demo_patients
-from app.models import Base, Patient, VitalSign
-from app.scoring import ACCEPTED_LIMITS, PARAMETERS, get_scoring_system, validate_vital_signs
+from app.models import Base, Patient, ReadingScore, VitalSign
+from app.readings import score_values
+from app.scoring import ACCEPTED_LIMITS, PARAMETERS, VitalSigns, get_scoring_system, validate_vital_signs
 
 INTEGERS = ("respiratory_rate", "spo2", "systolic_bp", "heart_rate")
 SEEDS = range(1, 6)
@@ -221,6 +222,33 @@ def test_round_active_only(demo_engine):
     assert all("DIS-001" not in line and "Synthetic" not in line for line in lines)
 
 
+def test_us03_ac4_round_readings_are_scored(demo_engine):
+    """US-03 AC4, FR-002: after one round every saved reading has exactly one ReadingScore equal to the scoring module; the output lines are unchanged."""
+    with Session(demo_engine) as session:
+        lines = []
+        stats = _new_stats()
+
+        assert simulator.run_round(session, 1, lines.append, stats) == N_DEMO
+
+        readings = session.scalars(select(VitalSign).order_by(VitalSign.id)).all()
+        assert len(readings) == N_DEMO
+        assert session.scalar(select(func.count()).select_from(ReadingScore)) == N_DEMO
+        for reading in readings:
+            scores = session.scalars(
+                select(ReadingScore).where(ReadingScore.vital_sign_id == reading.id)
+            ).all()
+            assert len(scores) == 1, reading.id
+            vitals = VitalSigns(**{name: getattr(reading, name) for name in PARAMETERS})
+            expected = score_values(get_scoring_system().score(vitals))
+            assert (scores[0].system, scores[0].total, scores[0].band, scores[0].entries) == (
+                "NEWS2", expected["total"], expected["band"], expected["entries"],
+            )
+    # Simulator output unchanged: one line per demo patient in the TS-08 format.
+    assert len(lines) == N_DEMO
+    for line, (identifier, _name, _age, _sex, scenario, _level) in zip(lines, DEMO_PATIENTS):
+        assert line.startswith(f"  {identifier} {scenario} step 0: ")
+
+
 def test_step_continues(demo_engine):
     """AC5, FR-005: the step is the number of saved readings, so a new round continues the scenario."""
     seed = 9
@@ -334,6 +362,8 @@ def test_ctrl_c(demo_engine, monkeypatch):
     assert result == (2, 2 * N_DEMO, "stopped by Ctrl+C")
     with Session(demo_engine) as session:
         assert _count(session) == 2 * N_DEMO
+        # US-03: scores first (they reference the readings; SQLite does not enforce the FK).
+        session.execute(ReadingScore.__table__.delete())
         session.execute(VitalSign.__table__.delete())
         session.commit()
 
@@ -358,6 +388,7 @@ def test_ctrl_c(demo_engine, monkeypatch):
     with Session(demo_engine) as session:
         assert _count(session) == 2
         assert _count(session, _patient_id(session, "PAT-003")) == 0
+        session.execute(ReadingScore.__table__.delete())
         session.execute(VitalSign.__table__.delete())
         session.commit()
 

@@ -5,6 +5,7 @@ import Card from '../../components/Card.jsx'
 import { useLanguage } from '../../i18n/LanguageContext.jsx'
 import { isPatientCode } from '../../utils/patientCode.js'
 import NotFoundPage from '../not-found/NotFoundPage.jsx'
+import RecordReadingButton from '../record-reading/RecordReadingButton.jsx'
 
 export default function PatientDetailPage() {
   const { identifier } = useParams()
@@ -17,6 +18,7 @@ export default function PatientDetailPage() {
   return (
     <main>
       <h1>{t('patientDetail.title', { code: identifier })}</h1>
+      <RecordReadingButton identifier={identifier} />
       <Card>
         <p>{t('patientDetail.placeholder')}</p>
         <Link to="/patients">{t('nav.backToPatients')}</Link>

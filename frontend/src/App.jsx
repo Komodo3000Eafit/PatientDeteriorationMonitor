@@ -12,6 +12,7 @@ import LoginPage from './pages/login/LoginPage.jsx'
 import NotFoundPage from './pages/not-found/NotFoundPage.jsx'
 import PatientDetailPage from './pages/patient-detail/PatientDetailPage.jsx'
 import PatientListPage from './pages/patient-list/PatientListPage.jsx'
+import RecordReadingPage from './pages/record-reading/RecordReadingPage.jsx'
 import RegisterPatientPage from './pages/register-patient/RegisterPatientPage.jsx'
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
               <Route path="/patients" element={<PatientListPage />} />
               <Route path="/patients/:identifier" element={<PatientDetailPage />} />
               <Route path="/patients/new" element={<RegisterPatientPage />} />
+              <Route path="/patients/:identifier/readings/new" element={<RecordReadingPage />} />
               {/* Functional stories: add protected pages here */}
             </Route>
             <Route path="*" element={<NotFoundPage />} />

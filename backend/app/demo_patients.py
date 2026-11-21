@@ -7,7 +7,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.db import database_url, get_engine
-from app.models import Alert, Patient, TriageEvent, VitalSign
+from app.models import Alert, Patient, ReadingScore, TriageEvent, VitalSign
 
 # (identifier, name, age, sex, scenario, initial triage level). Synthetic data only.
 DEMO_PATIENTS = (
@@ -80,7 +80,7 @@ def ensure_demo_patients(session) -> list[tuple[str, str]]:
 def reset_demo_patients(session) -> list[tuple[str, str]]:
     """Reset exactly PAT-001 to PAT-006 to their initial state. Does not commit.
 
-    Deletes their alerts, triage events and readings (all foreign keys are
+    Deletes their alerts, triage events, reading scores and readings (all foreign keys are
     RESTRICT, so the order matters), sets them back to ``active`` at their
     initial level with a new initial event, and creates any that are missing.
     Only the exact identifiers in DEMO_IDENTIFIERS are matched, never a prefix.
@@ -94,6 +94,13 @@ def reset_demo_patients(session) -> list[tuple[str, str]]:
     ids = [patient.id for patient in existing.values()]
     session.execute(delete(Alert).where(Alert.patient_id.in_(ids)))
     session.execute(delete(TriageEvent).where(TriageEvent.patient_id.in_(ids)))
+    session.execute(
+        delete(ReadingScore).where(
+            ReadingScore.vital_sign_id.in_(
+                select(VitalSign.id).where(VitalSign.patient_id.in_(ids))
+            )
+        )
+    )
     session.execute(delete(VitalSign).where(VitalSign.patient_id.in_(ids)))
 
     results: list[tuple[str, str]] = []
@@ -120,7 +127,7 @@ def parse_args(argv):
     parser.add_argument(
         "--reset",
         action="store_true",
-        help="delete the readings, triage events and alerts of PAT-001 to PAT-006 and restore their initial state",
+        help="delete the readings and their scores, triage events and alerts of PAT-001 to PAT-006 and restore their initial state",
     )
     parser.add_argument(
         "--yes", action="store_true", help="confirm --reset without a prompt"

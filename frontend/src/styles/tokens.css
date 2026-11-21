@@ -34,6 +34,10 @@
   --color-triage-5: #1D4ED8; /* border and icon only, never text color */
   --color-triage-5-soft: #DBEAFE;
 
+  /* Risk band colors (US-03 change request / D-50): solid = border and icon only, never text color; soft = badge background */
+  --color-band-medium: #EA580C; /* border and icon only, never text color */
+  --color-band-medium-soft: #FFEDD5;
+
   /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;

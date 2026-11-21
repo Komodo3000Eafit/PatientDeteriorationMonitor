@@ -17,6 +17,7 @@ from sqlalchemy import (
     ForeignKey,
     Identity,
     Integer,
+    JSON,
     MetaData,
     Numeric,
     SmallInteger,
@@ -113,6 +114,27 @@ class VitalSign(Base):
     heart_rate: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     consciousness: Mapped[str] = mapped_column(String(1), nullable=False)
     temperature: Mapped[Decimal] = mapped_column(Numeric(3, 1), nullable=False)
+
+
+class ReadingScore(Base):
+    """The stored score of one reading (US-03); exactly one per reading."""
+
+    __tablename__ = "reading_scores"
+    __table_args__ = (
+        CheckConstraint("total >= 0", name="total"),
+        CheckConstraint(
+            "band IN ('low', 'low-medium', 'medium', 'high')", name="band"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, Identity(), primary_key=True)
+    vital_sign_id: Mapped[int] = mapped_column(
+        ForeignKey("vital_signs.id", ondelete="RESTRICT"), nullable=False, unique=True
+    )
+    system: Mapped[str] = mapped_column(String(20), nullable=False)
+    total: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    band: Mapped[str] = mapped_column(String(20), nullable=False)
+    entries: Mapped[list] = mapped_column(JSON, nullable=False)
 
 
 class TriageEvent(Base):

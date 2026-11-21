@@ -61,6 +61,8 @@ EXPECTED_COLUMNS = {
         "acknowledged_by_id",
         "acknowledged_at",
     },
+    # US-03 (specs/017-vital-signs-scoring/data-model.md): every column NOT NULL.
+    "reading_scores": {"id", "vital_sign_id", "system", "total", "band", "entries"},
 }
 
 EXPECTED_NULLABLE = {
@@ -97,12 +99,20 @@ CHECK_CONSTRAINTS = [
     ),
     ("alerts", "ck_alerts_severity", ["'low'", "'medium'", "'high'"]),
     ("alerts", "ck_alerts_status", ["'open'", "'acknowledged'"]),
+    ("reading_scores", "ck_reading_scores_total", ["total", ">= 0"]),
+    (
+        "reading_scores",
+        "ck_reading_scores_band",
+        ["'low'", "'low-medium'", "'medium'", "'high'"],
+    ),
 ]
 
 
-def test_metadata_has_exactly_the_five_tables():
-    """AC1: the models define exactly the five tables of the data model."""
-    assert set(TABLES) == {"users", "patients", "vital_signs", "triage_events", "alerts"}
+def test_metadata_has_exactly_the_six_tables():
+    """AC1 (TS-03); US-03 FR-001: the models define the five TS-03 tables plus reading_scores."""
+    assert set(TABLES) == {
+        "users", "patients", "vital_signs", "triage_events", "alerts", "reading_scores",
+    }
 
 
 def test_columns_and_nullability():
@@ -131,6 +141,7 @@ def test_foreign_keys_restrict_delete():
         ("alerts", "patient_id", "patients.id"),
         ("triage_events", "created_by_id", "users.id"),
         ("alerts", "acknowledged_by_id", "users.id"),
+        ("reading_scores", "vital_sign_id", "vital_signs.id"),  # US-03
     }
     found = set()
     for name, table in TABLES.items():
@@ -154,6 +165,16 @@ def test_unique_username_and_identifier():
     }
     assert users_uq == {"uq_users_username": ["username"]}
     assert patients_uq == {"uq_patients_identifier": ["identifier"]}
+
+
+def test_us03_one_score_per_reading():
+    """US-03 FR-001, FR-003: reading_scores.vital_sign_id is unique (at most one stored score per reading)."""
+    uniques = {
+        c.name: [col.name for col in c.columns]
+        for c in TABLES["reading_scores"].constraints
+        if isinstance(c, UniqueConstraint)
+    }
+    assert uniques == {"uq_reading_scores_vital_sign_id": ["vital_sign_id"]}
 
 
 @pytest.mark.parametrize("table_name, constraint_name, fragments", CHECK_CONSTRAINTS)

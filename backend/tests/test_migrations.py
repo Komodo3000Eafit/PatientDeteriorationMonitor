@@ -40,19 +40,22 @@ def offline_upgrade_sql():
 
 
 def test_single_head():
-    """AC2: the migration history has a single head, the initial schema."""
+    """AC2; US-03 FR-003: the migration history has a single head, 0002_reading_scores."""
     script = ScriptDirectory.from_config(make_config())
-    assert script.get_heads() == ["0001_initial_schema"]
+    assert script.get_heads() == ["0002_reading_scores"]
 
 
-def test_offline_upgrade_creates_the_five_tables():
-    """AC1: upgrade SQL creates the five tables plus alembic_version, and nothing else."""
+def test_offline_upgrade_creates_the_six_tables():
+    """AC1; US-03 FR-003: upgrade SQL creates the five tables, reading_scores and alembic_version, and nothing else."""
     sql = offline_upgrade_sql()
     created = re.findall(r"CREATE TABLE (\w+)", sql)
-    assert sorted(created) == sorted(FIVE_TABLES | {"alembic_version"})
+    assert sorted(created) == sorted(FIVE_TABLES | {"reading_scores", "alembic_version"})
     assert re.search(
         r"INSERT INTO alembic_version \(version_num\) VALUES \('0001_initial_schema'\)",
         sql,
+    )
+    assert re.search(
+        r"UPDATE alembic_version SET version_num='0002_reading_scores'", sql
     )
 
 
@@ -72,7 +75,7 @@ def test_offline_upgrade_matches_models():
                 )
                 assert "ON DELETE RESTRICT" in fk_line, constraint.name
     fk_lines = [line for line in sql.splitlines() if "FOREIGN KEY" in line]
-    assert len(fk_lines) == 5
+    assert len(fk_lines) == 6  # US-03: + reading_scores.vital_sign_id
     assert all("ON DELETE RESTRICT" in line for line in fk_lines)
 
 
@@ -83,6 +86,15 @@ def test_offline_downgrade_drops_the_five_tables():
     sql = buffer.getvalue()
     for name in FIVE_TABLES:
         assert f"DROP TABLE {name};" in sql, name
+
+
+def test_offline_downgrade_drops_reading_scores():
+    """US-03 AC5, FR-003: head->base downgrade drops reading_scores, before vital_signs (it references it)."""
+    buffer = io.StringIO()
+    command.downgrade(make_config(buffer), "head:base", sql=True)
+    sql = buffer.getvalue()
+    assert "DROP TABLE reading_scores;" in sql
+    assert sql.index("DROP TABLE reading_scores;") < sql.index("DROP TABLE vital_signs;")
 
 
 def test_online_without_database_url_fails_cleanly():
