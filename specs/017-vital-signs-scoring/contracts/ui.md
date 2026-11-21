@@ -47,7 +47,7 @@ the field gets `aria-invalid="true"`.
 
 | Answer | Shows |
 |---|---|
-| 422 with `detail[i].loc[1]` = one of the 7 parameter codes | next to that field: `missing` → `recordReading.required`, other reasons → `recordReading.valueRejected` |
+| 422 with `detail[i].loc[1]` = one of the 7 parameter codes | next to that field, by reason (change request 2026-11-20): `missing` → `recordReading.required`; `out_of_range` with `ctx.min`/`ctx.max` → `recordReading.rangeError` with `{min}`, `{max}` (formatted by language, see "Number format") and `{unit}` = `unit.<parameter>`; `too_many_decimals` → `recordReading.decimalsError`; `not_allowed` with `ctx.allowed` → `recordReading.allowedError` with `{values}` = `ctx.allowed.join(', ')`; `wrong_type`, or any reason whose `ctx` is missing or malformed → `recordReading.valueRejected`. Only `ctx` (the rule) is shown, never the submitted value |
 | 422 entry whose `loc[1]` is not one of the 7 parameter codes (e.g. an unknown key), or whose `loc` has no second element (body not an object), or no parseable detail | general `recordReading.errorInvalid` |
 | 404 | `recordReading.errorNotFound` |
 | 409 | `recordReading.errorDischarged` |
@@ -61,14 +61,49 @@ the field gets `aria-invalid="true"`.
 ## Result view (`ReadingResult`, after 201; rendered from the answer only)
 
 - Heading `recordReading.resultTitle`; `recorded_at` shown as local date-time.
-- "Puntaje NEWS2: 5" (`score.total`) and "Banda de riesgo: Media" (`riskBand.<band>`), text only.
+- "Puntaje NEWS2: 5" (`score.total`) and "Banda de riesgo:" followed by the **risk band badge**
+  (`RiskBandBadge`, change request 2026-11-20, see below).
 - A table, one row per entry in order: parameter name (`parameter.<code>`), value (on oxygen →
-  `yesNo.true/false`; consciousness → letter + `consciousness.<code>`; temperature as given),
-  points, reason from `formatReason(entry)`:
-  - `low` and `high` → "21–24"; only `high` → "≤ 8"; only `low` → "≥ 25"
+  `yesNo.true/false`; consciousness → letter + `consciousness.<code>`; temperature formatted by
+  language: `36,8` / `36.8`), points, reason from `formatReason(entry, t, lang)`:
+  - `low` and `high` → "21–24" (temperature "38,1–39,0" in Spanish, "38.1–39.0" in English);
+    only `high` → "≤ 8"; only `low` → "≥ 25"
   - category → "Sí" / "No" for on oxygen, letters joined by ", " for consciousness ("C, V, P, U")
 - Buttons/links: `recordReading.another` (clears the form, shows it again) and
   `recordReading.backToPatient` → `/patients/<code>`.
+
+## Risk band badge (`RiskBandBadge`, change request 2026-11-20)
+
+`frontend/src/pages/record-reading/RiskBandBadge.jsx` (+ `.module.css`), props `{ band }`. Same
+look as `StatusBadge` (pill, 2px solid border, soft background, `--color-text` label, weight 600):
+a decorative `lucide-react` icon (`aria-hidden="true"`, `focusable="false"`, currentColor) and the
+label `t(labelKey)`. It renders whatever `bandStatus(band)` returns; it never computes a band.
+
+`frontend/src/utils/bandStatus.js` — the **single mapping** (unit-tested):
+
+| `band` | Tone (border / background tokens) | Icon (`lucide-react`) | Label key | Color |
+|---|---|---|---|---|
+| `low` | `--color-stable` / `--color-stable-soft` | `CheckCircle` | `riskBand.low` | green |
+| `low-medium` | `--color-warning` / `--color-warning-soft` | `TriangleAlert` | `riskBand.low-medium` | yellow |
+| `medium` | `--color-band-medium` / `--color-band-medium-soft` (**new**) | `CircleAlert` | `riskBand.medium` | orange |
+| `high` | `--color-critical` / `--color-critical-soft` | `OctagonX` | `riskBand.high` | red |
+| anything else | `--color-no-data` / `--color-no-data-soft` | `CircleDashed` | `riskBand.unknown` | grey |
+
+`bandStatus(band)` → `{ tone: 'stable' | 'warning' | 'band-medium' | 'critical' | 'no-data',
+icon: <name>, labelKey }`. The CSS module has one class per tone using only these tokens.
+
+New tokens in `tokens.css` (amends D-43 in part, recorded in D-50):
+`--color-band-medium: #EA580C` (border and icon only, never text; on its soft color 3.11:1) and
+`--color-band-medium-soft: #FFEDD5` (background; `--color-text` on it 12.77:1).
+`monitoring_status` / `StatusBadge` are unchanged; **US-02 decides** how bands map to the
+monitoring status.
+
+## Number format (change request 2026-11-20)
+
+`frontend/src/utils/formatNumber.js`: `formatDecimal(value, lang)` takes a number or numeric
+string and returns it with `,` as the decimal separator when `lang === 'es'` and `.` otherwise;
+whole numbers and non-numeric text are returned unchanged. Used by `formatValue`, `formatReason`
+and the `rangeError` message. Input parsing is unchanged (comma or dot accepted, sent as a dot).
 
 ## Nurse-only button (`RecordReadingButton`)
 
@@ -111,6 +146,15 @@ which US-05 keeps.
 | `yesNo.true` / `yesNo.false` | Sí / No | Yes / No |
 | `consciousness.A` … `U` | Alerta · Confusión nueva · Responde a la voz · Responde al dolor · No responde | Alert · New confusion · Responds to voice · Responds to pain · Unresponsive |
 | `riskBand.low` … `high` | Baja · Baja-media · Media · Alta | Low · Low-medium · Medium · High |
+| `riskBand.unknown` (CR 2026-11-20) | Desconocida | Unknown |
+| `recordReading.rangeError` (CR) | Debe estar entre {min} y {max} {unit}. | Must be between {min} and {max} {unit}. |
+| `recordReading.decimalsError` (CR) | Usa máximo un decimal. | Use at most one decimal. |
+| `recordReading.allowedError` (CR) | Elige uno de: {values}. | Choose one of: {values}. |
+| `unit.respiratory_rate` (CR) | resp/min | breaths/min |
+| `unit.spo2` (CR) | % | % |
+| `unit.systolic_bp` (CR) | mmHg | mmHg |
+| `unit.heart_rate` (CR) | lpm | bpm |
+| `unit.temperature` (CR) | °C | °C |
 
 Switching language re-renders all texts; typed values and the shown result stay (component
 state). New terms go into `docs/GLOSSARY.md` in the same PR.

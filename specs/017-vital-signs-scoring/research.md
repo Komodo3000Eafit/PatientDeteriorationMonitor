@@ -166,9 +166,40 @@ CLARIFICATION remained. Each entry: Decision, Rationale, Alternatives considered
     `null`); the error message is unchanged and never includes the body. The page maps each
     `detail[i].loc[1]` that is one of the seven parameter codes to a fixed per-field message
     (`missing` → "required", anything else → "value not accepted"); any other entry shows one
-    general message. No submitted value or server text is shown.
-  - The risk band is shown as a translated text label (no new color tokens): the spec only needs
-    the label, and band colors would be a new visual language that US-04 should decide.
+    general message. No submitted value or server text is shown. **Per-field wording superseded
+    by R10** (per-reason messages from `ctx`; "value not accepted" stays the fallback).
+  - ~~The risk band is shown as a translated text label (no new color tokens).~~ **Superseded by
+    the change request of 2026-11-20 (R10).**
+
+## R10. Change request 2026-11-20: band badge, `ctx` in 422s, number format
+
+- **Decision (band badge)**: `RiskBandBadge` copies the `StatusBadge` look (soft background, 2px
+  solid border, decorative icon, dark label). One helper `utils/bandStatus.js` maps `low` →
+  stable, `low-medium` → warning, `medium` → new `band-medium`, `high` → critical, other → no-data
+  (label "Unknown"). Icons `CheckCircle`, `TriangleAlert`, `CircleAlert`, `OctagonX`,
+  `CircleDashed` from `lucide-react` (all present in 1.77.0). New tokens `--color-band-medium:
+  #EA580C` and `--color-band-medium-soft: #FFEDD5`: `--color-text` on the soft color 12.77:1,
+  the solid on the soft 3.11:1, the solid on white 3.56:1 (computed 2026-11-20).
+- **Rationale**: Reuses the existing tone tokens for three bands, so only one new pair is needed;
+  the green → yellow → orange → red order matches common early-warning charts. A separate badge
+  (not `StatusBadge`) keeps the risk band and the monitoring status distinct concepts (GLOSSARY
+  §3, §4); US-02 decides how bands map to `monitoring_status`.
+- **Alternatives**: reusing `StatusBadge` (would need a fifth status or merge two concepts);
+  `#F97316` (solid on soft only 2.45:1, fails 3:1); `#C2410C` (passes, but is the same value as
+  `--color-triage-2`, which could suggest a link between band and triage level); color without
+  icon (color-only meaning).
+- **Decision (`ctx`)**: `readings_api.py` adds `ctx` per problem from
+  `ACCEPTED_LIMITS[problem.parameter]` (a small helper `rule_context(problem)`): `out_of_range`
+  → min/max (temperature `str(Decimal)` → `"25.0"`), `not_allowed` → `list(allowed)`,
+  `too_many_decimals` → `decimals`; no `ctx` otherwise or for unknown keys. The value never enters
+  this helper (it receives only the `Problem`, which holds no value).
+- **Rationale**: Uses the single source of limits, keeps the scoring module unchanged, and
+  matches the `ctx` key name FastAPI uses, so the client reads one shape.
+- **Decision (number format)**: `utils/formatNumber.js` `formatDecimal(value, lang)` swaps `.`
+  for `,` in Spanish. No `Intl.NumberFormat` options are needed because values already arrive
+  with the right number of decimals as strings.
+- **Alternatives**: `Intl.NumberFormat` (would re-round and needs per-field digit options);
+  formatting on the backend (the API stays language-neutral).
 - **Rationale**: Mirrors US-01's page/button pattern and file layout, reuses Button, Card,
   `OctagonXIcon`, tokens and `useLanguage`. The `ApiError.detail` change is additive and
   backward compatible (TS-06 code; existing callers ignore it), the smallest way to give the form

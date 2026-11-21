@@ -44,7 +44,7 @@ No new dependency. Decision D-50 records the storage shape, backfill and API.
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- [x] I. Spec-driven and traceable: every file below maps to AC1–AC20; tests name the AC they verify
+- [x] I. Spec-driven and traceable: every file below maps to AC1–AC23 (AC21–AC23 from the 2026-11-20 change request); tests name the AC they verify
 - [x] II. Small Scrum story: one story (US-03); one table, one function change, two endpoints, one page
 - [x] III. Independence: depends only on merged TS-03/06/07/08/12/13 (US-01 used as a pattern only). US-01's `app/patients.py` is **not modified**: `get_session` is imported, the router is new (research R5). Shared files change only to register a route (`main.py`, `App.jsx`) or mount a component (`PatientDetailPage.jsx`); technical-story files get small additive changes (`readings.py` as planned by TS-08, `models.py`, `demo_patients.py` delete list as noted by TS-08, `api/client.js` optional `detail`, `testing/fakeBackend.js` optional handler)
 - [x] IV. Multi-agent: backend-dev (model, migration, `record_reading`, API), frontend-dev (page, result, button, texts), qa-tester (tests), security-reviewer (auth, validation, no echo, migration safety), devops (migration on a Neon branch), orchestrator logs `agent-log.csv`
@@ -55,7 +55,7 @@ No new dependency. Decision D-50 records the storage shape, backfill and API.
 - [x] IX. Deployable at low cost: no new service; same App Service and Neon database
 - [x] X. Stack: FastAPI, React, PostgreSQL
 - [x] XI. Language: English code/docs; ES default + EN texts in `translations.js`; glossary gains the new terms in this PR
-- [x] XII. Simplicity: one JSON column instead of entry rows, no ORM relationship, no service layer, no new color tokens, no new library
+- [x] XII. Simplicity: one JSON column instead of entry rows, no ORM relationship, no service layer, no new library; the change request of 2026-11-20 adds only one color pair (`--color-band-medium` and `-soft`), reusing the stable/warning/critical tokens for the other three bands
 
 **Post-design re-check (after Phase 1)**: still all pass; no Complexity Tracking entry needed.
 
@@ -134,7 +134,34 @@ component, add texts, add a model, or add small optional test-helper/client fiel
 
 ## Planned decision D-50 (written to `docs/DECISIONS.md` during implementation)
 
-| D-50 | 2026-11-20 | Stored scores (US-03): every reading has **exactly one stored score** in a new table `reading_scores` (unique FK `vital_sign_id` → `vital_signs`, `ON DELETE RESTRICT`) with `system`, `total` (NEWS2 score), `band` (risk band) and `entries`, a **JSON column** holding the 7 explanation entries (`parameter`, `value`, `points`, `low`, `high`, `category`; codes and numbers only, temperature as a one-decimal string; the frontend translates them). **`record_reading` stays the only creation point**: it scores with `get_scoring_system()` and adds the reading and its score in the caller's transaction, so the simulator is unchanged. Later stories **read the stored score and never recompute it**. Migration `0002_reading_scores` creates the table and **backfills every existing reading** in batches in the same upgrade transaction (an invalid stored reading aborts the whole upgrade); its **downgrade drops the table**, since scores are derived from readings and upgrading again rebuilds them. **Deploy order**: the migration runs before the new code is live, so **the simulator must not run while the US-03 deploy is in progress**; a reading saved by the old code in that window would have no score. API: `POST /api/patients/{code}/readings` (nurses; 401/403/404/409 discharged/422 from `InvalidVitalSigns` without values) and `GET` (signed-in users; newest first, `limit` 1–200, default 50) in a new router `app/readings_api.py`; the form checks no value ranges (`ACCEPTED_LIMITS` is the single source) | One JSON column is the simplest shape for entries that are always read with their score (Principle XII); storing the score keeps what was shown at the time and saves later stories from recomputing it. Backfilling in the same upgrade means no reading is ever left without a score after `alembic upgrade head`. A dropping downgrade loses nothing (derived data) and keeps the existing head→base downgrade test working. A new router keeps US-01's `patients.py` unchanged (Principle III). Rejected: a row per entry (7× rows, a join on every read); columns on `vital_signs` (mixes measured and derived data); `JSONB` (PostgreSQL-only, breaks the SQLite tests); recomputing on read (the spec forbids it); a separate backfill command (can be forgotten); a downgrade that refuses (blocks the existing test for no data benefit); range checks in the form (a second copy of the limits) | Active |
+| D-50 | 2026-11-20 | Stored scores (US-03): every reading has **exactly one stored score** in a new table `reading_scores` (unique FK `vital_sign_id` → `vital_signs`, `ON DELETE RESTRICT`) with `system`, `total` (NEWS2 score), `band` (risk band) and `entries`, a **JSON column** holding the 7 explanation entries (`parameter`, `value`, `points`, `low`, `high`, `category`; codes and numbers only, temperature as a one-decimal string; the frontend translates them). **`record_reading` stays the only creation point**: it scores with `get_scoring_system()` and adds the reading and its score in the caller's transaction, so the simulator is unchanged. Later stories **read the stored score and never recompute it**. Migration `0002_reading_scores` creates the table and **backfills every existing reading** in batches in the same upgrade transaction (an invalid stored reading aborts the whole upgrade); its **downgrade drops the table**, since scores are derived from readings and upgrading again rebuilds them. **Deploy order**: the migration runs before the new code is live, so **the simulator must not run while the US-03 deploy is in progress**; a reading saved by the old code in that window would have no score. API: `POST /api/patients/{code}/readings` (nurses; 401/403/404/409 discharged/422 from `InvalidVitalSigns` without values) and `GET` (signed-in users; newest first, `limit` 1–200, default 50) in a new router `app/readings_api.py`; the form checks no value ranges (`ACCEPTED_LIMITS` is the single source) | One JSON column is the simplest shape for entries that are always read with their score (Principle XII); storing the score keeps what was shown at the time and saves later stories from recomputing it. Backfilling in the same upgrade means no reading is ever left without a score after `alembic upgrade head`. A dropping downgrade loses nothing (derived data) and keeps the existing head→base downgrade test working. A new router keeps US-01's `patients.py` unchanged (Principle III). Rejected: a row per entry (7× rows, a join on every read); columns on `vital_signs` (mixes measured and derived data); `JSONB` (PostgreSQL-only, breaks the SQLite tests); recomputing on read (the spec forbids it); a separate backfill command (can be forgotten); a downgrade that refuses (blocks the existing test for no data benefit); range checks in the form (a second copy of the limits). **Change request 2026-11-20 (manual check)**: (1) the risk band is shown as a badge like `StatusBadge` (soft background, solid border, icon, dark label; never color alone) with **one mapping in `frontend/src/utils/bandStatus.js`**: `low` → stable tokens (green), `low-medium` → warning tokens (yellow), `medium` → **two new tokens** `--color-band-medium` `#EA580C` (border and icon only, never text) and `--color-band-medium-soft` `#FFEDD5` (background), `high` → critical tokens (red), any other value → no-data tokens; contrast `--color-text` on the soft color 12.77:1, solid on soft 3.11:1, checked by `styles/contrast.test.js` and pinned by `styles/tokens.test.js`. **Amends D-43 in part** (like D-48). `monitoring_status` keeps its four values; **US-02 decides how risk bands map to it**. (2) Each vital-sign problem in a 422 carries `ctx` with the accepted rule from `ACCEPTED_LIMITS`, never the submitted value: `out_of_range` → `{"min","max"}` (temperature as one-decimal strings), `not_allowed` → `{"allowed"}`, `too_many_decimals` → `{"decimals"}`; the form words each message from it and falls back to the generic message. (3) Decimals are displayed with a comma in Spanish and a dot in English; input accepts both. `ACCEPTED_LIMITS`, the scoring module, `patients.py` and `simulator.py` are unchanged; no new dependency | Active |
+
+## Change request 2026-11-20 (manual check): files and design
+
+Spec CR1–CR3, AC21–AC23, FR-023–FR-025; research R10; contracts updated
+([readings-api.md](contracts/readings-api.md) "`ctx` in vital-sign 422 problems";
+[ui.md](contracts/ui.md) "Risk band badge", "Number format", errors table, texts). Tasks T027–T041.
+
+```text
+backend/app/readings_api.py                         # EDIT: ctx per problem from ACCEPTED_LIMITS (AC22, FR-024)
+backend/tests/test_readings_api.py                  # EDIT: ctx per reason, no ctx otherwise, no echoed value (AC10, AC22)
+frontend/src/styles/tokens.css                      # EDIT: --color-band-medium, --color-band-medium-soft (AC21, FR-023)
+frontend/src/styles/contrast.test.js                # EDIT: text on band-medium-soft ≥ 4.5, band-medium on its soft ≥ 3
+frontend/src/styles/tokens.test.js                  # EDIT: pins the two values
+frontend/src/utils/bandStatus.js (+ .test.js)       # NEW: band → tone, icon, label key (AC21)
+frontend/src/utils/formatNumber.js (+ .test.js)     # NEW: formatDecimal(value, lang) (AC23, FR-025)
+frontend/src/pages/record-reading/RiskBandBadge.jsx (+ .module.css, .test.jsx)  # NEW (AC21)
+frontend/src/pages/record-reading/ReadingResult.jsx (+ test)                    # EDIT: badge, lang-aware numbers (AC14, AC21, AC23)
+frontend/src/pages/record-reading/formatReason.js (+ test)                      # EDIT: lang parameter (AC23)
+frontend/src/pages/record-reading/RecordReadingPage.jsx (+ test)                # EDIT: per-reason messages from ctx (AC15, AC22)
+frontend/src/i18n/translations.js                   # EDIT: riskBand.unknown, rangeError, decimalsError, allowedError, unit.* (AC20, AC22)
+docs/DECISIONS.md, docs/GLOSSARY.md, docs/PROJECT_STATUS.md                     # EDIT: D-50 amendment, new terms, US-02 note
+```
+
+Constitution re-check: still all pass. III: `tokens.css`, the two style tests and `utils/` are
+TS-12 files; this story adds to them (new tokens, new helper files), as US-01 did for D-48.
+XII: one new color pair, two small helpers, no new library. V: the frontend still computes no
+band; it only maps the stored band to a style.
 
 ## Notes for later stories
 
@@ -144,6 +171,8 @@ component, add texts, add a model, or add small optional test-helper/client fiel
 - **US-05** keeps the `<RecordReadingButton identifier={identifier} />` line when it replaces the
   detail page body, and may reuse `ReadingResult` / `formatReason` for the latest reading.
 - **US-04** reads `score.band` from the stored score; it must not recompute NEWS2.
+- **US-02** may reuse `RiskBandBadge` / `utils/bandStatus.js` to show a band; how risk bands map
+  to `monitoring_status` (stable / warning / critical / no_data) is US-02's decision.
 - **US-06 / US-08 / US-10** use the GET history (`limit` up to 200); temperature arrives as a string.
 
 ## Complexity Tracking

@@ -49,7 +49,7 @@ Then the SQL check above still returns `0`.
 | same as doctor | 403 `Only nurses can record vital signs` |
 | POST `/api/patients/PAT-999/readings` / `.../pat-001/readings` | 404 |
 | POST for a discharged patient | 409 |
-| body with `spo2: 150`, `temperature: 37.25`, `recorded_at: "…"` | 422 with `out_of_range`, `too_many_decimals`, `unknown`; response contains none of `150`, `37.25` |
+| body with `spo2: 150`, `temperature: 37.25`, `recorded_at: "…"` | 422 with `out_of_range` (`ctx` `{"min": 0, "max": 100}`), `too_many_decimals` (`ctx` `{"decimals": 1}`), `unknown` (no `ctx`); response contains none of `150`, `37.25` |
 | GET `/api/patients/PAT-001/readings` as doctor | 200, newest first, ≤ 50 items |
 | GET `...?limit=0` / `?limit=201` | 422 |
 
@@ -58,8 +58,11 @@ Then the SQL check above still returns `0`.
 1. As the demo nurse open `/patients/PAT-001` → "Registrar signos vitales" button → form.
 2. Submit empty → a message next to each of the 7 fields; nothing sent.
 3. Enter the contract example (temperature `38,4` with a comma) → result: "Puntaje NEWS2 5",
-   "Banda de riesgo: Media", 7 rows with reasons ("21–24", "94–95", "No", … "38.1–39.0").
-4. Enter SpO2 `150` → sent; message "Valor no aceptado" next to SpO2 only; typed values kept.
-5. Switch to EN → all texts in English; typed values / result unchanged.
-6. As the demo doctor: no button on the patient detail page; the address shows the nurses-only
+   "Banda de riesgo: Media", 7 rows with reasons ("21–24", "94–95", "No", … "38,1–39,0").
+4. Enter SpO2 `150` → sent; message "Debe estar entre 0 y 100 %." next to SpO2 only (in English
+   "Must be between 0 and 100 %."); `150` appears in no message; typed values kept.
+5. The result of step 3 shows the risk band as an orange "Media" badge with an icon; in Spanish
+   the temperature is "38,4" and its reason "38,1–39,0", in English "38.4" and "38.1–39.0".
+6. Switch to EN → all texts in English; typed values / result unchanged.
+7. As the demo doctor: no button on the patient detail page; the address shows the nurses-only
    message. `/patients/bad code/readings/new` → not-found page.

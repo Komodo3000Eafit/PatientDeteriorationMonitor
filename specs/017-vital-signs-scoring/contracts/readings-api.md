@@ -85,7 +85,33 @@ handler) after the 401/403 checks. Nothing is stored on any error.
 | 403 | Signed in, role ≠ `nurse` | `{"detail": "Only nurses can record vital signs"}` |
 | 404 | Code not matching `^[A-Z0-9-]{1,20}$`, or no such patient | `{"detail": "Patient not found"}` |
 | 409 | Patient `status = discharged` | `{"detail": "Patient is discharged"}` |
-| 422 | Vital-sign problems | `{"detail": [{"type": "<reason>", "loc": ["body", "<parameter or cleaned unknown key>"], "msg": "Invalid value"}, …]}` — `<reason>` ∈ `missing`, `unknown`, `wrong_type`, `out_of_range`, `too_many_decimals`, `not_allowed`; no `input`, no values |
+| 422 | Vital-sign problems | `{"detail": [{"type": "<reason>", "loc": ["body", "<parameter or cleaned unknown key>"], "msg": "Invalid value", "ctx": {…}}, …]}` — `<reason>` ∈ `missing`, `unknown`, `wrong_type`, `out_of_range`, `too_many_decimals`, `not_allowed`; `ctx` only as in the table below; no `input`, never a submitted value |
+
+### `ctx` in vital-sign 422 problems (change request 2026-11-20)
+
+`ctx` states the **accepted rule**, taken only from `ACCEPTED_LIMITS[parameter]`; it is never
+built from the submitted value. Reasons not listed here have **no** `ctx` key.
+
+| Reason | `ctx` | Example |
+|---|---|---|
+| `out_of_range` | `{"min": <minimum>, "max": <maximum>}`; integers as JSON numbers, temperature as one-decimal strings | `spo2` → `{"min": 0, "max": 100}`; `temperature` → `{"min": "25.0", "max": "45.0"}` |
+| `not_allowed` | `{"allowed": [<accepted values>]}` | `consciousness` → `{"allowed": ["A", "C", "V", "P", "U"]}` |
+| `too_many_decimals` | `{"decimals": <accepted decimals>}` | `temperature` → `{"decimals": 1}` |
+| `missing`, `unknown`, `wrong_type` | — (no `ctx`) | |
+
+Example: body with `spo2: 150` and `temperature: 37.25` →
+
+```json
+{"detail": [
+  {"type": "out_of_range", "loc": ["body", "spo2"], "msg": "Invalid value", "ctx": {"min": 0, "max": 100}},
+  {"type": "too_many_decimals", "loc": ["body", "temperature"], "msg": "Invalid value", "ctx": {"decimals": 1}}
+]}
+```
+
+The response contains neither `150` nor `37.25`. Tests that check "no value is echoed" use
+submitted values that differ from every limit (a limit such as `100` may legitimately appear in
+`ctx`). The 422 for an invalid `limit` on GET and framework 422s keep the existing handler shape
+(no `ctx`).
 | 503 | `DATABASE_URL` unset or a database error | `{"detail": "Service unavailable"}`; logged by error type only |
 
 ## `GET /api/patients/{identifier}/readings?limit=50` — reading history (signed-in users)
