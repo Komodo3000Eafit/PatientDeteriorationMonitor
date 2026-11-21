@@ -93,6 +93,7 @@ backend/
     ├── test_readings.py                  # EDIT: score stored, equals module, all or nothing, single creation point
     ├── test_simulator.py                 # EDIT: simulator readings have scores (AC4)
     ├── test_demo_patients.py             # EDIT: reset with scores (AC6)
+    ├── test_models.py                    # EDIT: six tables (was "exactly five"), reading_scores columns
     ├── test_migrations.py                # EDIT: head 0002, 6 tables/FKs, downgrade drops reading_scores (offline head→base test unchanged)
     ├── test_reading_scores_migration.py  # NEW: backfill, empty table, batching, failure rolls back (AC5)
     └── test_readings_api.py              # NEW: AC7–AC11, FR-005–FR-011

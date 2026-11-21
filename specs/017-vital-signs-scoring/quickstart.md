@@ -35,7 +35,7 @@ recreates it and the check returns `0` again.
 
 ```bash
 python -m app.demo_patients --reset --yes   # succeeds; scores of demo readings deleted with them
-python -m app.simulator --rounds 1    # existing command, unchanged
+python -m app.simulator --once       # existing command, unchanged
 ```
 
 Then the SQL check above still returns `0`.

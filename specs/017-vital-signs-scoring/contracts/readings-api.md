@@ -73,8 +73,10 @@ Content-Type: application/json
 | `temperature` | number | 25.0–45.0, at most one decimal (`37` → stored `37.0`) |
 | *(any other field)* | — | Not allowed → 422 `unknown` (includes `recorded_at`, `score`, `identifier`) |
 
-Check order: 401 → 403 → 404 → 409 → 422 → 201. A body that is not a JSON object is a 422
-from the framework (existing handler). Nothing is stored on any error.
+Check order: 401 → 403 → 404 → 409 → 422 → 201. One exception: a body that is not valid JSON at
+all (cannot be parsed) is rejected with 422 before sign-in is checked, because the framework reads
+the body first. A body that is valid JSON but not an object is a 422 from the framework (existing
+handler) after the 401/403 checks. Nothing is stored on any error.
 
 | Status | When | Body |
 |---|---|---|

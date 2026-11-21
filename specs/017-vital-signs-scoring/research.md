@@ -47,7 +47,9 @@ CLARIFICATION remained. Each entry: Decision, Rationale, Alternatives considered
 - **Decision**: One hand-written revision `0002_reading_scores` (down_revision
   `0001_initial_schema`) that creates `reading_scores` and then backfills it: reads
   `vital_signs` in batches of 500 ordered by `id` through lightweight `sa.table()` definitions
-  (not the ORM models), builds `VitalSigns` from each row, scores it with
+  with typed columns (`on_oxygen` `sa.Boolean`, `temperature` `sa.Numeric(3, 1)`, the integer
+  parameters `sa.SmallInteger`, `consciousness` `sa.String`; untyped columns make SQLite return
+  `0`/`1` for booleans, which validation rejects as `wrong_type`), builds `VitalSigns` from each row, scores it with
   `get_scoring_system()`, and bulk-inserts the rows from `score_values()`. `downgrade()` drops
   the `reading_scores` table: scores are derived from readings, so nothing is lost that upgrading
   again (create + backfill) does not rebuild. If any reading fails validation, `InvalidVitalSigns` (message: parameters and reasons only, no
@@ -55,8 +57,9 @@ CLARIFICATION remained. Each entry: Decision, Rationale, Alternatives considered
   transactional, so the table creation is rolled back too and nothing changes.
 - **Rationale**: Doing the backfill in the same revision guarantees "no reading without a score"
   right after `alembic upgrade head` (AC5). Batches keep memory flat even if the demo database grew
-  large. `sa.table()` keeps the migration independent of later model changes; reusing
-  `score_values()` keeps one serialization.
+  large. The migration reads and writes only through `sa.table()`, so later model changes do not
+  affect it; it may import the pure helper `app.readings.score_values` and `app.scoring`, which
+  keeps one serialization.
 - **Alternatives**: a separate backfill command run by hand (can be forgotten, leaves readings
   without a score); a data migration in SQL (would duplicate NEWS2 rules); a downgrade that
   refuses (`NotImplementedError`): rejected because the table holds only derived data, and
@@ -73,8 +76,10 @@ CLARIFICATION remained. Each entry: Decision, Rationale, Alternatives considered
 
 - **Decision**: (a) Offline: the existing `--sql` tests keep working; the upgrade SQL now also
   creates `reading_scores` (update the expected table set and FK count to 6). The backfill is
-  skipped in offline mode (`context.is_offline_mode()`): it needs data, and offline SQL is only
-  used for review. (b) Online backfill tests on SQLite: create only the five TS-03 tables on an
+  skipped in offline mode with `if not op.get_context().as_sql: backfill(op.get_bind())`: it needs
+  data, and offline SQL is only used for review. `op.get_context()` works under `env.py` and under
+  a bare `MigrationContext` (tests), where `alembic.context.is_offline_mode()` would raise because
+  no `EnvironmentContext` exists. (b) Online backfill tests on SQLite: create only the five TS-03 tables on an
   in-memory engine, insert synthetic readings with plain SQL, then run the revision's
   `upgrade()` through `MigrationContext.configure(connection)` + `Operations.context(ctx)` (loaded
   with `ScriptDirectory.get_revision("0002_reading_scores").module`). Check one score per reading,

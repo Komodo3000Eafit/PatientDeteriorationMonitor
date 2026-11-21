@@ -48,7 +48,7 @@ the field gets `aria-invalid="true"`.
 | Answer | Shows |
 |---|---|
 | 422 with `detail[i].loc[1]` = one of the 7 parameter codes | next to that field: `missing` → `recordReading.required`, other reasons → `recordReading.valueRejected` |
-| 422 entry naming no form field (unknown key, `loc` = `["body"]`) or no parseable detail | general `recordReading.errorInvalid` |
+| 422 entry whose `loc[1]` is not one of the 7 parameter codes (e.g. an unknown key), or whose `loc` has no second element (body not an object), or no parseable detail | general `recordReading.errorInvalid` |
 | 404 | `recordReading.errorNotFound` |
 | 409 | `recordReading.errorDischarged` |
 | 403 | `recordReading.nursesOnly` |
