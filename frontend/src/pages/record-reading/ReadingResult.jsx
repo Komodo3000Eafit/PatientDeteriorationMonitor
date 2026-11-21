@@ -6,16 +6,32 @@ import { formatReason, formatValue } from './formatReason.js'
 import RiskBandBadge from './RiskBandBadge.jsx'
 import styles from './ReadingResult.module.css'
 
-export default function ReadingResult({ reading }) {
+export default function ReadingResult({
+  reading,
+  titleKey = 'recordReading.resultTitle',
+  titleWithDate = false,
+}) {
   const { lang, t } = useLanguage()
   const { score } = reading
+  const recordedAt = new Date(reading.recorded_at).toLocaleString(lang)
 
   return (
     <section className={styles.result} aria-labelledby="reading-result-title">
-      <h2 id="reading-result-title" className={styles.title}>
-        {t('recordReading.resultTitle')}
-      </h2>
-      <p className={styles.time}>{new Date(reading.recorded_at).toLocaleString(lang)}</p>
+      {titleWithDate ? (
+        // US-05 (PatientDetailPage): title and recorded_at on one line, "Título — fecha".
+        <h2 id="reading-result-title" className={styles.titleWithDate}>
+          <span>{t(titleKey)}</span>
+          <span className={styles.titleDate}> — {recordedAt}</span>
+        </h2>
+      ) : (
+        // US-03 default (RecordReadingPage): unchanged — title line, then the date line.
+        <>
+          <h2 id="reading-result-title" className={styles.title}>
+            {t(titleKey)}
+          </h2>
+          <p className={styles.time}>{recordedAt}</p>
+        </>
+      )}
       <p className={styles.summary}>
         {t('recordReading.score')}: {score.total}
       </p>

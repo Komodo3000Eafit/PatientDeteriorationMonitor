@@ -28,9 +28,17 @@ export function resetSession() {
 // patients (US-01): optional handler for /api/patients; when not given that path answers 404 as before.
 // readings (US-03): optional handler for any /api/patients/<code>/readings path; when not given
 // those paths answer 404 as before.
+// patient (US-05): optional handler for /api/patients/<code> (patient detail); when not given that
+// path answers 404 as before.
+// triageEvents (US-05): optional handler for /api/patients/<code>/triage-events; when not given
+// that path answers 404 as before.
+// The regex order below tests the more specific paths (/readings, /triage-events) before the bare
+// /api/patients/<code>, so the bare patient regex never captures a readings/triage-events path.
 const READINGS_PATH = /^\/api\/patients\/[^/]+\/readings$/
+const TRIAGE_EVENTS_PATH = /^\/api\/patients\/[^/]+\/triage-events$/
+const PATIENT_PATH = /^\/api\/patients\/[^/]+$/
 
-export function stubBackend({ health, me, login, patients, readings } = {}) {
+export function stubBackend({ health, me, login, patients, readings, patient, triageEvents } = {}) {
   const routes = {
     '/health': health ?? (async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'ok' })),
     '/api/me': me ?? (async () => jsonResponse(DOCTOR)),
@@ -41,7 +49,11 @@ export function stubBackend({ health, me, login, patients, readings } = {}) {
   if (patients) routes['/api/patients'] = patients
   const mock = vi.fn(async (url, options) => {
     const path = new URL(url).pathname
-    const handler = routes[path] ?? (readings && READINGS_PATH.test(path) ? readings : undefined)
+    let handler = routes[path]
+    // Match the more specific nested paths before the bare patient path.
+    if (!handler && readings && READINGS_PATH.test(path)) handler = readings
+    if (!handler && triageEvents && TRIAGE_EVENTS_PATH.test(path)) handler = triageEvents
+    if (!handler && patient && PATIENT_PATH.test(path)) handler = patient
     return handler ? handler(url, options) : jsonResponse({}, 404)
   })
   vi.stubGlobal('fetch', mock)
