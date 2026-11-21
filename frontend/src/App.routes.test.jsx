@@ -16,7 +16,7 @@ import {
 
 const ES_LOGIN = 'Iniciar sesión'
 const ES_PATIENTS = 'Pacientes'
-const ES_LIST_PLACEHOLDER = 'La lista de pacientes se mostrará aquí.'
+const ES_LIST_PLACEHOLDER = 'Pacientes'
 const ES_DETAIL_PLACEHOLDER = 'El detalle del paciente se mostrará aquí.'
 const ES_NOT_FOUND = 'Página no encontrada'
 const ES_NOT_FOUND_MESSAGE = 'La dirección que abriste no existe en esta aplicación.'
@@ -369,7 +369,7 @@ describe('TS-13 AC9 language', () => {
     fireEvent.click(screen.getByRole('button', { name: 'English' }))
 
     expect(screen.getByRole('heading', { name: 'Patients' })).toBeTruthy()
-    expect(screen.getByText('The patient list will be shown here.')).toBeTruthy()
+    expect(screen.getByText('Patients')).toBeTruthy()
     expect(screen.queryByText(ES_LIST_PLACEHOLDER)).toBeNull()
     expect(currentPath()).toBe('/patients')
   })

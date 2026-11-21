@@ -39,11 +39,11 @@ sideways (`overflow-x: auto`) on narrow screens; the page itself never scrolls s
 
 ## Time text
 
-`{relative} ({clock})`, e.g. "hace 3 min (14:32)" / "3 min ago (14:32)":
+`{relative} ({clock})`, e.g. "hace 3 min (14:32)" / "3 min. ago (14:32)":
 - relative: `Intl.RelativeTimeFormat(lang, { style: 'short', numeric: 'always' })` in seconds (< 1 min),
   minutes (< 1 h), hours (< 24 h), else days;
-- clock: `Intl.DateTimeFormat(lang, { hour: '2-digit', minute: '2-digit' })`, plus day and short month
-  when not today.
+- clock: `Intl.DateTimeFormat(lang, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })` (24-hour
+  clock in every language), plus day and short month when not today.
 
 ## Refresh
 

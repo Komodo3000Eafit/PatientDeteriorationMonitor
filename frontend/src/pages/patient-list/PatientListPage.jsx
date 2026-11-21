@@ -1,10 +1,11 @@
-// Patient list placeholder (TS-13) until US-02 replaces it; keeps the TS-04 /health check, once per load.
+// Patient list (US-02); keeps the TS-04 /health check, once per load.
 // All texts come from src/i18n/translations.js; switching language never calls /health again.
 import { useEffect, useState } from 'react'
 import { getHealth } from '../../api/client.js'
 import Card from '../../components/Card.jsx'
 import { useLanguage } from '../../i18n/LanguageContext.jsx'
 import RegisterPatientButton from '../register-patient/RegisterPatientButton.jsx'
+import PatientTable from './PatientTable.jsx'
 
 export default function PatientListPage() {
   const { t } = useLanguage()
@@ -37,7 +38,7 @@ export default function PatientListPage() {
       <h1>{t('app.title')}</h1>
       <RegisterPatientButton />
       <Card title={t('patients.title')}>
-        <p>{t('patients.placeholder')}</p>
+        <PatientTable />
       </Card>
       <section role="status">
         {state.kind === 'checking' && <p>{t('health.checking')}</p>}

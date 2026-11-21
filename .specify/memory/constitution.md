@@ -10,7 +10,9 @@ redefined incompatibly:
   helpers and API contracts of merged functional stories (e.g. US-03 `RiskBandBadge`, readings
   contract).
 - The "MUST NOT modify another functional story's code" exceptions now also allow updating a
-  test assertion that depends only on placeholder content the story replaces.
+  test assertion that depends only on placeholder content the story replaces, and narrowing an
+  assertion in another story's test when the new story's legitimate behavior makes it ambiguous,
+  keeping the test's intent unchanged (first used by US-02).
 - Rationale extended: US-02, US-04 and US-05 need US-03's stored scores (D-50 forbids
   recomputing NEWS2).
 
@@ -174,8 +176,9 @@ feasible and keep reviews focused.
   and API contracts of functional stories already merged into `main` (for example US-03's
   `RiskBandBadge` and readings contract).
 - A functional story MUST NOT modify code introduced by another functional story, except to
-  register a route, mount a component, or update a test assertion that depends only on placeholder
-  content the story replaces. A shared need that requires changing another story's code MUST be
+  register a route, mount a component, update a test assertion that depends only on placeholder
+  content the story replaces, or narrow an assertion in another story's test when the new story's
+  legitimate behavior makes it ambiguous, keeping the test's intent unchanged. A shared need that requires changing another story's code MUST be
   moved into a technical story first.
 - The backlog and each story's dependencies are kept in `docs/BACKLOG.md`.
 
