@@ -17,7 +17,7 @@ from app.auth import get_current_user
 from app.models import Patient, ReadingScore, User, VitalSign
 from app.patients import get_session
 from app.readings import record_reading
-from app.scoring import InvalidVitalSigns, vital_signs_from_mapping
+from app.scoring import ACCEPTED_LIMITS, InvalidVitalSigns, vital_signs_from_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +89,48 @@ def to_response(vital_sign: VitalSign, score: ReadingScore) -> ReadingResponse:
     )
 
 
+def _json_limit(bound: Any) -> Any:
+    """Return a limit bound as JSON: a Decimal becomes a string ("25.0"), an int stays a number."""
+    return str(bound) if isinstance(bound, Decimal) else bound
+
+
+def rule_context(problem: Any) -> dict | None:
+    """Return the accepted rule behind a vital-sign problem, or None.
+
+    Built only from ``ACCEPTED_LIMITS``, never from the submitted value, so no
+    input is echoed. Only ``out_of_range``, ``not_allowed`` and
+    ``too_many_decimals`` have a context; any other reason or an unknown
+    parameter returns None.
+    """
+    limit = ACCEPTED_LIMITS.get(problem.parameter)
+    if limit is None:
+        return None
+    if problem.reason == "out_of_range":
+        if limit.minimum is None or limit.maximum is None:
+            return None
+        return {"min": _json_limit(limit.minimum), "max": _json_limit(limit.maximum)}
+    if problem.reason == "not_allowed":
+        if not limit.allowed:
+            return None
+        return {"allowed": list(limit.allowed)}
+    if problem.reason == "too_many_decimals":
+        return {"decimals": limit.decimals}
+    return None
+
+
+def problem_detail(problem: Any) -> dict:
+    """Return one 422 problem; ``ctx`` is added only when the rule has a context."""
+    detail = {
+        "type": problem.reason,
+        "loc": ["body", problem.parameter],
+        "msg": "Invalid value",
+    }
+    ctx = rule_context(problem)
+    if ctx is not None:
+        detail["ctx"] = ctx
+    return detail
+
+
 # --- Dependencies and lookups -------------------------------------------------
 
 
@@ -134,7 +176,10 @@ def create_reading(
 
     Order: 404 (patient) → 409 (discharged) → 422 (vital signs) → 201. The
     reading and its score are committed together. Submitted values are never
-    logged or returned in an error.
+    logged or returned in an error. Each 422 problem has ``type``, ``loc`` and
+    ``msg``; ``out_of_range``, ``not_allowed`` and ``too_many_decimals`` also
+    have ``ctx`` with the accepted rule from ``ACCEPTED_LIMITS`` (see
+    ``rule_context``).
     """
     try:
         patient = find_patient(session, identifier)
@@ -146,14 +191,7 @@ def create_reading(
             return JSONResponse(
                 status_code=422,
                 content={
-                    "detail": [
-                        {
-                            "type": problem.reason,
-                            "loc": ["body", problem.parameter],
-                            "msg": "Invalid value",
-                        }
-                        for problem in exc.problems
-                    ]
+                    "detail": [problem_detail(problem) for problem in exc.problems]
                 },
             )
         row = record_reading(session, patient.id, vitals)

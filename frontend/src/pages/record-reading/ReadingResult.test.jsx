@@ -12,6 +12,10 @@
 //   recordReading.points       'Puntos'                / 'Points'
 //   recordReading.reason       'Motivo'                / 'Reason'
 //   riskBand.medium            'Media'                 / 'Medium'
+//   riskBand.low / high        'Baja' / 'Alta'         / 'Low' / 'High'
+//
+// Change request 2026-11-20: the band is a RiskBandBadge (AC21) after "Banda de riesgo:", so the
+// band line is read with bandLine(); Spanish decimals use a comma (AC23).
 //   parameter.*                see ES_ROWS / EN_ROWS below
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
@@ -52,7 +56,7 @@ const ES_ROWS = [
   ['Presión arterial sistólica (mmHg)', '118', '0', '111–219'],
   ['Frecuencia cardiaca (lpm)', '96', '1', '91–110'],
   ['Nivel de conciencia (ACVPU)', 'A — Alerta', '0', 'A'],
-  ['Temperatura (°C)', '38.4', '1', '38.1–39.0'],
+  ['Temperatura (°C)', '38,4', '1', '38,1–39,0'],
 ]
 const EN_ROWS = [
   ['Respiratory rate (breaths/min)', '22', '2', '21–24'],
@@ -97,6 +101,11 @@ function rowTexts() {
   ])
 }
 
+// The paragraph holding "Banda de riesgo:" / "Risk band:" and the badge (AC21).
+function bandLine(prefix = 'Banda de riesgo:') {
+  return screen.getByText(prefix).closest('p')
+}
+
 function headerTexts() {
   return within(screen.getByRole('table'))
     .getAllByRole('columnheader')
@@ -114,7 +123,7 @@ describe('US-03 AC14 result from the contract example (Spanish)', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: 'Lectura guardada' })).toBeTruthy()
     expect(screen.getByText('Puntaje NEWS2: 5')).toBeTruthy()
-    expect(screen.getByText('Banda de riesgo: Media')).toBeTruthy()
+    expect(bandLine().textContent).toBe('Banda de riesgo: Media')
   })
 
   it('AC14 the table has the four Spanish column headers', () => {
@@ -135,7 +144,7 @@ describe('US-03 AC14 result from the contract example (Spanish)', () => {
     renderResult({ ...EXAMPLE_READING, score: { ...EXAMPLE_READING.score, total: 9, band: 'low' } })
 
     expect(screen.getByText('Puntaje NEWS2: 9')).toBeTruthy()
-    expect(screen.getByText('Banda de riesgo: Baja')).toBeTruthy()
+    expect(bandLine().textContent).toBe('Banda de riesgo: Baja')
     expect(screen.queryByText('Puntaje NEWS2: 5')).toBeNull()
   })
 
@@ -156,12 +165,12 @@ describe('US-03 AC20 result in English after switching', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: 'Reading saved' })).toBeTruthy()
     expect(screen.getByText('NEWS2 score: 5')).toBeTruthy()
-    expect(screen.getByText('Risk band: Medium')).toBeTruthy()
+    expect(bandLine('Risk band:').textContent).toBe('Risk band: Medium')
     expect(headerTexts()).toEqual(['Parameter', 'Value', 'Points', 'Reason'])
     expect(rowTexts()).toEqual(EN_ROWS)
     expect(screen.getByText('Respiratory rate (breaths/min)')).toBeTruthy()
     expect(screen.queryByText('Puntaje NEWS2: 5')).toBeNull()
-    expect(screen.queryByText('Banda de riesgo: Media')).toBeNull()
+    expect(screen.queryByText('Banda de riesgo:')).toBeNull()
   })
 
   it('AC20 on oxygen true shows "Sí" in Spanish and "Yes" in English', () => {
@@ -175,5 +184,60 @@ describe('US-03 AC20 result in English after switching', () => {
     fireEvent.click(screen.getByRole('button', { name: 'switch-en' }))
 
     expect(rowTexts()[2]).toEqual(['Supplemental oxygen', 'Yes', '2', 'Yes'])
+  })
+})
+
+// Change request 2026-11-20: the band badge (AC21) and the number format by language (AC23).
+describe('US-03 AC21 band badge in the result', () => {
+  it('AC21 "Banda de riesgo:" is followed by a badge with "Media" and one aria-hidden svg', () => {
+    renderResult()
+
+    const line = bandLine()
+    const badge = within(line).getByText('Media').parentElement
+    expect(badge.tagName).toBe('SPAN')
+    expect(line.contains(badge)).toBe(true)
+    const svgs = badge.querySelectorAll('svg')
+    expect(svgs).toHaveLength(1)
+    expect(svgs[0].getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it.each([
+    ['low', 'Baja'],
+    ['low-medium', 'Baja-media'],
+    ['high', 'Alta'],
+    ['QQ-UNKNOWN', 'Desconocida'],
+  ])('AC21 stored band "%s" shows the badge label "%s"', (band, label) => {
+    renderResult({ ...EXAMPLE_READING, score: { ...EXAMPLE_READING.score, band } })
+
+    expect(bandLine().textContent).toBe(`Banda de riesgo: ${label}`)
+    expect(document.body.textContent).not.toContain('QQ-UNKNOWN')
+  })
+})
+
+describe('US-03 AC23 number format in the result', () => {
+  function temperatureRow() {
+    return rowTexts()[6]
+  }
+
+  it('AC23 temperature value "38,4" and reason "38,1–39,0" in Spanish', () => {
+    renderResult()
+
+    expect(temperatureRow()).toEqual(['Temperatura (°C)', '38,4', '1', '38,1–39,0'])
+    expect(screen.queryByText('38.4')).toBeNull()
+  })
+
+  it('AC23 temperature value "38.4" and reason "38.1–39.0" after switching to English', () => {
+    renderResult()
+
+    fireEvent.click(screen.getByRole('button', { name: 'switch-en' }))
+
+    expect(temperatureRow()).toEqual(['Temperature (°C)', '38.4', '1', '38.1–39.0'])
+    expect(screen.queryByText('38,4')).toBeNull()
+  })
+
+  it('AC23 whole numbers are unchanged in Spanish', () => {
+    renderResult()
+
+    expect(rowTexts()[0]).toEqual(['Frecuencia respiratoria (resp/min)', '22', '2', '21–24'])
   })
 })

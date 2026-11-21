@@ -3,6 +3,7 @@
 // Contract: specs/017-vital-signs-scoring/contracts/ui.md "Result view".
 import { useLanguage } from '../../i18n/LanguageContext.jsx'
 import { formatReason, formatValue } from './formatReason.js'
+import RiskBandBadge from './RiskBandBadge.jsx'
 import styles from './ReadingResult.module.css'
 
 export default function ReadingResult({ reading }) {
@@ -19,7 +20,7 @@ export default function ReadingResult({ reading }) {
         {t('recordReading.score')}: {score.total}
       </p>
       <p className={styles.summary}>
-        {t('recordReading.band')}: {t('riskBand.' + score.band)}
+        {t('recordReading.band')}: <RiskBandBadge band={score.band} />
       </p>
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
@@ -35,9 +36,9 @@ export default function ReadingResult({ reading }) {
             {score.entries.map((entry) => (
               <tr key={entry.parameter}>
                 <th scope="row">{t('parameter.' + entry.parameter)}</th>
-                <td>{formatValue(entry, t)}</td>
+                <td>{formatValue(entry, t, lang)}</td>
                 <td>{entry.points}</td>
-                <td>{formatReason(entry, t)}</td>
+                <td>{formatReason(entry, t, lang)}</td>
               </tr>
             ))}
           </tbody>

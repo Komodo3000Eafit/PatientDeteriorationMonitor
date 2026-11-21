@@ -371,17 +371,124 @@ INVALID_CASES = [
 ]
 
 
+# AC22 / FR-024 (change request 2026-11-20): the accepted rule per (parameter, reason).
+# Taken from the contract table, not from the app, so a wrong limit is caught.
+EXPECTED_CTX = {
+    ("respiratory_rate", "out_of_range"): {"min": 0, "max": 80},
+    ("spo2", "out_of_range"): {"min": 0, "max": 100},
+    ("temperature", "out_of_range"): {"min": "25.0", "max": "45.0"},
+    ("temperature", "too_many_decimals"): {"decimals": 1},
+    ("consciousness", "not_allowed"): {"allowed": ["A", "C", "V", "P", "U"]},
+}
+CTX_REASONS = {"out_of_range", "not_allowed", "too_many_decimals"}
+
+
+def assert_problem_shape(error):
+    """AC10/AC22: type, loc, msg always; ctx only for the three rule reasons; never input."""
+    assert error["msg"] == "Invalid value"
+    if error["type"] in CTX_REASONS:
+        assert set(error) == {"type", "loc", "msg", "ctx"}
+    else:
+        assert set(error) == {"type", "loc", "msg"}  # missing, wrong_type, unknown: no ctx
+
+
 @pytest.mark.parametrize("body, field, reason, secret", INVALID_CASES)
 def test_ac10_invalid_body_422(as_nurse, db, body, field, reason, secret):
-    """AC10 (FR-008, FR-011): 422 naming the parameter and reason, no submitted value, nothing stored."""
+    """AC10 (FR-008, FR-011) + AC22 (FR-024): 422 naming the parameter and reason, ctx only for
+    out_of_range/not_allowed/too_many_decimals with the accepted rule, no submitted value, nothing stored."""
     response = post(body)
     assert response.status_code == 422
     detail = response.json()["detail"]
-    assert {"type": reason, "loc": ["body", field], "msg": "Invalid value"} in detail
+    matches = [e for e in detail if e["type"] == reason and e["loc"] == ["body", field]]
+    assert len(matches) == 1
     for error in detail:
-        assert set(error) == {"type", "loc", "msg"}  # no "input", no "ctx"
+        assert_problem_shape(error)
+    if reason in CTX_REASONS:
+        assert matches[0]["ctx"] == EXPECTED_CTX[(field, reason)]
+    else:
+        assert "ctx" not in matches[0]
     if secret is not None:
         assert secret not in response.text
+    assert counts(db) == (0, 0)
+
+
+# --- AC22: ctx states the accepted rule (change request 2026-11-20, T037) -------
+
+CTX_CASES = [
+    pytest.param("spo2", 150, "out_of_range", {"min": 0, "max": 100}, "150", id="spo2-150"),
+    pytest.param("spo2", 987, "out_of_range", {"min": 0, "max": 100}, "987", id="spo2-987"),
+    pytest.param("temperature", 46.5, "out_of_range", {"min": "25.0", "max": "45.0"}, "46.5", id="temp-46.5"),
+    pytest.param("temperature", 37.25, "too_many_decimals", {"decimals": 1}, "37.25", id="temp-37.25"),
+    pytest.param("consciousness", "X", "not_allowed", {"allowed": ["A", "C", "V", "P", "U"]}, None, id="acvpu-X"),
+    pytest.param("consciousness", "QQ-SECRET", "not_allowed", {"allowed": ["A", "C", "V", "P", "U"]}, "QQ-SECRET", id="acvpu-secret"),
+]
+
+
+@pytest.mark.parametrize("field, value, reason, ctx, secret", CTX_CASES)
+def test_ac22_ctx_states_accepted_rule(as_nurse, db, field, value, reason, ctx, secret):
+    """AC22 (FR-024), AC10: the problem carries the exact ctx from ACCEPTED_LIMITS; the
+    submitted value (chosen to differ from every limit) never appears in the response."""
+    response = post({**CONTRACT_BODY, field: value})
+    assert response.status_code == 422
+    assert response.json()["detail"] == [
+        {"type": reason, "loc": ["body", field], "msg": "Invalid value", "ctx": ctx}
+    ]
+    if secret is not None:
+        assert secret not in response.text
+    assert "input" not in response.text
+    assert counts(db) == (0, 0)
+
+
+@pytest.mark.parametrize(
+    "body, field, reason, secret",
+    [
+        pytest.param(_without("spo2"), "spo2", "missing", None, id="missing"),
+        pytest.param({**CONTRACT_BODY, "heart_rate": "987"}, "heart_rate", "wrong_type", "987", id="wrong-type"),
+        pytest.param({**CONTRACT_BODY, "on_oxygen": "QQ-SECRET"}, "on_oxygen", "wrong_type", "QQ-SECRET", id="wrong-type-secret"),
+        pytest.param({**CONTRACT_BODY, "ZZ-UNIQUE": "QQ-SECRET"}, "ZZ-UNIQUE", "unknown", "QQ-SECRET", id="unknown-key"),
+    ],
+)
+def test_ac22_no_ctx_for_missing_wrong_type_unknown(as_nurse, db, body, field, reason, secret):
+    """AC22 (FR-024), AC10: missing, wrong_type and unknown problems have no ctx key and echo no value."""
+    response = post(body)
+    assert response.status_code == 422
+    assert response.json()["detail"] == [
+        {"type": reason, "loc": ["body", field], "msg": "Invalid value"}
+    ]
+    if secret is not None:
+        assert secret not in response.text
+    assert counts(db) == (0, 0)
+
+
+def test_ac22_contract_example_two_problems(as_nurse, db):
+    """AC22 (contract example): spo2 150 + temperature 37.25 -> two problems with ctx; neither value echoed."""
+    response = post({**CONTRACT_BODY, "spo2": 150, "temperature": 37.25})
+    assert response.status_code == 422
+    assert response.json() == {"detail": [
+        {"type": "out_of_range", "loc": ["body", "spo2"], "msg": "Invalid value", "ctx": {"min": 0, "max": 100}},
+        {"type": "too_many_decimals", "loc": ["body", "temperature"], "msg": "Invalid value", "ctx": {"decimals": 1}},
+    ]}
+    assert "150" not in response.text
+    assert "37.25" not in response.text
+    assert counts(db) == (0, 0)
+
+
+def test_ac22_mixed_problems_ctx_only_where_rule(as_nurse, db):
+    """AC22 (FR-024), AC10: in one response, ctx appears only on rule problems; no value echoed."""
+    body = {**_without("respiratory_rate"), "spo2": 987, "heart_rate": 18.5,
+            "consciousness": "QQ-SECRET", "temperature": 46.5, "ZZ-UNIQUE": "QQ-OTHER"}
+    response = post(body)
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    by_field = {e["loc"][1]: e for e in detail}
+    assert set(by_field) == {"respiratory_rate", "spo2", "heart_rate", "consciousness", "temperature", "ZZ-UNIQUE"}
+    for error in detail:
+        assert_problem_shape(error)
+    assert by_field["spo2"]["ctx"] == {"min": 0, "max": 100}
+    assert by_field["temperature"]["ctx"] == {"min": "25.0", "max": "45.0"}
+    assert by_field["consciousness"]["ctx"] == {"allowed": ["A", "C", "V", "P", "U"]}
+    for value in ("987", "18.5", "QQ-SECRET", "46.5", "QQ-OTHER"):
+        assert value not in response.text
     assert counts(db) == (0, 0)
 
 
@@ -468,11 +575,13 @@ def test_ac11_default_and_given_limits(as_doctor, db):
 
 @pytest.mark.parametrize("limit", ["0", "201", "abc", "-1"])
 def test_ac11_invalid_limit_422(as_doctor, db, limit):
-    """AC11 (FR-010): a limit outside 1-200 -> 422 without echoing it."""
+    """AC11 (FR-010): a limit outside 1-200 -> 422 without echoing it.
+    AC22 (FR-024): the GET limit 422 keeps the existing handler shape, with no ctx."""
     response = client.get(URL, params={"limit": limit})
     assert response.status_code == 422
     detail = response.json()["detail"]
-    assert all(set(e) == {"type", "loc", "msg"} for e in detail)
+    assert all(set(e) == {"type", "loc", "msg"} for e in detail)  # no ctx, no input
+    assert all("ctx" not in e for e in detail)
     assert ["query", "limit"] in [e["loc"] for e in detail]
 
 

@@ -24,6 +24,15 @@
 //   consciousness.A..U            'Alerta', 'Confusión nueva', 'Responde a la voz',
 //                                 'Responde al dolor', 'No responde'
 //   riskBand.medium               'Media'
+//   recordReading.rangeError      'Debe estar entre {min} y {max} {unit}.' / 'Must be between {min} and {max} {unit}.'
+//   recordReading.decimalsError   'Usa máximo un decimal.'                 / 'Use at most one decimal.'
+//   recordReading.allowedError    'Elige uno de: {values}.'                / 'Choose one of: {values}.'
+//   recordReading.valueRejected   (en) 'Value not accepted. Check it.'
+//   unit.spo2 / unit.temperature  '%' / '°C' (both languages)
+//
+// Change request 2026-11-20: the band is a RiskBandBadge after "Banda de riesgo:" (AC21), read
+// with bandLine(); 422 problems with ctx give a message with the accepted rule (AC22), and
+// decimals use a comma in Spanish (AC23).
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { currentPath, renderApp } from '../../testing/renderApp.jsx'
@@ -178,6 +187,11 @@ function expectValuesKept() {
   expect(input('heart_rate').value).toBe('96')
   expect(within(group('consciousness')).getByLabelText('A — Alerta').checked).toBe(true)
   expect(input('temperature').value).toBe('38,4')
+}
+
+// The paragraph holding "Banda de riesgo:" / "Risk band:" and the badge (AC21).
+function bandLine(prefix = 'Banda de riesgo:') {
+  return screen.getByText(prefix).closest('p')
 }
 
 function sentBodies(fetchMock) {
@@ -423,7 +437,7 @@ describe('US-03 AC14 valid submit and the stored result', () => {
 
     expect(await screen.findByRole('heading', { level: 2, name: ES_RESULT_TITLE })).toBeTruthy()
     expect(screen.getByText('Puntaje NEWS2: 5')).toBeTruthy()
-    expect(screen.getByText('Banda de riesgo: Media')).toBeTruthy()
+    expect(bandLine().textContent).toBe('Banda de riesgo: Media')
     const table = screen.getByRole('table')
     const [, body] = within(table).getAllByRole('rowgroup')
     expect(within(body).getAllByRole('row')).toHaveLength(7)
@@ -444,7 +458,7 @@ describe('US-03 AC14 valid submit and the stored result', () => {
     fireEvent.click(submitButton())
 
     expect(await screen.findByText('Puntaje NEWS2: 11')).toBeTruthy()
-    expect(screen.getByText('Banda de riesgo: Alta')).toBeTruthy()
+    expect(bandLine().textContent).toBe('Banda de riesgo: Alta')
   })
 
   it('AC14 "Registrar otra lectura" clears the form and shows it again', async () => {
@@ -793,7 +807,7 @@ describe('US-03 AC20 English switch keeps typed values and the result', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: 'Reading saved' })).toBeTruthy()
     expect(screen.getByText('NEWS2 score: 5')).toBeTruthy()
-    expect(screen.getByText('Risk band: Medium')).toBeTruthy()
+    expect(bandLine('Risk band:').textContent).toBe('Risk band: Medium')
     expect(screen.getByText('Respiratory rate (breaths/min)')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Record another reading' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Back to the patient' })).toBeTruthy()
@@ -807,5 +821,227 @@ describe('US-03 AC20 English switch keeps typed values and the result', () => {
 
     expect(screen.getByText('Only nurses can record vital signs.')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Back to the patient' })).toBeTruthy()
+  })
+})
+
+// Change request 2026-11-20 (AC22, AC23, FR-024, FR-025): 422 problems with ctx show the accepted
+// rule; missing or malformed ctx falls back to the generic message; no typed value is ever shown.
+describe('US-03 AC22 422 messages with the accepted rule', () => {
+  const ES_RANGE_SPO2 = 'Debe estar entre 0 y 100 %.'
+  const EN_RANGE_SPO2 = 'Must be between 0 and 100 %.'
+  const ES_RANGE_TEMP = 'Debe estar entre 25,0 y 45,0 °C.'
+  const EN_RANGE_TEMP = 'Must be between 25.0 and 45.0 °C.'
+  const ES_DECIMALS = 'Usa máximo un decimal.'
+  const EN_DECIMALS = 'Use at most one decimal.'
+  const ES_ALLOWED = 'Elige uno de: A, C, V, P, U.'
+  const EN_ALLOWED = 'Choose one of: A, C, V, P, U.'
+  const EN_REJECTED = 'Value not accepted. Check it.'
+
+  function answer422(...detail) {
+    return vi.fn(async () => jsonResponse({ detail }, 422))
+  }
+  function problem(field, type, ctx) {
+    const p = { type, loc: ['body', field], msg: 'QQ-SECRET server text' }
+    if (ctx !== undefined) p.ctx = ctx
+    return p
+  }
+  async function submitWith(readings, values) {
+    await openPage({ readings })
+    fill(values)
+    fireEvent.click(submitButton())
+    await waitFor(() => expect(readings).toHaveBeenCalledTimes(1))
+    await act(async () => {})
+  }
+  function errorTexts() {
+    return [...document.querySelectorAll('[id^="reading-"][id$="-error"]')].map((el) => el.textContent)
+  }
+
+  it('AC22 spo2 out_of_range with ctx shows "Debe estar entre 0 y 100 %." and, after switching, "Must be between 0 and 100 %."', async () => {
+    const readings = answer422(problem('spo2', 'out_of_range', { min: 0, max: 100 }))
+    await submitWith(readings, { spo2: '150' })
+
+    expect(describedText(input('spo2'))).toBe(ES_RANGE_SPO2)
+    expect(input('spo2').getAttribute('aria-invalid')).toBe('true')
+    expect(screen.queryByRole('alert')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+
+    expect(describedText(input('spo2', EN_LABELS))).toBe(EN_RANGE_SPO2)
+    expect(input('spo2', EN_LABELS).value).toBe('150')
+  })
+
+  it('AC22 AC23 temperature out_of_range ctx shows "entre 25,0 y 45,0 °C" in Spanish and dots in English', async () => {
+    const readings = answer422(problem('temperature', 'out_of_range', { min: '25.0', max: '45.0' }))
+    await submitWith(readings, { temperature: '46,5' })
+
+    expect(describedText(input('temperature'))).toBe(ES_RANGE_TEMP)
+    expect(describedText(input('temperature'))).toContain('entre 25,0 y 45,0 °C')
+
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+
+    expect(describedText(input('temperature', EN_LABELS))).toBe(EN_RANGE_TEMP)
+  })
+
+  it('AC22 too_many_decimals with ctx {decimals: 1} shows "Usa máximo un decimal." and the English text', async () => {
+    const readings = answer422(problem('temperature', 'too_many_decimals', { decimals: 1 }))
+    await submitWith(readings)
+
+    expect(describedText(input('temperature'))).toBe(ES_DECIMALS)
+
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+
+    expect(describedText(input('temperature', EN_LABELS))).toBe(EN_DECIMALS)
+  })
+
+  it('AC22 not_allowed with ctx allowed shows "Elige uno de: A, C, V, P, U." next to consciousness', async () => {
+    const readings = answer422(problem('consciousness', 'not_allowed', { allowed: ['A', 'C', 'V', 'P', 'U'] }))
+    await submitWith(readings)
+
+    expect(describedText(group('consciousness'))).toBe(ES_ALLOWED)
+    expect(group('consciousness').getAttribute('aria-invalid')).toBe('true')
+
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+
+    expect(describedText(group('consciousness', EN_LABELS))).toBe(EN_ALLOWED)
+  })
+
+  it('AC22 missing still shows "Campo obligatorio."', async () => {
+    const readings = answer422(problem('heart_rate', 'missing'))
+    await submitWith(readings)
+
+    expect(describedText(input('heart_rate'))).toBe(ES_REQUIRED)
+  })
+
+  it('AC22 several problems with ctx each show their own rule', async () => {
+    const readings = answer422(
+      problem('spo2', 'out_of_range', { min: 0, max: 100 }),
+      problem('temperature', 'too_many_decimals', { decimals: 1 }),
+      problem('consciousness', 'not_allowed', { allowed: ['A', 'C', 'V', 'P', 'U'] }),
+    )
+    await submitWith(readings)
+
+    expect(describedText(input('spo2'))).toBe(ES_RANGE_SPO2)
+    expect(describedText(input('temperature'))).toBe(ES_DECIMALS)
+    expect(describedText(group('consciousness'))).toBe(ES_ALLOWED)
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it.each([
+    ['out_of_range without ctx', 'spo2', 'out_of_range', undefined],
+    ['out_of_range with null ctx', 'spo2', 'out_of_range', null],
+    ['out_of_range with ctx as text', 'spo2', 'out_of_range', 'QQ-SECRET'],
+    ['out_of_range with only min', 'spo2', 'out_of_range', { min: 0 }],
+    ['out_of_range with only max', 'spo2', 'out_of_range', { max: 100 }],
+    ['out_of_range with min as non-numeric text', 'spo2', 'out_of_range', { min: 'QQ-SECRET', max: 100 }],
+    ['out_of_range with max as markup text', 'spo2', 'out_of_range', { min: 0, max: '<b>x</b>' }],
+    ['out_of_range with min as "NaN"', 'spo2', 'out_of_range', { min: 'NaN', max: 100 }],
+    ['out_of_range with min as an object', 'spo2', 'out_of_range', { min: { v: 1 }, max: 100 }],
+    ['out_of_range with min as a boolean', 'spo2', 'out_of_range', { min: true, max: 100 }],
+    ['out_of_range with min as an array', 'spo2', 'out_of_range', { min: [0], max: 100 }],
+    ['too_many_decimals without ctx', 'temperature', 'too_many_decimals', undefined],
+    ['too_many_decimals with an empty ctx', 'temperature', 'too_many_decimals', {}],
+    ['too_many_decimals with non-integer decimals', 'temperature', 'too_many_decimals', { decimals: 1.5 }],
+    ['too_many_decimals with negative decimals', 'temperature', 'too_many_decimals', { decimals: -1 }],
+    ['too_many_decimals with decimals as text', 'temperature', 'too_many_decimals', { decimals: '1' }],
+    ['not_allowed without ctx', 'consciousness', 'not_allowed', undefined],
+    ['not_allowed with allowed as text', 'consciousness', 'not_allowed', { allowed: 'A, C' }],
+    ['not_allowed with an empty allowed', 'consciousness', 'not_allowed', { allowed: [] }],
+    ['not_allowed with an item that is not a plain code', 'consciousness', 'not_allowed', { allowed: ['A', '<b>QQ-SECRET</b>'] }],
+    ['not_allowed with a non-text item', 'consciousness', 'not_allowed', { allowed: ['A', 5] }],
+    ['wrong_type even with a ctx', 'spo2', 'wrong_type', { min: 0, max: 100 }],
+    ['an unknown reason type', 'spo2', 'QQ-SECRET-type', undefined],
+  ])('AC22 %s shows "Valor no aceptado. Revisa el dato."', async (_label, field, type, ctx) => {
+    const readings = answer422(problem(field, type, ctx))
+    await submitWith(readings)
+
+    const element = field === 'consciousness' ? group(field) : input(field)
+    expect(describedText(element)).toBe(ES_REJECTED)
+    expect(document.body.textContent).not.toContain('QQ-SECRET')
+    expect(document.body.textContent).not.toContain('<b>')
+    expect(document.querySelector('form b')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('AC22 the generic message switches to English ("Value not accepted. Check it.")', async () => {
+    const readings = answer422(problem('spo2', 'out_of_range', { min: 'QQ-SECRET', max: 100 }))
+    await submitWith(readings)
+
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+
+    expect(describedText(input('spo2', EN_LABELS))).toBe(EN_REJECTED)
+  })
+
+  it('AC22 the typed value 150 never appears in any message or alert, in either language', async () => {
+    // 150 differs from both limits; the server also sends it in msg and input, which must be ignored.
+    const readings = answer422(
+      { type: 'out_of_range', loc: ['body', 'spo2'], msg: 'got 150', input: 150, ctx: { min: 0, max: 100 } },
+      { type: 'unknown', loc: ['body', 'extra'], msg: 'value 150 rejected', input: 150 },
+    )
+    await submitWith(readings, { spo2: '150' })
+
+    expect(describedText(input('spo2'))).toBe(ES_RANGE_SPO2)
+    const alert = screen.getByRole('alert')
+    expect(alert.textContent).toBe(ES_ERROR_INVALID)
+    for (const text of [...errorTexts(), alert.textContent]) expect(text).not.toContain('150')
+    // The only place 150 appears is the input the nurse typed into.
+    expect(document.body.textContent).not.toContain('150')
+    expect(input('spo2').value).toBe('150')
+
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+
+    expect(describedText(input('spo2', EN_LABELS))).toBe(EN_RANGE_SPO2)
+    for (const text of [...errorTexts(), screen.getByRole('alert').textContent]) expect(text).not.toContain('150')
+    expect(document.body.textContent).not.toContain('150')
+  })
+
+  it('AC22 the field message icon is decorative (svg aria-hidden)', async () => {
+    const readings = answer422(problem('spo2', 'out_of_range', { min: 0, max: 100 }))
+    await submitWith(readings)
+
+    const error = document.getElementById(input('spo2').getAttribute('aria-describedby'))
+    const svg = error.querySelector('svg')
+    expect(svg).toBeTruthy()
+    expect(svg.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('AC22 correcting the field clears the rule message', async () => {
+    const readings = answer422(problem('spo2', 'out_of_range', { min: 0, max: 100 }))
+    await submitWith(readings, { spo2: '150' })
+    expect(describedText(input('spo2'))).toBe(ES_RANGE_SPO2)
+
+    fireEvent.change(input('spo2'), { target: { value: '95' } })
+
+    expect(screen.queryByText(ES_RANGE_SPO2)).toBeNull()
+    expect(input('spo2').getAttribute('aria-invalid')).toBeNull()
+  })
+})
+
+describe('US-03 AC21 AC23 result badge and number format on the page', () => {
+  it('AC21 the result shows the band as a badge "Media" with an aria-hidden svg', async () => {
+    const readings = vi.fn(async () => jsonResponse(EXAMPLE_READING, 201))
+    await openPage({ readings })
+    fill()
+    fireEvent.click(submitButton())
+    await screen.findByRole('heading', { level: 2, name: ES_RESULT_TITLE })
+
+    const badge = within(bandLine()).getByText('Media').parentElement
+    expect(badge.querySelectorAll('svg')).toHaveLength(1)
+    expect(badge.querySelector('svg').getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('AC23 the temperature row shows "38,4" / "38,1–39,0" in Spanish and "38.4" / "38.1–39.0" in English', async () => {
+    const readings = vi.fn(async () => jsonResponse(EXAMPLE_READING, 201))
+    await openPage({ readings })
+    fill()
+    fireEvent.click(submitButton())
+    await screen.findByRole('heading', { level: 2, name: ES_RESULT_TITLE })
+
+    expect(within(screen.getByRole('table')).getByText('38,4')).toBeTruthy()
+    expect(within(screen.getByRole('table')).getByText('38,1–39,0')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+
+    expect(within(screen.getByRole('table')).getByText('38.4')).toBeTruthy()
+    expect(within(screen.getByRole('table')).getByText('38.1–39.0')).toBeTruthy()
   })
 })

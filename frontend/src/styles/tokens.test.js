@@ -64,6 +64,21 @@ describe('US-01 triage tile tokens (FR-018)', () => {
   }
 })
 
+// US-03 change request 2026-11-20 (AC21, FR-023): the two medium risk band tokens, exact values.
+const BAND_MEDIUM_COLORS = {
+  '--color-band-medium': '#EA580C',
+  '--color-band-medium-soft': '#FFEDD5',
+}
+
+describe('US-03 risk band medium tokens (AC21 / FR-023)', () => {
+  const tokens = readTokens()
+  for (const [name, value] of Object.entries(BAND_MEDIUM_COLORS)) {
+    it(`AC21 ${name} is ${value}`, () => {
+      expect(tokens.get(name)).toBe(value)
+    })
+  }
+})
+
 describe('TS-12 token guard (AC1)', () => {
   // AC1: the 13 spec colors have exactly the values listed in tokens.md.
   describe('the 13 spec colors have exactly their spec values', () => {

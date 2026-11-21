@@ -1,5 +1,5 @@
 /* Stored reading result (US-03). Design tokens only; see src/styles/tokens.css.
-   Score and band are plain text: no band colors (research R8). */
+   The band is shown by RiskBandBadge (change request 2026-11-20, research R10). */
 .result {
   display: grid;
   gap: var(--space-2);

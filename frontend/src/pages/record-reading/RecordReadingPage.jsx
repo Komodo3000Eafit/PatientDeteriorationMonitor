@@ -3,7 +3,8 @@
 // and the stored result is shown. Any other role sees a fixed message and a link back.
 // Contract: specs/017-vital-signs-scoring/contracts/ui.md. The frontend only checks that fields are
 // filled and well formed (no ranges) and never computes points, the NEWS2 score or the risk band.
-// Messages are kept as keys and values live in component state, so switching language keeps them.
+// Messages are kept as { key, params } and values live in component state, so switching language
+// keeps them and re-renders the text in the new language.
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { ApiError, apiPost } from '../../api/client.js'
@@ -12,6 +13,7 @@ import Button from '../../components/Button.jsx'
 import Card from '../../components/Card.jsx'
 import { OctagonXIcon } from '../../components/Icons.jsx'
 import { useLanguage } from '../../i18n/LanguageContext.jsx'
+import { formatDecimal } from '../../utils/formatNumber.js'
 import { isPatientCode } from '../../utils/patientCode.js'
 import NotFoundPage from '../not-found/NotFoundPage.jsx'
 import ReadingResult from './ReadingResult.jsx'
@@ -32,6 +34,9 @@ const YES_NO_OPTIONS = ['true', 'false']
 const CONSCIOUSNESS_CODES = ['A', 'C', 'V', 'P', 'U']
 const WHOLE_NUMBER_PATTERN = /^\d+$/
 const ONE_DECIMAL_PATTERN = /^\d+([.,]\d)?$/
+// Shapes accepted in a 422 `ctx`; anything else falls back to "value not accepted".
+const LIMIT_PATTERN = /^-?\d+(\.\d+)?$/
+const ALLOWED_PATTERN = /^[A-Za-z0-9_]+$/
 
 const EMPTY_VALUES = {
   respiratory_rate: '',
@@ -44,24 +49,52 @@ const EMPTY_VALUES = {
 }
 
 // Form-completeness and format checks only (no ranges, no clinical logic):
-// returns { field: messageKey } for each problem.
+// returns { field: { key } } for each problem.
 function checkFields(values) {
   const errors = {}
   for (const field of INTEGER_FIELDS) {
     const value = values[field].trim()
-    if (value === '') errors[field] = 'recordReading.required'
-    else if (!WHOLE_NUMBER_PATTERN.test(value)) errors[field] = 'recordReading.wholeNumber'
+    if (value === '') errors[field] = { key: 'recordReading.required' }
+    else if (!WHOLE_NUMBER_PATTERN.test(value)) errors[field] = { key: 'recordReading.wholeNumber' }
   }
-  if (values.on_oxygen === '') errors.on_oxygen = 'recordReading.required'
-  if (values.consciousness === '') errors.consciousness = 'recordReading.required'
+  if (values.on_oxygen === '') errors.on_oxygen = { key: 'recordReading.required' }
+  if (values.consciousness === '') errors.consciousness = { key: 'recordReading.required' }
   const temperature = values.temperature.trim()
-  if (temperature === '') errors.temperature = 'recordReading.required'
-  else if (!ONE_DECIMAL_PATTERN.test(temperature)) errors.temperature = 'recordReading.oneDecimal'
+  if (temperature === '') errors.temperature = { key: 'recordReading.required' }
+  else if (!ONE_DECIMAL_PATTERN.test(temperature)) errors.temperature = { key: 'recordReading.oneDecimal' }
   return errors
 }
 
-// Turns a failed answer into fixed message keys; never the server text or a submitted value.
-// Returns { fieldErrors, errorKey }.
+// A limit in ctx: a finite number or a plain numeric string such as "25.0".
+function isLimit(value) {
+  return (typeof value === 'number' && Number.isFinite(value)) || (typeof value === 'string' && LIMIT_PATTERN.test(value))
+}
+
+// One vital-sign problem as { key, params } (change request 2026-11-20). Only the accepted rule in
+// `ctx` is used, never the submitted value or the server text; numbers are formatted at render time.
+function messageForProblem(problem) {
+  const ctx = problem.ctx
+  if (problem.type === 'missing') return { key: 'recordReading.required' }
+  if (problem.type === 'out_of_range' && ctx && isLimit(ctx.min) && isLimit(ctx.max)) {
+    return { key: 'recordReading.rangeError', params: { min: ctx.min, max: ctx.max } }
+  }
+  if (problem.type === 'too_many_decimals' && ctx && Number.isInteger(ctx.decimals) && ctx.decimals >= 0) {
+    return { key: 'recordReading.decimalsError' }
+  }
+  if (
+    problem.type === 'not_allowed' &&
+    ctx &&
+    Array.isArray(ctx.allowed) &&
+    ctx.allowed.length > 0 &&
+    ctx.allowed.every((item) => typeof item === 'string' && ALLOWED_PATTERN.test(item))
+  ) {
+    return { key: 'recordReading.allowedError', params: { values: ctx.allowed.join(', ') } }
+  }
+  return { key: 'recordReading.valueRejected' }
+}
+
+// Turns a failed answer into fixed messages; never the server text or a submitted value.
+// Returns { fieldErrors, errorKey }; each field error is { key, params }.
 function errorsFor(err) {
   if (!(err instanceof ApiError)) return { fieldErrors: {}, errorKey: 'recordReading.errorFailed' }
   if (err.status === 422) {
@@ -70,7 +103,7 @@ function errorsFor(err) {
     for (const problem of err.detail ?? []) {
       const field = Array.isArray(problem?.loc) ? problem.loc[1] : undefined
       if (PARAMETER_CODES.includes(field)) {
-        fieldErrors[field] = problem.type === 'missing' ? 'recordReading.required' : 'recordReading.valueRejected'
+        fieldErrors[field] = messageForProblem(problem)
       } else {
         hasOtherProblem = true
       }
@@ -98,13 +131,22 @@ function toRequestBody(values) {
   }
 }
 
-function FieldError({ id, messageKey }) {
-  const { t } = useLanguage()
-  if (!messageKey) return null
+// Builds the text at render time, so a language switch re-renders it with the new separator and unit.
+function FieldError({ id, field, message }) {
+  const { lang, t } = useLanguage()
+  if (!message) return null
+  let params = message.params
+  if (message.key === 'recordReading.rangeError') {
+    params = {
+      min: formatDecimal(params.min, lang),
+      max: formatDecimal(params.max, lang),
+      unit: t('unit.' + field),
+    }
+  }
   return (
     <p id={id} className={styles.fieldError}>
       <OctagonXIcon />
-      <span>{t(messageKey)}</span>
+      <span>{t(message.key, params)}</span>
     </p>
   )
 }
@@ -212,7 +254,7 @@ export default function RecordReadingPage() {
           aria-describedby={hasError ? errorId(field) : undefined}
           onChange={(event) => setValue(field, event.target.value)}
         />
-        <FieldError id={errorId(field)} messageKey={fieldErrors[field]} />
+        <FieldError id={errorId(field)} field={field} message={fieldErrors[field]} />
       </div>
     )
   }
@@ -240,7 +282,7 @@ export default function RecordReadingPage() {
             </label>
           ))}
         </div>
-        <FieldError id={errorId(field)} messageKey={fieldErrors[field]} />
+        <FieldError id={errorId(field)} field={field} message={fieldErrors[field]} />
       </fieldset>
     )
   }

@@ -92,6 +92,20 @@ describe('US-01 triage tile contrast (AC7 / FR-018)', () => {
   })
 })
 
+// US-03 change request 2026-11-20 (AC21, FR-023): the medium risk band badge uses dark text on
+// band-medium-soft and a band-medium border and icon on that soft background.
+describe('US-03 risk band medium contrast (AC21 / FR-023)', () => {
+  it('AC21 text on band-medium-soft is at least 4.5:1', () => {
+    const ratio = contrastRatio(color('text'), color('band-medium-soft'))
+    expect(ratio, `text/band-medium-soft: ${ratio.toFixed(2)} < 4.5`).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('AC21 band-medium on band-medium-soft is at least 3:1', () => {
+    const ratio = contrastRatio(color('band-medium'), color('band-medium-soft'))
+    expect(ratio, `non-text/band-medium on band-medium-soft: ${ratio.toFixed(2)} < 3`).toBeGreaterThanOrEqual(3)
+  })
+})
+
 describe('static target-size and focus guards (AC11 / FR-015)', () => {
   const files = listSourceFiles()
   function fileText(relPath) {

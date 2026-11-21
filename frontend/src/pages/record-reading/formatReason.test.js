@@ -88,3 +88,35 @@ describe('US-03 AC14/AC20 formatValue', () => {
     expect(formatValue(entry('heart_rate', { value: 96 }), tEs)).toBe('96')
   })
 })
+
+// Change request 2026-11-20: numbers follow the decimal separator of the UI language.
+describe('US-03 AC23 formatReason / formatValue number format by language (FR-025)', () => {
+  const temperature = entry('temperature', { value: '38.4', points: 1, low: '38.1', high: '39.0' })
+
+  it('AC23 temperature reason is "38,1–39,0" in Spanish and "38.1–39.0" in English', () => {
+    expect(formatReason(temperature, tEs, 'es')).toBe('38,1–39,0')
+    expect(formatReason(temperature, tEn, 'en')).toBe('38.1–39.0')
+  })
+
+  it('AC23 temperature value is "38,4" in Spanish and "38.4" in English', () => {
+    expect(formatValue(temperature, tEs, 'es')).toBe('38,4')
+    expect(formatValue(temperature, tEn, 'en')).toBe('38.4')
+  })
+
+  it('AC23 one-sided decimal ranges use the language separator ("≤ 35,0", "≥ 39,1")', () => {
+    expect(formatReason(entry('temperature', { value: '34.0', points: 3, high: '35.0' }), tEs, 'es')).toBe('≤ 35,0')
+    expect(formatReason(entry('temperature', { value: '39.5', points: 2, low: '39.1' }), tEs, 'es')).toBe('≥ 39,1')
+    expect(formatReason(entry('temperature', { value: '34.0', points: 3, high: '35.0' }), tEn, 'en')).toBe('≤ 35.0')
+  })
+
+  it('AC23 whole-number ranges and values are unchanged in Spanish', () => {
+    expect(formatReason(entry('respiratory_rate', { value: 22, points: 2, low: 21, high: 24 }), tEs, 'es')).toBe('21–24')
+    expect(formatValue(entry('heart_rate', { value: 96 }), tEs, 'es')).toBe('96')
+  })
+
+  it('AC23 categories are not changed by the language separator', () => {
+    const e = entry('consciousness', { value: 'V', points: 3, category: ['C', 'V', 'P', 'U'] })
+    expect(formatReason(e, tEs, 'es')).toBe('C, V, P, U')
+    expect(formatValue(entry('consciousness', { value: 'A' }), tEs, 'es')).toBe('A — Alerta')
+  })
+})
