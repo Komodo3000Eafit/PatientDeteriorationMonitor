@@ -6,7 +6,7 @@
 //   registerPatient.button  'Registrar paciente'
 //   registerPatient.title   'Registrar paciente'
 //   registerPatient.name    'Nombre'
-//   patients.placeholder    'La lista de pacientes se mostrará aquí.'
+//   patients.title          'Pacientes'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { currentPath, renderApp } from '../../testing/renderApp.jsx'
@@ -22,7 +22,7 @@ import {
 
 const ES_BUTTON = 'Registrar paciente'
 const ES_NAME = 'Nombre'
-const ES_LIST_PLACEHOLDER = 'La lista de pacientes se mostrará aquí.'
+const ES_LIST_PLACEHOLDER = 'Pacientes'
 
 async function openList(user) {
   const fetchMock = stubBackend({ me: async () => jsonResponse(user) })
@@ -66,7 +66,7 @@ describe('US-01 AC11 Register patient button for nurses only', () => {
     expect(currentPath()).toBe('/patients/new')
     expect(screen.getByRole('heading', { level: 1, name: ES_BUTTON })).toBeTruthy()
     expect(screen.getByLabelText(ES_NAME)).toBeTruthy()
-    expect(callsTo(fetchMock, '/api/patients')).toHaveLength(0)
+    expect(callsTo(fetchMock, '/api/patients').filter(([, o]) => o?.method === 'POST')).toHaveLength(0)
   })
 
   it('AC11 doctor does not see the button', async () => {
