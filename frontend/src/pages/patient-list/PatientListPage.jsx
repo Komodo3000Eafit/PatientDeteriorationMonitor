@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getHealth } from '../../api/client.js'
 import Card from '../../components/Card.jsx'
 import { useLanguage } from '../../i18n/LanguageContext.jsx'
+import RegisterPatientButton from '../register-patient/RegisterPatientButton.jsx'
 
 export default function PatientListPage() {
   const { t } = useLanguage()
@@ -34,6 +35,7 @@ export default function PatientListPage() {
   return (
     <main>
       <h1>{t('app.title')}</h1>
+      <RegisterPatientButton />
       <Card title={t('patients.title')}>
         <p>{t('patients.placeholder')}</p>
       </Card>

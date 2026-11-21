@@ -25,7 +25,8 @@ export function resetSession() {
 }
 
 // Stubs the global fetch with a mock that answers by path. Each handler gets (url, options).
-export function stubBackend({ health, me, login } = {}) {
+// patients (US-01): optional handler for /api/patients; when not given that path answers 404 as before.
+export function stubBackend({ health, me, login, patients } = {}) {
   const routes = {
     '/health': health ?? (async () => jsonResponse({ status: 'ok', version: '0.1.0', database: 'ok' })),
     '/api/me': me ?? (async () => jsonResponse(DOCTOR)),
@@ -33,6 +34,7 @@ export function stubBackend({ health, me, login } = {}) {
       login ??
       (async () => jsonResponse({ access_token: 'test-token', token_type: 'bearer', expires_in: 28800 })),
   }
+  if (patients) routes['/api/patients'] = patients
   const mock = vi.fn(async (url, options) => {
     const handler = routes[new URL(url).pathname]
     return handler ? handler(url, options) : jsonResponse({}, 404)

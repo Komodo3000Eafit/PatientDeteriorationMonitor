@@ -76,6 +76,22 @@ describe('meaningful non-text contrast >= 3:1 (AC10 / FR-013)', () => {
   })
 })
 
+// US-01 (AC7, FR-018): the five triage tiles use dark text on a soft background and a solid
+// border/check icon in the level color, drawn on the white page.
+describe('US-01 triage tile contrast (AC7 / FR-018)', () => {
+  const levels = [1, 2, 3, 4, 5]
+
+  it.each(levels)('text on triage-%i-soft is at least 4.5:1', (level) => {
+    const ratio = contrastRatio(color('text'), color(`triage-${level}-soft`))
+    expect(ratio, `text/triage-${level}-soft: ${ratio.toFixed(2)} < 4.5`).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it.each(levels)('triage-%i on bg is at least 3:1', (level) => {
+    const ratio = contrastRatio(color(`triage-${level}`), color('bg'))
+    expect(ratio, `non-text/triage-${level} on bg: ${ratio.toFixed(2)} < 3`).toBeGreaterThanOrEqual(3)
+  })
+})
+
 describe('static target-size and focus guards (AC11 / FR-015)', () => {
   const files = listSourceFiles()
   function fileText(relPath) {

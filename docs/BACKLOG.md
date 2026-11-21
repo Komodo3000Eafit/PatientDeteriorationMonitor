@@ -31,7 +31,7 @@ Build these first, in order. Together they provide every resource the app needs.
 
 | ID | Story | Depends on | Spec | Status |
 |---|---|---|---|---|
-| US-01 | As a nurse, I want to register a triaged patient with their initial triage level, so that the system starts monitoring them | TS-03, TS-06 | | ⬜ |
+| US-01 | As a nurse, I want to register a triaged patient with their initial triage level, so that the system starts monitoring them | TS-03, TS-06, TS-12, TS-13 | [015-register-patient](../specs/015-register-patient/spec.md) | ✅ |
 | US-02 | As a nurse, I want a patient list showing each patient's current triage level and latest NEWS2 score, so that I see who needs attention first | TS-03, TS-06, TS-12, TS-13 | | ⬜ |
 | US-03 | As a nurse, I want each vital-signs reading to be saved and scored with the reason for each point, so that I understand the patient's risk | TS-07, TS-08 | | ⬜ |
 | US-04 | As a doctor, I want an alert suggesting re-triage to a more urgent level when a patient's NEWS2 risk band crosses the threshold, explaining why, so that I can decide sooner whether to change the triage level (the app never changes it on its own, D-41) | TS-07, TS-12 | | ⬜ |

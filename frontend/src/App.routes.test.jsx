@@ -437,17 +437,20 @@ describe('TS-13 AC10 browser navigation', () => {
   })
 })
 
-describe('TS-13 edge case: /patients/new before US-01', () => {
-  // Not AC11: this only shows today's behavior ('new' is not a valid patient code). It does NOT
-  // verify that a fixed route wins over /patients/:identifier; that relies on react-router's route
-  // ranking and is verified in US-01 (spec AC11, FR-014, contracts/routes.md).
-  it('edge case: signed in /patients/new shows the not-found page today', async () => {
+describe('US-01 AC13 /patients/new ranks above /patients/:identifier', () => {
+  // Replaces the TS-13 edge case that showed the not-found page before US-01 (tasks.md T009).
+  // Verifies react-router's route ranking: the fixed route wins over the dynamic one (D-45).
+  it('AC13 signed in /patients/new shows the registration page, not the detail or not-found page', async () => {
     const fetchMock = stubBackend()
     signInForTest()
     renderApp(['/patients/new'])
     await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
-    expectNotFoundPage()
     expect(currentPath()).toBe('/patients/new')
+    expect(screen.getByRole('heading', { level: 1, name: 'Registrar paciente' })).toBeTruthy()
+    expect(screen.queryByText(ES_NOT_FOUND)).toBeNull()
+    expect(screen.queryByText(ES_NOT_FOUND_MESSAGE)).toBeNull()
+    expect(screen.queryByText(ES_DETAIL_PLACEHOLDER)).toBeNull()
+    expect(screen.queryByText('Paciente new')).toBeNull()
   })
 })
