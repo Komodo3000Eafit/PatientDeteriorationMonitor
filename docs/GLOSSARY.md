@@ -72,17 +72,17 @@ Resolución 5596 de 2015 (Ministerio de Salud y Protección Social, Colombia), A
 | Code / API (English) | UI (Spanish) | Definition | Source |
 |---|---|---|---|
 | **reading** = one `VitalSign` row (`vital_signs` table); `VitalSigns` in the scoring module | — | **One set** of the seven parameters below for one patient at one time. Avoid: "vital sign reading", "vital signs set", "a vital sign" for the whole set. | `models.py`; `scoring/base.py`; `readings.py`; TS-03, TS-07 specs |
-| `recorded_at` | — | When the reading was taken. | `models.py` |
-| `respiratory_rate` | — | Breaths per minute. | `models.py`; `scoring/base.py` |
-| `spo2` | — | Oxygen saturation, % (0–100). | `models.py` |
-| `on_oxygen` | — | Whether the patient is on supplemental oxygen (yes/no). | `models.py`; TS-07 spec |
-| `systolic_bp` | — | Systolic blood pressure, mmHg. | `models.py` |
-| `heart_rate` | — | Beats per minute. | `models.py` |
-| `consciousness` | — | ACVPU code: `A` alert, `C` new confusion, `V` responds to voice, `P` responds to pain, `U` unresponsive. | `models.py`; TS-07 spec |
-| `temperature` | — | Body temperature, °C, one decimal. | `models.py` |
-| parameter | — | One of the seven vital signs above (`PARAMETERS`). | `scoring/base.py` |
+| `recorded_at` | — (shown as a local date-time in the result) | When the reading was taken: always the server's save time (US-03, never sent by the client). | `models.py`; US-03 |
+| `respiratory_rate` | "Frecuencia respiratoria (resp/min)" | Breaths per minute. English UI: "Respiratory rate (breaths/min)". | `models.py`; `scoring/base.py`; `translations.js` (`parameter.respiratory_rate`); US-03 |
+| `spo2` | "Saturación de oxígeno SpO2 (%)" | Oxygen saturation, % (0–100). English UI: "Oxygen saturation SpO2 (%)". | `models.py`; `translations.js` (`parameter.spo2`); US-03 |
+| `on_oxygen` | "Oxígeno suplementario" · Sí / No | Whether the patient is on supplemental oxygen (yes/no). English UI: "Supplemental oxygen" · Yes / No (`yesNo.*`). | `models.py`; TS-07 spec; `translations.js` (`parameter.on_oxygen`, `yesNo.*`); US-03 |
+| `systolic_bp` | "Presión arterial sistólica (mmHg)" | Systolic blood pressure, mmHg. English UI: "Systolic blood pressure (mmHg)". | `models.py`; `translations.js` (`parameter.systolic_bp`); US-03 |
+| `heart_rate` | "Frecuencia cardiaca (lpm)" | Beats per minute. English UI: "Heart rate (bpm)". | `models.py`; `translations.js` (`parameter.heart_rate`); US-03 |
+| `consciousness` | "Nivel de conciencia (ACVPU)" · A — Alerta · C — Confusión nueva · V — Responde a la voz · P — Responde al dolor · U — No responde | ACVPU code: `A` alert, `C` new confusion, `V` responds to voice, `P` responds to pain, `U` unresponsive. English UI: "Level of consciousness (ACVPU)" · Alert · New confusion · Responds to voice · Responds to pain · Unresponsive (`consciousness.*`). | `models.py`; TS-07 spec; `translations.js` (`parameter.consciousness`, `consciousness.*`); US-03 |
+| `temperature` | "Temperatura (°C)" | Body temperature, °C, one decimal. The API returns it as a one-decimal string (`"37.0"`). | `models.py`; `translations.js` (`parameter.temperature`); US-03 |
+| parameter | "Parámetro" (result table header) | One of the seven vital signs above (`PARAMETERS`). English UI: "Parameter". | `scoring/base.py`; `translations.js` (`recordReading.parameter`); US-03 |
 | `ACCEPTED_LIMITS` | — | The input limits every API story validates against (single source). | `scoring/limits.py`; D-36 |
-| `record_reading` | — | The only function that saves a reading (US-03 extends it to score it). | `readings.py`; D-37 |
+| `record_reading` | — | The only function that saves a reading; since US-03 it also scores the reading and stores its **stored score** in the same transaction. | `readings.py`; D-37; D-50 |
 | simulator | — | Hand-run command that saves synthetic readings every 5 minutes (15 s in demo mode). | `simulator.py`; D-37 |
 | scenario | — | How a demo patient's vitals evolve: `stable`, `slow` (slow deterioration) or `rapid` (rapid deterioration). | `simulator.py`; TS-08 |
 | round / step | — | Round: one reading for every active patient. Step: a patient's number of saved readings. | TS-08 contract |
@@ -97,10 +97,11 @@ Resolución 5596 de 2015 (Ministerio de Salud y Protección Social, Colombia), A
 | NEWS2 / `News2` | — | National Early Warning Score 2 (RCP, 2017), SpO2 Scale 1 only. The current scoring system; its rules live only in `scoring/news2.py`. | `scoring/news2.py`; D-08 |
 | `ScoreResult` | — | Result of scoring one reading: `system`, `total`, `band`, `parameters`. | `scoring/base.py` |
 | `system` | — | Name of the scoring system that produced the result, e.g. `NEWS2`. | `scoring/base.py` |
-| **NEWS2 score** = `ScoreResult.total`, `triage_events.score` | — | Sum of the points of all parameters for one reading. Avoid: "total" in prose, a bare "score". | `scoring/base.py`; `models.py`; BACKLOG |
-| **risk band** = `ScoreResult.band` (`RISK_BANDS`) | — | NEWS2 risk from the score, four values: `low`, `low-medium`, `medium`, `high`. **Not the same concept as alert severity** (§4); US-04 defines the mapping. Avoid: "risk level", "band" in prose. | `scoring/base.py`; `news2.py` |
-| `ParameterScore` (explanation entry) | — | For one parameter: `value`, `points` and the matched range (`low`/`high`) or `category`. This is "the reason for each point". | `scoring/base.py`; US-03 |
-| points | — | Points one parameter adds to the total (0–3). | `scoring/base.py` |
+| **NEWS2 score** = `ScoreResult.total`, `triage_events.score`, `reading_scores.total` (API `score.total`) | "Puntaje NEWS2" | Sum of the points of all parameters for one reading. Avoid: "total" in prose, a bare "score". | `scoring/base.py`; `models.py`; BACKLOG |
+| **risk band** = `ScoreResult.band` (`RISK_BANDS`), `reading_scores.band` (API `score.band`) | "Banda de riesgo": Baja · Baja-media · Media · Alta | NEWS2 risk from the score, four values: `low`, `low-medium`, `medium`, `high`. **Not the same concept as alert severity** (§4); US-04 defines the mapping. Shown as a text label, never by color alone. English UI: "Risk band": Low · Low-medium · Medium · High (`riskBand.*`). Avoid: "risk level", "band" in prose. | `scoring/base.py`; `news2.py`; `translations.js` (`recordReading.band`, `riskBand.*`); US-03 |
+| **stored score** = `ReadingScore` / `reading_scores` (API `score`) | — (shown as "Puntaje NEWS2" and "Banda de riesgo") | The stored result of scoring one reading, **exactly one per reading**, saved with it by `record_reading`: `system`, `total` (NEWS2 score), `band` (risk band) and `entries` (the seven explanation entries). Later stories read it and never recompute it. | `models.py`; `readings.py`; US-03; D-50 |
+| `ParameterScore` (**explanation entry**; stored in `entries` with keys `parameter`, `value`, `points`, `low`, `high`, `category`) | "Motivo" (the reason column): "21–24", "≤ 8", "≥ 25", "Sí" / "No", "C, V, P, U" | For one parameter: `value`, `points` and the matched range (`low`/`high`, inclusive, either may be open) or `category`. This is "the reason for each point". Stored as codes and numbers only (temperature as a one-decimal string); the frontend translates them. English UI: "Reason". | `scoring/base.py`; `readings.py` (`score_values`); `formatReason.js`; `translations.js` (`recordReading.reason`); US-03 |
+| points | "Puntos" | Points one parameter adds to the total (0–3). English UI: "Points". | `scoring/base.py`; `translations.js` (`recordReading.points`) |
 | `InvalidVitalSigns` / `Problem` | — | Validation error for a reading; each problem has `parameter` and `reason` (`missing`, `unknown`, `wrong_type`, `out_of_range`, `too_many_decimals`, `not_allowed`). Never holds the input value. | `scoring/base.py` |
 | **deterioration prediction** | — | The project's prediction: a simple rule, the NEWS2 score rising across the last 3 readings. No machine learning. Avoid: "worsening trend", "trend rule". | constitution; D-25; US-08 |
 
@@ -123,6 +124,8 @@ Resolución 5596 de 2015 (Ministerio de Salud y Protección Social, Colombia), A
 | **not-found page** = `NotFoundPage` | "Página no encontrada" | Shown for any address the app does not know, or a patient detail address whose code is not in the patient code format. | `translations.js` (`notFound.*`); TS-13 |
 | **registration page** = `RegisterPatientPage` | "Registrar paciente" (title) · "Solo el personal de enfermería puede registrar pacientes." (other roles) | The page at `/patients/new` where a nurse registers a patient (ranks above `/patients/:identifier`). Any other signed-in role sees the nurses-only message and a link back, no form. English: "Only nurses can register patients." | `translations.js` (`registerPatient.*`); US-01 |
 | **triage level tile** | "Triage I" … "Triage V" (`triageLevel.1`–`triageLevel.5`), the label only, once, centered | One of the five selectable options of the triage level choice on the registration page, always in one row of five equal columns in severity order I → V. A native radio input styled as a tile: soft background `--color-triage-N-soft`, solid border `--color-triage-N`, dark text; the selected tile has a thicker border and a check icon. Color is never the only cue: the label is always shown (D-48). | `RegisterPatientPage.jsx`; `tokens.css`; US-01; D-48 |
+| **reading entry page** = `RecordReadingPage` | "Registrar signos vitales · {code}" (title) · "Guardar lectura" (submit) · "Lectura guardada" (result) · "Solo el personal de enfermería puede registrar signos vitales." (other roles) | The page at `/patients/:identifier/readings/new` where a nurse enters one reading and sees its stored score with the reason for every point (ranks above `/patients/:identifier`). Any other signed-in role sees the nurses-only message and a link back, no form. English: "Record vital signs · {code}" · "Save reading" · "Reading saved" · "Only nurses can record vital signs." | `translations.js` (`recordReading.*`); US-03 |
+| **record vital signs** button = `RecordReadingButton` | "Registrar signos vitales" | Nurse-only button on the patient detail page that opens the reading entry page. English: "Record vital signs". | `translations.js` (`recordReading.button`); US-03 |
 | **page address** = route (`<Route path>`) | — (not shown as a term) | The browser path of a page, e.g. `/patients/PAT-001`. Only the patient code may appear in one; never under `/api` or equal to `/health`. Avoid: "URL" in UI text. | `App.jsx`; TS-13 contract `routes.md` |
 
 ---

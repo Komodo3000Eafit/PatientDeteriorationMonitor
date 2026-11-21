@@ -15,11 +15,23 @@ export const API_BASE_URL =
 export const REQUEST_TIMEOUT_MS = 10000
 
 // Non-2xx answer from the backend. The message never includes the response text.
+// detail: the 422 problem list, never shown as text (null for any other answer).
 export class ApiError extends Error {
-  constructor(status) {
+  constructor(status, detail = null) {
     super(`HTTP ${status}`)
     this.name = 'ApiError'
     this.status = status
+    this.detail = detail
+  }
+}
+
+// The parsed `detail` array of a 422 answer, or null when it is missing or not valid JSON.
+async function readProblemList(response) {
+  try {
+    const detail = (await response.json())?.detail
+    return Array.isArray(detail) ? detail : null
+  } catch {
+    return null
   }
 }
 
@@ -59,7 +71,10 @@ async function request(method, path, { body, token } = {}) {
       clearSession()
       unauthorizedHandler?.()
     }
-    if (!response.ok) throw new ApiError(response.status)
+    if (!response.ok) {
+      const detail = response.status === 422 ? await readProblemList(response) : null
+      throw new ApiError(response.status, detail)
+    }
     return await response.json()
   } finally {
     clearTimeout(timer)

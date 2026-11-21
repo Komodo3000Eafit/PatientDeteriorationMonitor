@@ -5,7 +5,8 @@ specs/008-vital-signs-simulator/spec.md and contracts/commands.md §1: the comma
 creates the six synthetic demo patients PAT-001 to PAT-006 with one initial
 triage event each, leaves existing ones unchanged on a re-run, and --reset
 (confirmed) touches only those six exact identifiers; an unconfirmed reset
-changes nothing and never opens the database. Uses an in-memory SQLite database
+changes nothing and never opens the database. US-03 AC6 (FR-004): the reset
+also deletes the demo patients' stored scores. Uses an in-memory SQLite database
 and synthetic data only; no real database and no network.
 """
 
@@ -14,11 +15,13 @@ import sqlite3
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import create_engine, func, select
+from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.orm import Session
 
 import app.demo_patients as demo
-from app.models import Alert, Base, Patient, TriageEvent, VitalSign
+from app.models import Alert, Base, Patient, ReadingScore, TriageEvent, VitalSign
+from app.readings import record_reading
+from app.scoring import VitalSigns
 from app.simulator import SCENARIOS
 
 
@@ -217,6 +220,76 @@ def test_reset_only_the_six(use_engine, capsys):
             assert _count(session, TriageEvent, pid) == 1
             assert _count(session, Alert, pid) == 1
         assert _count(session, Patient) == 8
+
+
+def _vitals() -> VitalSigns:
+    """A synthetic valid reading (test data only)."""
+    return VitalSigns(18, 95, False, 118, 88, "A", Decimal("37.2"))
+
+
+def _score_count(session, patient_id) -> int:
+    return session.scalar(
+        select(func.count())
+        .select_from(ReadingScore)
+        .join(VitalSign, ReadingScore.vital_sign_id == VitalSign.id)
+        .where(VitalSign.patient_id == patient_id)
+    )
+
+
+@pytest.fixture
+def use_fk_engine(monkeypatch):
+    """A SQLite engine that enforces foreign keys (like PostgreSQL RESTRICT), used by the command."""
+    eng = create_engine("sqlite://")
+
+    @event.listens_for(eng, "connect")
+    def _enable_foreign_keys(dbapi_connection, _record):
+        dbapi_connection.execute("PRAGMA foreign_keys=ON")
+
+    Base.metadata.create_all(eng)
+    monkeypatch.setattr(demo, "database_url", lambda: "sqlite://")
+    monkeypatch.setattr(demo, "get_engine", lambda: eng)
+    yield eng
+    eng.dispose()
+
+
+def test_us03_ac6_reset_deletes_scores_with_readings(use_fk_engine, capsys):
+    """US-03 AC6, FR-004: with demo readings and stored scores, the reset succeeds (foreign keys enforced) and removes them; another patient's reading and score stay."""
+    use_engine = use_fk_engine
+    with Session(use_engine) as session:
+        demo.ensure_demo_patients(session)
+        other = Patient(
+            identifier="PAT-100", name="Synthetic Other Patient", age=30, sex="other",
+            triage_level=2, status="active",
+        )
+        session.add(other)
+        session.flush()
+        for patient in session.scalars(select(Patient)):
+            record_reading(session, patient.id, _vitals())
+        pat2 = _patient(session, "PAT-002")
+        record_reading(session, pat2.id, _vitals())
+        session.commit()
+        other_id = other.id
+        other_score_id = session.scalar(
+            select(ReadingScore.id)
+            .join(VitalSign, ReadingScore.vital_sign_id == VitalSign.id)
+            .where(VitalSign.patient_id == other_id)
+        )
+        assert session.scalar(select(func.count()).select_from(ReadingScore)) == 8
+
+    code = demo.main(["--reset", "--yes"])
+
+    out, err = capsys.readouterr()
+    assert code == 0
+    assert err == ""
+    assert _lines(out) == _expected_lines("reset")
+    with Session(use_engine) as session:
+        for patient in _check_demo_patients(session):
+            assert _count(session, VitalSign, patient.id) == 0
+            assert _score_count(session, patient.id) == 0
+        assert _count(session, VitalSign, other_id) == 1
+        assert _score_count(session, other_id) == 1
+        # No orphan scores remain: every stored score belongs to the other patient's reading.
+        assert session.scalars(select(ReadingScore.id)).all() == [other_score_id]
 
 
 def test_reset_creates_missing(use_engine, capsys):

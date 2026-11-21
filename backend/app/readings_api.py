@@ -1,0 +1,202 @@
+"""Enter and list readings with their stored scores (US-03). See specs/017-vital-signs-scoring/contracts/readings-api.md."""
+
+import logging
+import re
+from datetime import datetime
+from decimal import Decimal
+from typing import Any
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, StrictBool, StrictInt, StrictStr
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from app.auth import get_current_user
+from app.models import Patient, ReadingScore, User, VitalSign
+from app.patients import get_session
+from app.readings import record_reading
+from app.scoring import InvalidVitalSigns, vital_signs_from_mapping
+
+logger = logging.getLogger(__name__)
+
+PATIENT_CODE = re.compile(r"^[A-Z0-9-]{1,20}$")
+
+
+# --- Models -------------------------------------------------------------------
+# Strict types keep JSON types as stored: ``true`` stays a boolean and
+# ``"38.4"`` stays a string. No internal id is ever part of a response.
+
+
+class EntryResponse(BaseModel):
+    """One explanation entry of a stored score."""
+
+    parameter: str
+    value: StrictBool | StrictInt | StrictStr
+    points: int
+    low: StrictInt | StrictStr | None
+    high: StrictInt | StrictStr | None
+    category: list[StrictBool | StrictStr]
+
+
+class ScoreResponse(BaseModel):
+    """The stored score of one reading."""
+
+    system: str
+    total: int
+    band: str
+    entries: list[EntryResponse]
+
+
+class ReadingResponse(BaseModel):
+    """One reading with its stored score."""
+
+    recorded_at: datetime
+    respiratory_rate: int
+    spo2: int
+    on_oxygen: bool
+    systolic_bp: int
+    heart_rate: int
+    consciousness: str
+    temperature: str
+    score: ScoreResponse
+
+
+class ReadingListResponse(BaseModel):
+    """A patient's readings, newest first."""
+
+    readings: list[ReadingResponse]
+
+
+def to_response(vital_sign: VitalSign, score: ReadingScore) -> ReadingResponse:
+    """Build the API reading object from a stored reading and its stored score."""
+    return ReadingResponse(
+        recorded_at=vital_sign.recorded_at,
+        respiratory_rate=vital_sign.respiratory_rate,
+        spo2=vital_sign.spo2,
+        on_oxygen=vital_sign.on_oxygen,
+        systolic_bp=vital_sign.systolic_bp,
+        heart_rate=vital_sign.heart_rate,
+        consciousness=vital_sign.consciousness,
+        temperature=str(vital_sign.temperature.quantize(Decimal("0.1"))),
+        score=ScoreResponse(
+            system=score.system,
+            total=score.total,
+            band=score.band,
+            entries=[EntryResponse(**entry) for entry in score.entries],
+        ),
+    )
+
+
+# --- Dependencies and lookups -------------------------------------------------
+
+
+def require_nurse_recorder(user: User = Depends(get_current_user)) -> User:
+    """Return the signed-in user if they are a nurse; otherwise raise 403."""
+    if user.role != "nurse":
+        raise HTTPException(403, "Only nurses can record vital signs")
+    return user
+
+
+def find_patient(session: Session, identifier: str) -> Patient:
+    """Return the patient with this code, or raise 404.
+
+    A code that does not match ``PATIENT_CODE`` is rejected without a query.
+    """
+    if not PATIENT_CODE.match(identifier):
+        raise HTTPException(404, "Patient not found")
+    patient = session.scalars(
+        select(Patient).where(Patient.identifier == identifier)
+    ).first()
+    if patient is None:
+        raise HTTPException(404, "Patient not found")
+    return patient
+
+
+# --- Routes -------------------------------------------------------------------
+
+router = APIRouter()
+
+
+@router.post(
+    "/patients/{identifier}/readings",
+    status_code=201,
+    response_model=ReadingResponse,
+)
+def create_reading(
+    identifier: str,
+    body: dict[str, Any] = Body(...),
+    user: User = Depends(require_nurse_recorder),
+    session: Session = Depends(get_session),
+):
+    """Save and score one reading for an active patient (nurses only).
+
+    Order: 404 (patient) → 409 (discharged) → 422 (vital signs) → 201. The
+    reading and its score are committed together. Submitted values are never
+    logged or returned in an error.
+    """
+    try:
+        patient = find_patient(session, identifier)
+        if patient.status == "discharged":
+            raise HTTPException(409, "Patient is discharged")
+        try:
+            vitals = vital_signs_from_mapping(body)
+        except InvalidVitalSigns as exc:
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "detail": [
+                        {
+                            "type": problem.reason,
+                            "loc": ["body", problem.parameter],
+                            "msg": "Invalid value",
+                        }
+                        for problem in exc.problems
+                    ]
+                },
+            )
+        row = record_reading(session, patient.id, vitals)
+        # Load the server-default ``recorded_at`` (not loaded by flush).
+        session.refresh(row)
+        score = session.scalars(
+            select(ReadingScore).where(ReadingScore.vital_sign_id == row.id)
+        ).one()
+        # Built before commit: once the commit succeeds nothing else can fail,
+        # so a saved reading never gets a 503 (no duplicate re-entry).
+        response = to_response(row, score)
+        session.commit()
+        return response
+    except SQLAlchemyError as exc:
+        session.rollback()
+        logger.warning("Reading save failed (%s)", type(exc).__name__)
+        raise HTTPException(503, "Service unavailable")
+
+
+@router.get("/patients/{identifier}/readings", response_model=ReadingListResponse)
+def list_readings(
+    identifier: str,
+    limit: int = Query(50, ge=1, le=200),
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Return a patient's readings with their stored scores, newest first.
+
+    Any signed-in user; any patient status. Scores are read, never recomputed.
+    """
+    try:
+        patient = find_patient(session, identifier)
+        rows = session.execute(
+            select(VitalSign, ReadingScore)
+            .join(ReadingScore, ReadingScore.vital_sign_id == VitalSign.id)
+            .where(VitalSign.patient_id == patient.id)
+            .order_by(VitalSign.recorded_at.desc(), VitalSign.id.desc())
+            .limit(limit)
+        ).all()
+        return ReadingListResponse(
+            readings=[to_response(vital_sign, score) for vital_sign, score in rows]
+        )
+    except SQLAlchemyError as exc:
+        session.rollback()
+        logger.warning("Reading list failed (%s)", type(exc).__name__)
+        raise HTTPException(503, "Service unavailable")

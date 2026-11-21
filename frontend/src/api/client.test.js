@@ -236,3 +236,52 @@ describe('TS-06 api client sign-in', () => {
     expect(getSession()).toBeNull()
   })
 })
+
+// US-03 (contracts/ui.md "Errors after sending"): ApiError.detail holds the parsed 422 problem
+// list so the entry page can map it to fields (AC15); every other answer gives null. The message
+// stays "HTTP <status>" and never carries the server text.
+describe('US-03 ApiError.detail', () => {
+  it('AC15 a 422 with {detail:[...]} gives err.detail equal to the array', async () => {
+    const problems = [{ type: 'out_of_range', loc: ['body', 'spo2'], msg: 'Invalid value' }]
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({ detail: problems }, 422)))
+
+    const error = await apiPost('/api/patients/PAT-001/readings', {}).catch((err) => err)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error.status).toBe(422)
+    expect(error.detail).toEqual(problems)
+    expect(error.message).toBe('HTTP 422')
+  })
+
+  it('AC15 a 422 whose body is not valid JSON gives detail null', async () => {
+    const response = {
+      ok: false,
+      status: 422,
+      json: async () => {
+        throw new SyntaxError('Unexpected token')
+      },
+    }
+    vi.stubGlobal('fetch', vi.fn(async () => response))
+
+    const error = await apiPost('/api/patients/PAT-001/readings', {}).catch((err) => err)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error.status).toBe(422)
+    expect(error.detail).toBeNull()
+    expect(error.message).toBe('HTTP 422')
+  })
+
+  it('AC16 a 500 gives detail null even when the body has a detail', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ detail: [{ type: 'x', loc: ['body', 'spo2'] }] }, 500)),
+    )
+
+    const error = await apiPost('/api/patients/PAT-001/readings', {}).catch((err) => err)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error.status).toBe(500)
+    expect(error.detail).toBeNull()
+    expect(error.message).toBe('HTTP 500')
+  })
+})

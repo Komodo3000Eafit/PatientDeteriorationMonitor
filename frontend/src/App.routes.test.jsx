@@ -454,3 +454,55 @@ describe('US-01 AC13 /patients/new ranks above /patients/:identifier', () => {
     expect(screen.queryByText('Paciente new')).toBeNull()
   })
 })
+
+describe('US-03 AC18 /patients/:identifier/readings/new address ranking', () => {
+  const ES_READING_TITLE = 'Registrar signos vitales · PAT-001'
+
+  it('AC18 signed in /patients/PAT-001/readings/new shows the entry page, not detail or not-found', async () => {
+    const fetchMock = stubBackend()
+    signInForTest()
+    renderApp(['/patients/PAT-001/readings/new'])
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
+
+    expect(currentPath()).toBe('/patients/PAT-001/readings/new')
+    expect(screen.getByRole('heading', { level: 1, name: ES_READING_TITLE })).toBeTruthy()
+    expect(screen.queryByText(ES_NOT_FOUND)).toBeNull()
+    expect(screen.queryByText(ES_NOT_FOUND_MESSAGE)).toBeNull()
+    expect(screen.queryByText(ES_DETAIL_PLACEHOLDER)).toBeNull()
+    expect(screen.queryByText('Paciente PAT-001')).toBeNull()
+  })
+
+  it.each(['/patients/bad%20code/readings/new', '/patients/pat-001/readings/new'])(
+    'AC18 signed in %s (invalid patient code) shows the not-found page',
+    async (path) => {
+      const fetchMock = stubBackend()
+      signInForTest()
+      renderApp([path])
+      await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
+
+      expectNotFoundPage()
+      expect(currentPath()).toBe(path)
+      expect(screen.queryByText(/Registrar signos vitales/)).toBeNull()
+    },
+  )
+
+  it('AC18 /patients/PAT-001 still shows the detail page', async () => {
+    const fetchMock = stubBackend()
+    signInForTest()
+    renderApp(['/patients/PAT-001'])
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Paciente PAT-001' })).toBeTruthy()
+    expect(screen.getByText(ES_DETAIL_PLACEHOLDER)).toBeTruthy()
+  })
+
+  it('AC18 /patients/new still shows the registration page', async () => {
+    const fetchMock = stubBackend()
+    signInForTest()
+    renderApp(['/patients/new'])
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Registrar paciente' })).toBeTruthy()
+    expect(screen.queryByText(ES_NOT_FOUND)).toBeNull()
+  })
+})
