@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app import __version__
 from app import auth  # importing app.auth runs the AUTH_SECRET startup check
+from app import patient_list
 from app import patients
 from app import readings_api
 from app import retriage_api
@@ -60,6 +61,7 @@ def parse_cors_origins(value: str | None) -> list[str]:
 app = FastAPI(title="PatientDeteriorationMonitor API", version=__version__)
 app.include_router(auth.router, prefix="/api")
 app.include_router(patients.router, prefix="/api")
+app.include_router(patient_list.router, prefix="/api")
 app.include_router(readings_api.router, prefix="/api")
 app.include_router(retriage_api.router, prefix="/api")
 # Security headers run on every response, including CORS preflight and errors

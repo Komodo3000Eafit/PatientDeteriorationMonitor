@@ -1,0 +1,5 @@
+/* Patient list page (US-02 change request 2026-11-21): wider than the global main so all five
+   table columns fit on screens 1024 px wide or more. Contract: contracts/ui.md "Page width". */
+.page {
+  max-width: 64rem;
+}
