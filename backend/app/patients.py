@@ -1,6 +1,11 @@
-"""Register patients (US-01). See specs/015-register-patient/contracts/patients-api.md."""
+"""Register and read patients (US-01, US-05).
+
+See specs/015-register-patient/contracts/patients-api.md and
+specs/018-patient-detail/contracts/patient-detail-api.md.
+"""
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Annotated, Literal
 
@@ -12,13 +17,14 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.db import database_url, get_engine
-from app.models import Patient, TriageEvent, User
+from app.models import Patient, TriageEvent, User, VitalSign
 
 logger = logging.getLogger(__name__)
 
 INITIAL_REASON = "Initial triage at registration"
 FIRST_CODE_NUMBER = 7
 CODE_PREFIX = "PAT-"
+PATIENT_CODE = re.compile(r"^[A-Z0-9-]{1,20}$")
 
 
 # --- Models -------------------------------------------------------------------
@@ -49,6 +55,36 @@ class PatientResponse(BaseModel):
     admitted_at: datetime
 
 
+class PatientDetailResponse(BaseModel):
+    """Patient data plus the time of the most recent reading; no internal id, no monitoring_status."""
+
+    identifier: str
+    name: str
+    age: int
+    sex: str
+    triage_level: int
+    status: str
+    admitted_at: datetime
+    last_reading_at: datetime | None
+
+
+class TriageEventResponse(BaseModel):
+    """One triage event; no internal id, patient_id or created_by_id is ever returned."""
+
+    occurred_at: datetime
+    previous_level: int | None
+    new_level: int
+    score: int | None
+    reason: str
+    source: str
+
+
+class TriageEventListResponse(BaseModel):
+    """A patient's triage events, newest first."""
+
+    triage_events: list[TriageEventResponse]
+
+
 # --- Dependencies -------------------------------------------------------------
 
 
@@ -68,6 +104,21 @@ def require_nurse(user: User = Depends(get_current_user)) -> User:
     if user.role != "nurse":
         raise HTTPException(403, "Only nurses can register patients")
     return user
+
+
+def find_patient(session: Session, identifier: str) -> Patient:
+    """Return the patient with this code, or raise 404.
+
+    A code that does not match ``PATIENT_CODE`` is rejected without a query.
+    """
+    if not PATIENT_CODE.match(identifier):
+        raise HTTPException(404, "Patient not found")
+    patient = session.scalars(
+        select(Patient).where(Patient.identifier == identifier)
+    ).first()
+    if patient is None:
+        raise HTTPException(404, "Patient not found")
+    return patient
 
 
 # --- Logic --------------------------------------------------------------------
@@ -154,3 +205,80 @@ def create_patient(
     """
     patient = register_patient(session, body, user.id)
     return PatientResponse.model_validate(patient, from_attributes=True)
+
+
+@router.get("/patients/{identifier}", response_model=PatientDetailResponse)
+def get_patient(
+    identifier: str,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Return one patient's data plus the time of its most recent reading.
+
+    Any signed-in user (doctor or nurse). No ``monitoring_status`` is computed
+    and the internal ``id`` is never returned. An unknown or badly-formatted
+    code answers 404; a database error answers 503, logged by error type only.
+    """
+    try:
+        patient = find_patient(session, identifier)
+        last_reading_at = session.scalars(
+            select(VitalSign.recorded_at)
+            .where(VitalSign.patient_id == patient.id)
+            .order_by(VitalSign.recorded_at.desc(), VitalSign.id.desc())
+            .limit(1)
+        ).first()
+        return PatientDetailResponse(
+            identifier=patient.identifier,
+            name=patient.name,
+            age=patient.age,
+            sex=patient.sex,
+            triage_level=patient.triage_level,
+            status=patient.status,
+            admitted_at=patient.admitted_at,
+            last_reading_at=last_reading_at,
+        )
+    except SQLAlchemyError as exc:
+        session.rollback()
+        logger.warning("Patient detail failed (%s)", type(exc).__name__)
+        raise HTTPException(503, "Service unavailable")
+
+
+@router.get(
+    "/patients/{identifier}/triage-events",
+    response_model=TriageEventListResponse,
+)
+def list_triage_events(
+    identifier: str,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Return a patient's triage events newest-first (any signed-in user).
+
+    The internal ``id``, ``patient_id`` and ``created_by_id`` are never
+    returned. An unknown or badly-formatted code answers 404; a database error
+    answers 503, logged by error type only.
+    """
+    try:
+        patient = find_patient(session, identifier)
+        rows = session.scalars(
+            select(TriageEvent)
+            .where(TriageEvent.patient_id == patient.id)
+            .order_by(TriageEvent.occurred_at.desc(), TriageEvent.id.desc())
+        ).all()
+        return TriageEventListResponse(
+            triage_events=[
+                TriageEventResponse(
+                    occurred_at=e.occurred_at,
+                    previous_level=e.previous_level,
+                    new_level=e.new_level,
+                    score=e.score,
+                    reason=e.reason,
+                    source=e.source,
+                )
+                for e in rows
+            ]
+        )
+    except SQLAlchemyError as exc:
+        session.rollback()
+        logger.warning("Triage events failed (%s)", type(exc).__name__)
+        raise HTTPException(503, "Service unavailable")

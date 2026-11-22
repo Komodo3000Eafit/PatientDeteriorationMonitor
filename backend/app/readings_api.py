@@ -1,7 +1,6 @@
 """Enter and list readings with their stored scores (US-03). See specs/017-vital-signs-scoring/contracts/readings-api.md."""
 
 import logging
-import re
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
@@ -14,14 +13,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
-from app.models import Patient, ReadingScore, User, VitalSign
-from app.patients import get_session
+from app.models import ReadingScore, User, VitalSign
+from app.patients import PATIENT_CODE, find_patient, get_session
 from app.readings import record_reading
 from app.scoring import ACCEPTED_LIMITS, InvalidVitalSigns, vital_signs_from_mapping
 
 logger = logging.getLogger(__name__)
-
-PATIENT_CODE = re.compile(r"^[A-Z0-9-]{1,20}$")
 
 
 # --- Models -------------------------------------------------------------------
@@ -139,21 +136,6 @@ def require_nurse_recorder(user: User = Depends(get_current_user)) -> User:
     if user.role != "nurse":
         raise HTTPException(403, "Only nurses can record vital signs")
     return user
-
-
-def find_patient(session: Session, identifier: str) -> Patient:
-    """Return the patient with this code, or raise 404.
-
-    A code that does not match ``PATIENT_CODE`` is rejected without a query.
-    """
-    if not PATIENT_CODE.match(identifier):
-        raise HTTPException(404, "Patient not found")
-    patient = session.scalars(
-        select(Patient).where(Patient.identifier == identifier)
-    ).first()
-    if patient is None:
-        raise HTTPException(404, "Patient not found")
-    return patient
 
 
 # --- Routes -------------------------------------------------------------------

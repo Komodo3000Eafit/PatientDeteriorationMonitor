@@ -35,6 +35,7 @@ Build these first, in order. Together they provide every resource the app needs.
 | US-02 | As a nurse, I want a patient list showing each patient's current triage level and latest NEWS2 score, so that I see who needs attention first | TS-03, TS-06, TS-12, TS-13, US-01, US-03 | [016-patient-list](../specs/016-patient-list/spec.md) | ✅ |
 | US-03 | As a nurse, I want each vital-signs reading to be saved and scored with the reason for each point, so that I understand the patient's risk | TS-03, TS-06, TS-07, TS-08, TS-12, TS-13 | [017-vital-signs-scoring](../specs/017-vital-signs-scoring/spec.md) | ✅ |
 | US-04 | As a doctor, I want an alert suggesting re-triage to a more urgent level when a patient's NEWS2 risk band crosses the threshold, explaining why, so that I can decide sooner whether to change the triage level (the app never changes it on its own, D-41) | TS-07, TS-12 | [020-retriage-suggestion-alerts](../specs/020-retriage-suggestion-alerts/spec.md) | ✅ |
+| US-05 | As a doctor, I want a patient detail page with current vitals, NEWS2 score and triage history, so that I can review one patient at a glance | TS-03, TS-06, TS-12, TS-13 | [018-patient-detail](../specs/018-patient-detail/spec.md) | ✅ |
 | US-05 | As a doctor, I want a patient detail page with current vitals, NEWS2 score and triage history, so that I can review one patient at a glance | TS-03, TS-06, TS-12, TS-13 | | ⬜ |
 
 ## Functional stories (US): built with the team in the final session (5)

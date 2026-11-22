@@ -24,6 +24,44 @@ const ES_BACK = 'Volver a la lista de pacientes'
 const ES_EXPIRED = 'Tu sesión ha terminado. Inicia sesión de nuevo.'
 const ES_SIGNED_IN = 'Sesión iniciada'
 
+// US-05 replaced the detail-page placeholder with three loaded blocks. These route tests only
+// prove the detail route is reached and renders the detail page (not the placeholder text, which
+// no longer exists); they provide minimal patient / readings / triage-events handlers so the page
+// can load. The route-ranking and redirect assertions are unchanged.
+const ES_DETAIL_SECTION_PATIENT = 'Datos del paciente'
+const EN_DETAIL_SECTION_PATIENT = 'Patient data'
+const DETAIL_PATIENT = {
+  identifier: 'PAT-001',
+  name: 'Paciente de Prueba',
+  age: 57,
+  sex: 'male',
+  triage_level: 3,
+  status: 'active',
+  admitted_at: '2026-11-19T08:15:00.000000Z',
+  last_reading_at: null,
+}
+// A detail-page stub: a signed-in session plus the three read endpoints (no readings keeps it
+// small; the triage history always has the initial event).
+function detailHandlers() {
+  return {
+    patient: async () => jsonResponse(DETAIL_PATIENT),
+    readings: async () => jsonResponse({ readings: [] }),
+    triageEvents: async () =>
+      jsonResponse({
+        triage_events: [
+          {
+            occurred_at: '2026-11-19T08:15:00.000000Z',
+            previous_level: null,
+            new_level: 3,
+            score: null,
+            reason: 'Triage on admission',
+            source: 'initial',
+          },
+        ],
+      }),
+  }
+}
+
 function loginHeading() {
   return screen.queryByRole('heading', { name: ES_LOGIN })
 }
@@ -89,22 +127,24 @@ describe('TS-13 AC1 page addresses', () => {
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
   })
 
-  it('AC1 signed in /patients/PAT-001 shows the detail page (title, placeholder, back link)', async () => {
-    // Migrated for US-04 (tasks.md T012, the way US-01 migrated its TS-13 case): the detail page
-    // now mounts RecordReadingButton and RetriageSuggestion, which fetches the patient's
-    // suggestions on mount. An empty suggestions list keeps the detail page free of a load error
-    // (it shows retriage.none). The case still proves the detail route wins over not-found and the
-    // page holds its title, placeholder and back link; it no longer asserts an exact
-    // main.textContent or that only /me was called, because the mounted component fetches.
-    const fetchMock = stubBackend({ suggestions: async () => jsonResponse({ suggestions: [] }) })
+  it('AC1 signed in /patients/PAT-001 renders the detail route with the patient data and the suggestion component', async () => {
+    // US-05 replaced the placeholder with the loaded detail page (patient data block); US-04 mounts
+    // RetriageSuggestion, which fetches the patient's suggestions on mount. We stub both the detail
+    // handlers and an empty suggestions list, so the page loads its data and the suggestion
+    // component shows its "none" message instead of a load error. The case proves the detail route
+    // wins over not-found and the page renders the real detail content.
+    const fetchMock = stubBackend({
+      ...detailHandlers(),
+      suggestions: async () => jsonResponse({ suggestions: [] }),
+    })
     signInForTest()
     renderApp(['/patients/PAT-001'])
     await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     expect(currentPath()).toBe('/patients/PAT-001')
     expect(screen.getByRole('heading', { level: 1, name: 'Paciente PAT-001' })).toBeTruthy()
-    expect(screen.getByText(ES_DETAIL_PLACEHOLDER)).toBeTruthy()
-    expect(screen.getByRole('link', { name: ES_BACK }).getAttribute('href')).toBe('/patients')
+    // The detail page loaded its data (the patient data block appears), not the removed placeholder.
+    expect(await screen.findByText(ES_DETAIL_SECTION_PATIENT)).toBeTruthy()
     // The detail route won, not the not-found page.
     expect(screen.queryByText(ES_NOT_FOUND)).toBeNull()
     // The mounted suggestion component fetched the patient's suggestions on load.
@@ -332,13 +372,15 @@ describe('TS-13 edge case: trailing slash', () => {
   })
 
   it('edge case: /patients/PAT-001/ shows the patient detail', async () => {
-    const fetchMock = stubBackend()
+    const fetchMock = stubBackend(detailHandlers())
     signInForTest()
     renderApp(['/patients/PAT-001/'])
     await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     expect(screen.getByRole('heading', { level: 1, name: 'Paciente PAT-001' })).toBeTruthy()
-    expect(screen.getByText(ES_DETAIL_PLACEHOLDER)).toBeTruthy()
+    // The detail page rendered (not the not-found page).
+    expect(await screen.findByText(ES_DETAIL_SECTION_PATIENT)).toBeTruthy()
+    expect(screen.queryByText(ES_NOT_FOUND)).toBeNull()
   })
 })
 
@@ -385,17 +427,19 @@ describe('TS-13 AC9 language', () => {
   })
 
   it('AC9 /patients/PAT-001 in English, address unchanged', async () => {
-    const fetchMock = stubBackend()
+    const fetchMock = stubBackend(detailHandlers())
     signInForTest()
     renderApp(['/patients/PAT-001'])
     await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
+    // Wait for the detail page to load before switching language.
+    await screen.findByText(ES_DETAIL_SECTION_PATIENT)
 
     fireEvent.click(screen.getByRole('button', { name: 'English' }))
 
     expect(screen.getByRole('heading', { level: 1, name: 'Patient PAT-001' })).toBeTruthy()
-    expect(screen.getByText('The patient detail will be shown here.')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Back to the patient list' })).toBeTruthy()
-    expect(screen.queryByText(ES_DETAIL_PLACEHOLDER)).toBeNull()
+    // A stable English label on the loaded page (the placeholder text was removed in US-05).
+    expect(screen.getByText(EN_DETAIL_SECTION_PATIENT)).toBeTruthy()
+    expect(screen.queryByText(ES_DETAIL_SECTION_PATIENT)).toBeNull()
     expect(currentPath()).toBe('/patients/PAT-001')
   })
 
@@ -497,13 +541,15 @@ describe('US-03 AC18 /patients/:identifier/readings/new address ranking', () => 
   )
 
   it('AC18 /patients/PAT-001 still shows the detail page', async () => {
-    const fetchMock = stubBackend()
+    const fetchMock = stubBackend(detailHandlers())
     signInForTest()
     renderApp(['/patients/PAT-001'])
     await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
 
     expect(screen.getByRole('heading', { level: 1, name: 'Paciente PAT-001' })).toBeTruthy()
-    expect(screen.getByText(ES_DETAIL_PLACEHOLDER)).toBeTruthy()
+    // The detail page rendered (not the not-found page).
+    expect(await screen.findByText(ES_DETAIL_SECTION_PATIENT)).toBeTruthy()
+    expect(screen.queryByText(ES_NOT_FOUND)).toBeNull()
   })
 
   it('AC18 /patients/new still shows the registration page', async () => {
