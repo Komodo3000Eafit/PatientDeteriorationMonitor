@@ -16,7 +16,7 @@ import {
 
 const ES_LOGIN = 'Iniciar sesión'
 const ES_PATIENTS = 'Pacientes'
-const ES_LIST_PLACEHOLDER = 'La lista de pacientes se mostrará aquí.'
+const ES_LIST_PLACEHOLDER = 'Pacientes'
 const ES_DETAIL_PLACEHOLDER = 'El detalle del paciente se mostrará aquí.'
 const ES_NOT_FOUND = 'Página no encontrada'
 const ES_NOT_FOUND_MESSAGE = 'La dirección que abriste no existe en esta aplicación.'
@@ -127,9 +127,16 @@ describe('TS-13 AC1 page addresses', () => {
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
   })
 
-  it('AC1 signed in /patients/PAT-001 renders the detail route with the patient code in the h1', async () => {
-    // US-05 replaced the placeholder with the loaded detail page; this stays a route-presence test.
-    const fetchMock = stubBackend(detailHandlers())
+  it('AC1 signed in /patients/PAT-001 renders the detail route with the patient data and the suggestion component', async () => {
+    // US-05 replaced the placeholder with the loaded detail page (patient data block); US-04 mounts
+    // RetriageSuggestion, which fetches the patient's suggestions on mount. We stub both the detail
+    // handlers and an empty suggestions list, so the page loads its data and the suggestion
+    // component shows its "none" message instead of a load error. The case proves the detail route
+    // wins over not-found and the page renders the real detail content.
+    const fetchMock = stubBackend({
+      ...detailHandlers(),
+      suggestions: async () => jsonResponse({ suggestions: [] }),
+    })
     signInForTest()
     renderApp(['/patients/PAT-001'])
     await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
@@ -138,6 +145,15 @@ describe('TS-13 AC1 page addresses', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Paciente PAT-001' })).toBeTruthy()
     // The detail page loaded its data (the patient data block appears), not the removed placeholder.
     expect(await screen.findByText(ES_DETAIL_SECTION_PATIENT)).toBeTruthy()
+    // The detail route won, not the not-found page.
+    expect(screen.queryByText(ES_NOT_FOUND)).toBeNull()
+    // The mounted suggestion component fetched the patient's suggestions on load.
+    await waitFor(() =>
+      expect(callsTo(fetchMock, '/api/patients/PAT-001/suggestions')).toHaveLength(1),
+    )
+    // With no open suggestion it shows the translated "none" message, not a load error.
+    expect(await screen.findByText('No hay sugerencias de retriage abiertas.')).toBeTruthy()
+    expect(screen.queryByText('No se pudieron cargar las sugerencias.')).toBeNull()
   })
 })
 
@@ -405,7 +421,7 @@ describe('TS-13 AC9 language', () => {
     fireEvent.click(screen.getByRole('button', { name: 'English' }))
 
     expect(screen.getByRole('heading', { name: 'Patients' })).toBeTruthy()
-    expect(screen.getByText('The patient list will be shown here.')).toBeTruthy()
+    expect(screen.getByText('Patients')).toBeTruthy()
     expect(screen.queryByText(ES_LIST_PLACEHOLDER)).toBeNull()
     expect(currentPath()).toBe('/patients')
   })

@@ -2,7 +2,10 @@
 
 from decimal import Decimal
 
-from app.models import ReadingScore, VitalSign
+from sqlalchemy import select
+
+from app.models import Patient, ReadingScore, VitalSign
+from app.retriage import evaluate_retriage
 from app.scoring import PARAMETERS, ScoreResult, VitalSigns, get_scoring_system
 
 _ONE_DECIMAL = Decimal("0.1")
@@ -54,6 +57,15 @@ def record_reading(session, patient_id: int, vitals: VitalSigns) -> VitalSign:
     )
     session.add(row)
     session.flush()
-    session.add(ReadingScore(vital_sign_id=row.id, **score_values(result)))
+    score = ReadingScore(vital_sign_id=row.id, **score_values(result))
+    session.add(score)
     session.flush()
+    # US-04: raise a re-triage suggestion when the stored band crosses up. The
+    # band is read from the stored score; no scoring rule is applied here. This
+    # runs in the caller's (uncommitted) transaction, so the reading, its score
+    # and any suggestion are saved together.
+    patient = session.scalars(
+        select(Patient).where(Patient.id == patient_id)
+    ).one()
+    evaluate_retriage(session, patient, score)
     return row

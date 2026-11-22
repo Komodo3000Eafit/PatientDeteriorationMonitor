@@ -15,6 +15,7 @@ import { isPatientCode } from '../../utils/patientCode.js'
 import NotFoundPage from '../not-found/NotFoundPage.jsx'
 import ReadingResult from '../record-reading/ReadingResult.jsx'
 import RecordReadingButton from '../record-reading/RecordReadingButton.jsx'
+import RetriageSuggestion from './RetriageSuggestion.jsx'
 import styles from './PatientDetailPage.module.css'
 
 // The four display states of the page.
@@ -81,6 +82,8 @@ export default function PatientDetailPage() {
         <h1 className={styles.title}>{t('patientDetail.title', { code: identifier })}</h1>
         <RecordReadingButton identifier={identifier} />
       </div>
+
+      <RetriageSuggestion identifier={identifier} />
 
       {view === VIEW.loading && (
         <div className={styles.loading} role="status" aria-live="polite">

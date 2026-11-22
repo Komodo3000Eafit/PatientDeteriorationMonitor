@@ -20,7 +20,7 @@ from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.orm import Session
 
 import app.readings
-from app.models import Base, Patient, ReadingScore, VitalSign
+from app.models import Alert, Base, Patient, ReadingScore, VitalSign
 from app.readings import record_reading, score_values
 from app.scoring import PARAMETERS, InvalidVitalSigns, VitalSigns, get_scoring_system
 
@@ -278,3 +278,65 @@ def test_us03_ac1_rollback_removes_reading_and_score(engine):
         assert (_count_readings(session), _count_scores(session)) == (1, 1)
         session.rollback()
         assert (_count_readings(session), _count_scores(session)) == (0, 0)
+
+
+# --- US-04: record_reading raises a re-triage suggestion on a crossing ----------
+# specs/020-retriage-suggestion-alerts/spec.md AC1, AC3. The band is read from the
+# stored score; the scoring result is referred to as "the score" only, so this
+# addition does not break the Principle V confinement guard.
+
+# A reading scoring "medium" (total 5: rr +2, spo2 +1, hr +1, temp +1).
+MEDIUM_VITALS = VitalSigns(22, 95, False, 118, 96, "A", Decimal("38.4"))
+
+
+def _count_open_alerts(session, patient_id) -> int:
+    return session.scalar(
+        select(func.count())
+        .select_from(Alert)
+        .where(Alert.patient_id == patient_id)
+        .where(Alert.status == "open")
+    )
+
+
+def test_us04_ac1_crossing_up_creates_one_open_alert(engine):
+    """US-04 AC1 (FR-001): a reading crossing up into medium for an active patient with a less-urgent previous reading creates one open alert."""
+    with Session(engine) as session:
+        patient_id = _add_patient(session)   # Triage IV, active
+        record_reading(session, patient_id, _vitals())          # previous: low
+        assert _count_open_alerts(session, patient_id) == 0
+        record_reading(session, patient_id, MEDIUM_VITALS)      # crosses up
+        assert _count_open_alerts(session, patient_id) == 1
+        alert = session.scalars(select(Alert)).one()
+        assert alert.severity == "medium"
+
+
+def test_us04_ac3_first_reading_creates_no_alert(engine):
+    """US-04 AC3 (FR-001): the first reading of a patient (no previous band) creates no alert."""
+    with Session(engine) as session:
+        patient_id = _add_patient(session)
+        record_reading(session, patient_id, MEDIUM_VITALS)
+        assert _count_open_alerts(session, patient_id) == 0
+
+
+def test_us04_ac3_no_crossing_creates_no_alert(engine):
+    """US-04 AC3 (FR-001): a reading at the same or a less urgent band than the previous one creates no alert."""
+    with Session(engine) as session:
+        patient_id = _add_patient(session)
+        record_reading(session, patient_id, MEDIUM_VITALS)   # first: no previous
+        record_reading(session, patient_id, _vitals())       # medium -> low: no crossing
+        assert _count_open_alerts(session, patient_id) == 0
+
+
+def test_us04_record_reading_still_returns_the_reading_and_does_not_commit(engine):
+    """US-04 (FR-001): adding the suggestion keeps record_reading's contract: it returns the reading and does not commit."""
+    with Session(engine) as session:
+        patient_id = _add_patient(session)
+        record_reading(session, patient_id, _vitals())        # previous low
+        row = record_reading(session, patient_id, MEDIUM_VITALS)
+        assert isinstance(row, VitalSign)
+        assert row.id is not None
+        assert _count_open_alerts(session, patient_id) == 1
+        # Not committed: a rollback removes the reading, its score and the alert.
+        session.rollback()
+        assert (_count_readings(session), _count_scores(session)) == (0, 0)
+        assert _count_open_alerts(session, patient_id) == 0

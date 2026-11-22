@@ -1,0 +1,86 @@
+/* Re-triage suggestion component (US-04). Design tokens only; see src/styles/tokens.css (D-43). */
+.content {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.message {
+  margin: 0;
+  color: var(--color-text);
+}
+
+/* Severity chip: soft background and solid border in the severity color, a neutral dark icon and a
+   dark --color-text label (A1 — the icon is not tinted here, so the chip stays visually distinct
+   from the red RiskBandBadge above it). Color is never the only cue (icon + label always shown). */
+.severity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font-weight: 600;
+  width: fit-content;
+}
+
+.severityLabel {
+  color: var(--color-text);
+}
+
+.medium {
+  border: 2px solid var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.medium .icon {
+  stroke: var(--color-warning);
+}
+
+.high {
+  border: 2px solid var(--color-critical);
+  background: var(--color-critical-soft);
+}
+
+.high .icon {
+  stroke: var(--color-critical);
+}
+
+.levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+}
+
+.level {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.levelLabel {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.reason {
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+}
+
+.result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}

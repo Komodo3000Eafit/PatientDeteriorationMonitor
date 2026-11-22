@@ -1,6 +1,41 @@
 <!--
 Sync Impact Report
 ==================
+Version change: 1.2.0 → 1.3.0 (MINOR)
+Bump rationale: Principle III materially expanded (DECISIONS D-52); no principle removed or
+redefined incompatibly:
+- Baseline functional stories (US-01 to US-05) MAY now depend on baseline functional stories
+  already merged into `main` (the rule US-06 to US-10 already had), never on unmerged ones.
+- New rule: a functional story MAY reuse, by importing without changing them, components,
+  helpers and API contracts of merged functional stories (e.g. US-03 `RiskBandBadge`, readings
+  contract).
+- The "MUST NOT modify another functional story's code" exceptions now also allow updating a
+  test assertion that depends only on placeholder content the story replaces, and narrowing an
+  assertion in another story's test when the new story's legitimate behavior makes it ambiguous,
+  keeping the test's intent unchanged (first used by US-02).
+- Rationale extended: US-02, US-04 and US-05 need US-03's stored scores (D-50 forbids
+  recomputing NEWS2).
+
+Modified principles: III. Story Types and Independence (rules + rationale). No renames.
+Added sections: none. Removed sections: none.
+
+Templates:
+- ⚠ .specify/templates/spec-template.md — its comment still says "US-01 to US-05 may depend ONLY
+  on technical stories"; read it as superseded by v1.3.0 (not edited by this command; follow-up).
+- ✅ .specify/templates/plan-template.md — Principle III check ("dependencies match
+  docs/BACKLOG.md; ... no changes to another functional story's code beyond registering a route
+  or mounting a component") remains valid; the new placeholder-assertion exception applies.
+- ✅ tasks-template.md, checklist-template.md — no change needed.
+
+Runtime guidance flagged (not modified by this command; follow-up):
+- ⚠ CLAUDE.md "functional stories (US-xx) depend only on that foundation, never on each other"
+  contradicts v1.3.0 for merged baseline stories.
+- ⚠ .specify/templates/spec-template.md comment (see above).
+- docs/BACKLOG.md US-02 dependencies updated in the same change (D-52).
+
+Follow-up TODOs: none.
+
+Previous report (1.2.0):
 Version change: 1.1.0 → 1.2.0 (MINOR)
 Bump rationale: materially expanded guidance, no principle removed or redefined
 incompatibly (DECISIONS D-41):
@@ -133,15 +168,25 @@ feasible and keep reviews focused.
 - **Technical stories (TS-xx)** set up the architecture (e.g. PostgreSQL database, FastAPI app,
   frontend–backend connection, CI/CD, deployment) and form the baseline foundation.
 - **Functional stories (US-xx)** add app features:
-  - **Baseline functional stories (US-01 to US-05)** MAY depend only on technical stories.
+  - **Baseline functional stories (US-01 to US-05)** MAY depend on technical stories and on
+    baseline functional stories already merged into `main`, and MUST NOT depend on unmerged ones.
   - **Team-session functional stories (US-06 to US-10)** MAY depend on technical stories and on
     baseline functional stories already merged into `main`, but MUST NOT depend on each other.
+- A functional story MAY reuse, by importing them without changing them, the components, helpers
+  and API contracts of functional stories already merged into `main` (for example US-03's
+  `RiskBandBadge` and readings contract).
 - A functional story MUST NOT modify code introduced by another functional story, except to
-  register a route or mount a component. Shared needs MUST be moved into a technical story first.
+  register a route, mount a component, update a test assertion that depends only on placeholder
+  content the story replaces, or narrow an assertion in another story's test when the new story's
+  legitimate behavior makes it ambiguous, keeping the test's intent unchanged. A shared need that requires changing another story's code MUST be
+  moved into a technical story first.
 - The backlog and each story's dependencies are kept in `docs/BACKLOG.md`.
 
 **Rationale:** functional stories must be buildable concurrently by different students without
-merge conflicts.
+merge conflicts. Baseline stories are merged into `main` one by one, and some need the result of
+an earlier one: US-02, US-04 and US-05 need the stored scores from US-03, because NEWS2 MUST NOT be
+recomputed outside the scoring flow (DECISIONS D-50). Depending only on merged work, and reusing it
+without changing it, keeps that safe.
 
 ### IV. Multi-Agent Collaboration
 
@@ -292,4 +337,4 @@ risk to delivery.
   run before implementation, and every pull request review MUST verify compliance with these
   principles.
 
-**Version**: 1.2.0 | **Ratified**: 2026-11-10 | **Last Amended**: 2026-11-18
+**Version**: 1.3.0 | **Ratified**: 2026-11-10 | **Last Amended**: 2026-11-21

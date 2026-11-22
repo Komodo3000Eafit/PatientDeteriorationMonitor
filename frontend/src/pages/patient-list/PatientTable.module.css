@@ -1,0 +1,64 @@
+/* Patient table (US-02): tokens only (D-43); triage chips use the D-48 triage tokens. */
+
+/* Only the table scrolls sideways on narrow screens; the page itself never does. */
+.scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  font-weight: 700;
+  border-bottom: 2px solid var(--color-border-strong);
+}
+
+.triage {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.triage1 {
+  background: var(--color-triage-1-soft);
+  border: 2px solid var(--color-triage-1);
+  color: var(--color-text);
+}
+
+.triage2 {
+  background: var(--color-triage-2-soft);
+  border: 2px solid var(--color-triage-2);
+  color: var(--color-text);
+}
+
+.triage3 {
+  background: var(--color-triage-3-soft);
+  border: 2px solid var(--color-triage-3);
+  color: var(--color-text);
+}
+
+.triage4 {
+  background: var(--color-triage-4-soft);
+  border: 2px solid var(--color-triage-4);
+  color: var(--color-text);
+}
+
+.triage5 {
+  background: var(--color-triage-5-soft);
+  border: 2px solid var(--color-triage-5);
+  color: var(--color-text);
+}
