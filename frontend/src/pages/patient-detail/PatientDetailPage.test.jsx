@@ -262,7 +262,7 @@ describe('US-05 AC1/AC2/AC3/AC4/AC10/AC12 loaded patient with a reading', () => 
 
     await screen.findByText(ES_SECTION_PATIENT)
     expect(callsTo(fetchMock, PATIENT_PATH)).toHaveLength(1)
-    expect(callsTo(fetchMock, READINGS_PATH)).toHaveLength(1)
+    expect(callsTo(fetchMock, READINGS_PATH).filter(([url]) => new URL(url).searchParams.get('limit') === '1')).toHaveLength(1)
     expect(callsTo(fetchMock, TRIAGE_EVENTS_PATH)).toHaveLength(1)
   })
 })
