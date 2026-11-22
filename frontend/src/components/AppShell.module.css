@@ -12,6 +12,49 @@
   background: var(--color-bg-subtle);
   border-bottom: 1px solid var(--color-border);
 }
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 700;
+}
+/* Scope change 2026-11-22: tint only the heart icon (lucide renders an <svg> drawn with
+   currentColor) with the blue accent, keeping the title text in --color-text. */
+.brand svg {
+  color: var(--color-primary);
+}
+.brand:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.homeLink {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--size-target);
+  min-width: var(--size-target);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  font: inherit;
+  line-height: var(--line-height);
+  font-weight: 600;
+  text-decoration: none;
+}
+.homeLink:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+.homeLink:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
 .disclaimer {
   display: inline-flex;
   align-items: center;

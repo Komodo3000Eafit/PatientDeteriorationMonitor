@@ -145,14 +145,14 @@ describe('US-04 AC21 empty and error states', () => {
     await openList({ list: [] })
 
     expect(screen.getByText(ES_EMPTY)).toBeTruthy()
-    expect(screen.queryByRole('link', { name: /Paciente/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: /Paciente PAT-/ })).toBeNull()
   })
 
   it('AC21 a load error (503) shows the fixed error message and no rows', async () => {
     await openList({ status: 503 })
 
     expect(await screen.findByText(ES_ERROR)).toBeTruthy()
-    expect(screen.queryByRole('link', { name: /Paciente/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: /Paciente PAT-/ })).toBeNull()
   })
 
   it('AC21 a 401 renders nothing from the banner (session-expiry handling)', async () => {
