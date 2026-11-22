@@ -61,3 +61,4 @@
 "2026-11-21 12:42:59","018-patient-detail","security-reviewer","T014","finding","US-03 unaffected: ReadingResult titleKey defaults to recordReading.resultTitle and titleWithDate to false; ReadingResult/RecordReadingPage tests pass untouched"
 "2026-11-21 12:43:00","018-patient-detail","security-reviewer","T014","finding","Independence (Principle III): App.jsx, PatientListPage (US-02), US-04 code, scoring, models and migrations unchanged"
 "2026-11-21 12:43:00","018-patient-detail","orchestrator","T014","verified","Security review clean; findings recorded; no code changes needed"
+"2026-11-22 11:22:12","018-patient-detail","frontend-dev","US-05","done","PatientDetailPage: re-scoped retriage wrapper to Option C (unconditional mount, loaded-only .retriageLoaded blue tint); 628 tests pass"

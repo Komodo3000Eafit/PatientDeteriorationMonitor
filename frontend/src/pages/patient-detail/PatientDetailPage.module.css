@@ -63,6 +63,31 @@
   margin: 0;
 }
 
+/* US-05 wrapper around the mounted US-04 RetriageSuggestion. The component stays mounted in every
+   page state and manages its own visibility and loading; this wrapper only frames it. To avoid a
+   stray accent (or any visible box) while the page is still loading (or in notFound/error), the
+   visible accent is split out into .retriageLoaded, which the page adds only in the loaded view.
+
+   Base .retriageSection carries no visible box: just the outer spacing below and the content
+   width. It spans the full content width because it is a block-level child of the same .page
+   wrapper as .columns, so its left/right edges line up with the two-column grid. margin-block-end
+   is harmless in every state (it only reserves space below, and the component collapses to nothing
+   when it has nothing to show). */
+.retriageSection {
+  margin-block-end: var(--space-5);
+}
+
+/* Loaded-only blue accent (brand/accent, NOT a severity color). Instead of a box-in-a-box (soft
+   background + full border + radius wrapping the inner Card), the loaded view marks the suggestion
+   with a single strong accent bar on the left edge only, plus just enough left padding so the
+   inner Card does not sit flush against the bar. No background tint, no full border, no radius, no
+   nested box: the component's own Card keeps its surface. The blue stays on this US-05 accent only
+   and is never applied to the component's internal severity badges. */
+.retriageLoaded {
+  border-left: 4px solid var(--color-primary);
+  padding-left: var(--space-3);
+}
+
 /* Two-column layout: a narrow left column (patient data) and a wider right column
    (latest reading + triage history). Wraps to a single column on narrow screens. */
 .columns {
