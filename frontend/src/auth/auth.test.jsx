@@ -330,3 +330,85 @@ describe('TS-06 sign-in', () => {
     expect(JSON.parse(storedSession())).toEqual({ token: 'test-token', user: DOCTOR })
   })
 })
+
+describe('TS-15 header navigation visibility', () => {
+  const ES_HOME = 'Inicio'
+
+  function brandLink() {
+    return screen.queryByRole('link', { name: ES_TITLE })
+  }
+
+  function homeLink() {
+    return screen.queryByRole('link', { name: ES_HOME })
+  }
+
+  it('AC1/AC5/AC6 signed in on /patients, the brand and Home links are present and keyboard-reachable with non-empty names', async () => {
+    stubBackend()
+    signInForTest()
+    renderApp(['/patients'])
+    await screen.findByText('API: funcionando')
+
+    const brand = brandLink()
+    const home = homeLink()
+    expect(brand).toBeTruthy()
+    expect(home).toBeTruthy()
+    // Non-empty accessible name (the visible text).
+    expect(brand.textContent.trim()).toBe(ES_TITLE)
+    expect(home.textContent.trim()).toBe(ES_HOME)
+    // Keyboard-reachable: native links in the tab order (no tabindex=-1), focusable.
+    for (const link of [brand, home]) {
+      expect(link.tagName).toBe('A')
+      expect(link.getAttribute('href')).toBe('/patients')
+      expect(link.getAttribute('tabindex')).not.toBe('-1')
+      link.focus()
+      expect(document.activeElement).toBe(link)
+    }
+  })
+
+  it('AC4 signed out on the login page, the brand is non-linked branding and the Home link is absent, while the disclaimer and ES/EN switch remain', () => {
+    stubBackend()
+    renderApp(['/login'])
+
+    expect(loginHeading()).toBeTruthy()
+    // Scope change 2026-11-22: the brand (app.title + icon) is now ALWAYS shown. Signed out it is
+    // plain, non-linked branding: present as text but NOT a link (no link role), not focusable, and
+    // performing no navigation (/patients is protected). This replaces the old "brand absent when
+    // signed out" expectation; the rest of this test's intent (Home absent, disclaimer and ES/EN
+    // present) is unchanged.
+    expect(brandLink()).toBeNull()
+    const brand = screen.getByText(ES_TITLE, { selector: 'span' })
+    expect(brand).toBeTruthy()
+    expect(brand.closest('a')).toBeNull()
+    expect(brand.getAttribute('tabindex')).toBeNull()
+    expect(brand.getAttribute('role')).toBeNull()
+    // The Home control stays auth-gated: absent on the login screen.
+    expect(homeLink()).toBeNull()
+    // The shared header still shows the disclaimer and the language switch.
+    expect(screen.getByRole('note')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Español' })).toBeTruthy()
+    expect(englishButton()).toBeTruthy()
+  })
+
+  it('AC8 the sign-out button still signs out and the Sesión iniciada group is intact', async () => {
+    stubBackend()
+    signInForTest()
+    renderApp(['/patients'])
+    await screen.findByText('API: funcionando')
+
+    // The signed-in user block is unchanged by the header navigation.
+    const group = screen.getByRole('group', { name: 'Sesión iniciada' })
+    expect(group).toBeTruthy()
+    expect(screen.getByText('Dra. Ana Demo')).toBeTruthy()
+    expect(screen.getByText('Médico')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
+
+    expect(currentPath()).toBe('/login')
+    expect(loginHeading()).toBeTruthy()
+    expect(storedSession()).toBeNull()
+    // Signed out, the brand is no longer a link (non-linked branding) and the Home link is gone.
+    expect(brandLink()).toBeNull()
+    expect(screen.getByText(ES_TITLE, { selector: 'span' })).toBeTruthy()
+    expect(homeLink()).toBeNull()
+  })
+})

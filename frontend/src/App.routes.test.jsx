@@ -509,6 +509,73 @@ describe('US-01 AC13 /patients/new ranks above /patients/:identifier', () => {
   })
 })
 
+describe('TS-15 header navigation', () => {
+  const ES_APP_TITLE = 'Monitor de Deterioro del Paciente'
+  const ES_HOME = 'Inicio'
+
+  it('AC2/AC3 signed in, the brand and Home controls are links to /patients', async () => {
+    stubBackend()
+    signInForTest()
+    renderApp(['/patients'])
+    await screen.findByText('API: funcionando')
+
+    const brand = screen.getByRole('link', { name: ES_APP_TITLE })
+    const home = screen.getByRole('link', { name: ES_HOME })
+    expect(brand.getAttribute('href')).toBe('/patients')
+    expect(home.getAttribute('href')).toBe('/patients')
+  })
+
+  it('AC2 the brand link navigates from a patient-detail route to /patients', async () => {
+    const fetchMock = stubBackend({
+      ...detailHandlers(),
+      suggestions: async () => jsonResponse({ suggestions: [] }),
+    })
+    signInForTest()
+    renderApp(['/patients/PAT-001'])
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
+    expect(currentPath()).toBe('/patients/PAT-001')
+    // Let the detail page FULLY settle before clicking, not just first paint. PatientDetailPage's
+    // load() awaits three sequential requests (patient, readings, triage-events); triage-events is
+    // the LAST, so once it has fired and its stub resolved, nothing from the initial load is
+    // pending. Waiting for the detail-section text alone (first paint) leaves a later request in
+    // flight, which can settle as 401 after the link unmounts the page and leak as an unhandled
+    // rejection under full-suite load. Wait for the loaded state and the last request.
+    await screen.findByText(ES_DETAIL_SECTION_PATIENT)
+    await waitFor(() =>
+      expect(callsTo(fetchMock, '/api/patients/PAT-001/triage-events')).toHaveLength(1),
+    )
+
+    fireEvent.click(screen.getByRole('link', { name: ES_APP_TITLE }))
+
+    expect(currentPath()).toBe('/patients')
+    expect(await screen.findByText(ES_LIST_PLACEHOLDER)).toBeTruthy()
+  })
+
+  it('AC3 the Home link navigates from a patient-detail route to /patients', async () => {
+    const fetchMock = stubBackend({
+      ...detailHandlers(),
+      suggestions: async () => jsonResponse({ suggestions: [] }),
+    })
+    signInForTest()
+    renderApp(['/patients/PAT-001'])
+    await waitFor(() => expect(callsTo(fetchMock, '/api/me')).toHaveLength(1))
+    expect(currentPath()).toBe('/patients/PAT-001')
+    // Let the detail page FULLY settle before clicking (see the AC2 test above): wait for the
+    // loaded state AND for the last of its three sequential load requests (triage-events) to have
+    // fired and resolved, so nothing from the initial load is still in flight when the Home link
+    // unmounts the page and could settle as 401 into an unhandled rejection.
+    await screen.findByText(ES_DETAIL_SECTION_PATIENT)
+    await waitFor(() =>
+      expect(callsTo(fetchMock, '/api/patients/PAT-001/triage-events')).toHaveLength(1),
+    )
+
+    fireEvent.click(screen.getByRole('link', { name: ES_HOME }))
+
+    expect(currentPath()).toBe('/patients')
+    expect(await screen.findByText(ES_LIST_PLACEHOLDER)).toBeTruthy()
+  })
+})
+
 describe('US-03 AC18 /patients/:identifier/readings/new address ranking', () => {
   const ES_READING_TITLE = 'Registrar signos vitales · PAT-001'
 

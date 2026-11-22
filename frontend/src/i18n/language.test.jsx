@@ -5,7 +5,7 @@
 // /me answers with the synthetic doctor.
 // TS-13 (AC12): rendered inside a router at /patients (renderApp); assertions are unchanged.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { screen, fireEvent, act } from '@testing-library/react'
+import { screen, fireEvent, act, within } from '@testing-library/react'
 import { renderApp } from '../testing/renderApp.jsx'
 import { callsTo, resetSession, signInForTest, stubBackend } from '../testing/fakeBackend.js'
 
@@ -56,7 +56,9 @@ describe('TS-05 language and disclaimer', () => {
 
     expect(await screen.findByText('API: funcionando')).toBeTruthy()
     expect(screen.getByText(ES_BANNER)).toBeTruthy()
-    expect(screen.getByText(ES_TITLE)).toBeTruthy()
+    // The title shows in two places signed in (the H1 and the brand link); assert the brand link
+    // to keep this unambiguous without weakening the "title in Spanish" intent.
+    expect(screen.getByRole('link', { name: ES_TITLE })).toBeTruthy()
     // AC5: document language attribute and tab title in Spanish.
     expect(document.documentElement.lang).toBe('es')
     expect(document.title).toBe(ES_TITLE)
@@ -72,12 +74,12 @@ describe('TS-05 language and disclaimer', () => {
     fireEvent.click(englishButton())
 
     expect(screen.getByText(EN_BANNER)).toBeTruthy()
-    expect(screen.getByText(EN_TITLE)).toBeTruthy()
+    expect(screen.getByRole('link', { name: EN_TITLE })).toBeTruthy()
     expect(screen.getByText('API: running')).toBeTruthy()
     expect(screen.getByText('Version: 0.1.0')).toBeTruthy()
     expect(screen.getByText('Database: available')).toBeTruthy()
     expect(screen.queryByText(ES_BANNER)).toBeNull()
-    expect(screen.queryByText(ES_TITLE)).toBeNull()
+    expect(screen.queryByRole('link', { name: ES_TITLE })).toBeNull()
     expect(screen.queryByText('API: funcionando')).toBeNull()
     expect(screen.queryByText('Versión: 0.1.0')).toBeNull()
     expect(screen.queryByText('Base de datos: disponible')).toBeNull()
@@ -89,7 +91,7 @@ describe('TS-05 language and disclaimer', () => {
     fireEvent.click(spanishButton())
 
     expect(screen.getByText(ES_BANNER)).toBeTruthy()
-    expect(screen.getByText(ES_TITLE)).toBeTruthy()
+    expect(screen.getByRole('link', { name: ES_TITLE })).toBeTruthy()
     expect(screen.getByText('API: funcionando')).toBeTruthy()
     expect(screen.getByText('Versión: 0.1.0')).toBeTruthy()
     expect(screen.getByText('Base de datos: disponible')).toBeTruthy()
@@ -133,7 +135,7 @@ describe('TS-05 language and disclaimer', () => {
 
     expect(await screen.findByText('API: running')).toBeTruthy()
     expect(screen.getByText(EN_BANNER)).toBeTruthy()
-    expect(screen.getByText(EN_TITLE)).toBeTruthy()
+    expect(screen.getByRole('link', { name: EN_TITLE })).toBeTruthy()
     expect(document.documentElement.lang).toBe('en')
   })
 
@@ -240,7 +242,8 @@ describe('TS-05 language and disclaimer', () => {
     await screen.findByText('API: funcionando')
 
     // TS-06: signed in, the header also has the sign-out button; logout is not a close control for
-    // the banner, which still has none.
+    // the banner, which still has none. TS-15 added the brand and Home controls as links (role:
+    // link), not buttons, so the button count stays 3.
     const buttons = screen.getAllByRole('button')
     expect(buttons).toHaveLength(3)
     expect(buttons.map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual([
@@ -260,5 +263,47 @@ describe('TS-05 language and disclaimer', () => {
     fireEvent.click(englishButton())
 
     expect(screen.getByRole('group', { name: 'Language' })).toBeTruthy()
+  })
+
+  describe('TS-15 AC7/AC9 header navigation labels per language', () => {
+    const ES_HOME = 'Inicio'
+    const EN_HOME = 'Home'
+
+    it('AC9 the brand and Home links show Spanish labels by default and English after the switch', async () => {
+      stubOkFetch()
+      renderApp(['/patients'])
+      await screen.findByText('API: funcionando')
+
+      // Spanish by default: brand = app.title, Home = nav.home.
+      expect(screen.getByRole('link', { name: ES_TITLE })).toBeTruthy()
+      expect(screen.getByRole('link', { name: ES_HOME })).toBeTruthy()
+
+      fireEvent.click(englishButton())
+
+      // English after the switch.
+      expect(screen.getByRole('link', { name: EN_TITLE })).toBeTruthy()
+      expect(screen.getByRole('link', { name: EN_HOME })).toBeTruthy()
+      expect(screen.queryByRole('link', { name: ES_HOME })).toBeNull()
+    })
+
+    it('AC7 the disclaimer stays role=note and non-closable, and the signed-in header keeps exactly 3 buttons', async () => {
+      stubOkFetch()
+      renderApp(['/patients'])
+      await screen.findByText('API: funcionando')
+
+      // Disclaimer is a note with no close/hide control of its own.
+      const note = screen.getByRole('note')
+      expect(note).toBeTruthy()
+      expect(within(note).queryByRole('button')).toBeNull()
+
+      // TS-15 adds links, not buttons: the count is unchanged at 3.
+      const buttons = screen.getAllByRole('button')
+      expect(buttons).toHaveLength(3)
+      expect(buttons.map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual([
+        'Cerrar sesión',
+        'Español',
+        'English',
+      ])
+    })
   })
 })
