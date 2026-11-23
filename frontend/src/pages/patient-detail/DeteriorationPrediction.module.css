@@ -1,0 +1,53 @@
+/* Deterioration prediction component (US-08, contracts/ui.md). Design tokens only; see src/styles/tokens.css.
+   The warning is marked by the left accent bar, the icon and the title text (same pattern as
+   .retriageLoaded in PatientDetailPage.module.css). The shared Card has no className prop and paints
+   its own background, so there is no soft background here. --color-warning is used for the border
+   and icon tint only, never as text color, so color is never the only cue. */
+.card {
+  border-left: 4px solid var(--color-warning);
+  padding-left: var(--space-3);
+  margin-block-end: var(--space-5);
+  color: var(--color-text);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 1.25em;
+  height: 1.25em;
+  stroke: var(--color-warning);
+}
+
+.content {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.message {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.scores {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  color: var(--color-text);
+}
+
+.label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.note {
+  margin: 0 0 var(--space-5);
+  color: var(--color-text);
+}
