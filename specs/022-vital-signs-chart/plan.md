@@ -104,9 +104,11 @@ Vital signs chart (US-06): `chart.js` 4.6.1 and `react-chartjs-2` 5.3.1, pinned 
 labels), no date adapter; colors read from tokens at run time (`--color-primary`, `--color-text`,
 `--color-border`); no legend, fill, annotations, thresholds or zones (Principle V); accessible name on
 the canvas and a visually hidden table as text alternative; data from the US-03 readings history
-(limit 50), refreshed every 15 s like D-49. Static import; bundle impact measured in T011 (before/after
-JS size). Test setup: jsdom has no canvas, so `src/setupTests.js` stubs
-`HTMLCanvasElement.prototype.getContext` with a no-op context; component tests mock `react-chartjs-2`.
+(limit 50), refreshed every 15 s like D-49. `npm audit --audit-level=high` clean. Static import;
+bundle grows about 56 kB gzipped (JS 98.85 → 154.96 kB, practice run; confirmed at T011). Test setup:
+jsdom has no canvas and no `ResizeObserver`, so `src/setupTests.js` stubs
+`HTMLCanvasElement.prototype.getContext` and `ResizeObserver` with no-ops (already committed);
+component tests mock `react-chartjs-2`.
 Rejected: Recharts, hand-drawn SVG, time scale + date adapter, annotation plugin, lazy loading.
 
 ## Complexity Tracking
