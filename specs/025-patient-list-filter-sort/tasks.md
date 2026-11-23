@@ -66,7 +66,7 @@ Web app layout. US-09 is **frontend-only**: all paths are under `frontend/src/`.
 
 ### Docs (same PR, per constitution and the spec FRs)
 
-- [ ] T007 [P] [US9] Update docs in the same PR: add the new UI texts to `docs/GLOSSARY.md` (filter label, "Todos"/"All", the four sort labels, result count, filtered-empty) under the patient-list entries; add decision **D-53** to `docs/DECISIONS.md` (US-09 filters and sorts in the browser on the `GET /api/patients` answer with no backend change; the default order stays the server's; the four sort columns and their default directions; the no-reading grouping; and the Principle III note that US-09 extends US-02's `PatientTable.jsx`/`translations.js`); mark US-09 ✅ with its spec link in `docs/BACKLOG.md` and update `docs/PROJECT_STATUS.md` (step 12/final-session stories) (frontend-dev)
+- [ ] T007 [P] [US9] Update docs in the same PR: add the new UI texts to `docs/GLOSSARY.md` (filter label, "Todos"/"All", the four sort labels, result count, filtered-empty) under the patient-list entries; add decision **D-57** to `docs/DECISIONS.md` (US-09 filters and sorts in the browser on the `GET /api/patients` answer with no backend change; the default order stays the server's; the four sort columns and their default directions; the no-reading grouping; and the Principle III note that US-09 extends US-02's `PatientTable.jsx`/`translations.js`); mark US-09 ✅ with its spec link in `docs/BACKLOG.md` and update `docs/PROJECT_STATUS.md` (step 12/final-session stories) (frontend-dev)
 
 ### Tests (FR-013: at least one automated test per acceptance criterion) and review — last two tasks of the story
 
@@ -124,7 +124,7 @@ Single story, incremental within the feature:
 2. T002 pure helper (the risky logic), unit-testable in isolation.
 3. T003 + T004 keys and control in parallel.
 4. T005 + T006 wire the table and style it.
-5. T007 docs (glossary, D-53, backlog, status) in the same PR.
+5. T007 docs (glossary, D-57, backlog, status) in the same PR.
 6. T008 + T009 tests prove every AC and keep the US-02 suite and guards green.
 7. T010 security review; then open the PR with the agent activity log and CI green.
 

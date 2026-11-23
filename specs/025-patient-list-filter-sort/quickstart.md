@@ -55,4 +55,4 @@ npm run build
 
 - Every US-09 acceptance criterion has at least one passing automated test (FR-013).
 - `npm test` and `npm run build` pass; the raw-color and contrast guards pass.
-- `docs/GLOSSARY.md`, `docs/BACKLOG.md`, `docs/PROJECT_STATUS.md` and `docs/DECISIONS.md` (D-53) are updated in the PR.
+- `docs/GLOSSARY.md`, `docs/BACKLOG.md`, `docs/PROJECT_STATUS.md` and `docs/DECISIONS.md` (D-57) are updated in the PR.
