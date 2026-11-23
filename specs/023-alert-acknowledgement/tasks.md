@@ -27,7 +27,7 @@ description: "Task list for US-07 alert acknowledgement"
 
 ## Phase 1: Setup
 
-- [ ] T001 [US-07] Baseline before any change: in `backend/` run `python -m pytest -q`; in `frontend/` run `npm ci`, `npm test` and `npm run build`. Record both passing test counts and that the build succeeds, for the PR description. Do not edit files (qa-tester)
+- [X] T001 [US-07] Baseline taken from the rehearsal on 2026-11-23 (main at 87b84b6): backend 625 passed, frontend 653 passed, build ok. Not re-run live; main's CI is green. (qa-tester)
 
 ---
 
@@ -71,17 +71,15 @@ None. TS-03 (`alerts.status` with `CHECK status IN ('open', 'acknowledged')`, nu
 - [ ] T014 [P] Update `docs/GLOSSARY.md`: (1) add a **seen** row (UI "Visto", button "Marcar como visto" / "Mark as seen"; a nurse marks an open alert as seen; stores who and when in `acknowledged_by_id` / `acknowledged_at`, `status` stays `open`; sources `alert_ack_api.py`, US-07, D-56); (2) update the **acknowledged** row: set by the doctor's accept/dismiss (US-04), UI "Atendida" / "Handled", overwrites a seen marker (D-56), sources US-04 + US-07; (3) on both rows list the two endpoints `POST /api/patients/{identifier}/alerts/{alert_id}/seen` and `GET /api/patients/{identifier}/alerts/acknowledgement`, the response fields `alert`, `state`, `by`, `at`, and the `state` values `not_seen`, `seen`, `handled`; (4) add an **acknowledgement component** = `AlertAcknowledgement` row (UI title "Seguimiento de la sugerencia" / "Suggestion follow-up", key `alertAck.title`; mounted with one line on the patient detail page below the re-triage section; US-07); (5) update the §8 resolved-names table (row 1, marking an alert as handled) with the built names: `alert_ack_api.py`, the two endpoints, `state` values, `AlertAcknowledgement`, and "seen" / "Visto" next to "acknowledged" / "Atendida" (orchestrator)
 - [ ] T015 [P] Update `docs/BACKLOG.md`: US-07 row gets the spec link `[023-alert-acknowledgement](../specs/023-alert-acknowledgement/spec.md)` and status ✅ (orchestrator)
 - [ ] T016 [P] Update `docs/PROJECT_STATUS.md`: mark US-07 done with a one-line summary (nurse "seen" marker, status stays open, no migration, D-56) and update the next step (remaining team-session stories) (orchestrator)
-- [ ] T017 Run the [quickstart.md](quickstart.md) checks on a **Neon test branch** (depends on T011–T016): create a temporary branch of the project database (see the memory note on the Neon project; never use the production branch's data), set `DATABASE_URL` to that branch only in the local shell (never commit it or write it to a file in the repo), run `alembic upgrade head` (expect no new migration) and `python -m pytest -q` against it, then run the manual check steps 1–7 with the backend pointed at that branch, the demo doctor, two demo nurse sessions and synthetic patients. Record the results in the agent log and the PR description, then delete the temporary Neon branch (devops)
-
 ---
 
 ## Dependencies & Execution Order
 
-- T001 → everything.
+- T001 → nothing (already done).
 - Backend: T002 → T003 → T004.
 - Frontend: T005 → T006; T006, T007, T008 → T009 → T010.
 - T004 and T010 → T011 → T012.
-- T013–T016 can start after T011; T017 is last.
+- T013–T016 can start after T011
 - Backend (T002–T004) and frontend (T005–T010) tracks are independent of each other (the frontend tests use the fake backend).
 
 ## Parallel Example
@@ -100,4 +98,7 @@ After T011:
 
 ## Implementation Strategy
 
-Single story, single MVP. Backend first gives testable endpoints (T002–T004, curl-checkable); frontend then shows and drives them (T005–T010). Stop at T011 if time runs short: the feature is complete and tested; T012–T017 are review, docs and the live check required before the PR.
+Single story, single MVP. Backend first gives testable endpoints (T002–T004, curl-checkable); frontend then shows and drives them (T005–T010). Stop at T011 if time runs short: the feature is complete and tested; T012 are review, docs and the live check required before the PR.
+## After the demo (not part of /speckit-implement)
+
+- T017 (manual, devops) Run the quickstart.md checks on a Neon test branch: create a temporary branch, set `DATABASE_URL` only in the local shell, run `alembic upgrade head` (no new migration expected) and `python -m pytest -q`, run manual steps 1–7 with the demo doctor and two nurse sessions, record the results in the PR description, then delete the branch.
