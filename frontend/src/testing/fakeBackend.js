@@ -44,6 +44,10 @@ const SUGGESTIONS_PATH = /^\/api\/patients\/[^/]+\/suggestions/
 // prediction (US-08): optional handler for /api/patients/<code>/prediction; when not given that
 // path answers 404 as before, so the mounted DeteriorationPrediction renders nothing.
 const PREDICTION_PATH = /^\/api\/patients\/[^/]+\/prediction$/
+// alertAck (US-07): optional handler for any /api/patients/<code>/alerts/ path (the GET
+// .../alerts/acknowledgement and the POST .../alerts/<id>/seen); when not given those paths answer
+// 404 as before, so the mounted AlertAcknowledgement renders nothing.
+const ALERT_ACK_PATH = /^\/api\/patients\/[^/]+\/alerts\//
 
 // openSuggestions (US-04 CR1): optional handler for GET /api/suggestions (every open suggestion
 // across patients, for the patient-list banner). When not given it defaults to an empty list so a
@@ -59,6 +63,7 @@ export function stubBackend({
   triageEvents,
   suggestions,
   prediction,
+  alertAck,
   openSuggestions,
 } = {}) {
   const routes = {
@@ -78,6 +83,7 @@ export function stubBackend({
     if (!handler && triageEvents && TRIAGE_EVENTS_PATH.test(path)) handler = triageEvents
     if (!handler && suggestions && SUGGESTIONS_PATH.test(path)) handler = suggestions
     if (!handler && prediction && PREDICTION_PATH.test(path)) handler = prediction
+    if (!handler && alertAck && ALERT_ACK_PATH.test(path)) handler = alertAck
     if (!handler && patient && PATIENT_PATH.test(path)) handler = patient
     return handler ? handler(url, options) : jsonResponse({}, 404)
   })
