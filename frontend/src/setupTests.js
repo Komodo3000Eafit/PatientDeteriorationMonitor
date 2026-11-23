@@ -29,3 +29,12 @@ if (typeof HTMLCanvasElement !== 'undefined') {
     )
   }
 }
+
+// jsdom has no ResizeObserver, which Chart.js uses for responsive charts (US-06, D-53). No-op stub.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+}
