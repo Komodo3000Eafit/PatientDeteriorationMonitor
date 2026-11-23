@@ -70,7 +70,11 @@ export default function PatientDetailPage() {
       }
     }
 
-    run();
+    run().catch(() => {
+      // A 401 is re-thrown above on purpose, but the client's onUnauthorized handler
+      // (clearSession + redirect) has already dealt with it, so there is nothing more to do here.
+      // Catching the fired promise keeps a late 401 from surfacing as an unhandled rejection.
+    });
     return () => {
       ignore = true;
     };
