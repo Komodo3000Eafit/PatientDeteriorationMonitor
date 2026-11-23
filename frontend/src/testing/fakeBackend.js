@@ -41,6 +41,9 @@ const PATIENT_PATH = /^\/api\/patients\/[^/]+$/
 // endpoint and the /accept and /dismiss actions under it); when not given those paths answer 404
 // as before, so the mounted RetriageSuggestion shows its load-error message.
 const SUGGESTIONS_PATH = /^\/api\/patients\/[^/]+\/suggestions/
+// prediction (US-08): optional handler for /api/patients/<code>/prediction; when not given that
+// path answers 404 as before, so the mounted DeteriorationPrediction renders nothing.
+const PREDICTION_PATH = /^\/api\/patients\/[^/]+\/prediction$/
 
 // openSuggestions (US-04 CR1): optional handler for GET /api/suggestions (every open suggestion
 // across patients, for the patient-list banner). When not given it defaults to an empty list so a
@@ -55,6 +58,7 @@ export function stubBackend({
   patient,
   triageEvents,
   suggestions,
+  prediction,
   openSuggestions,
 } = {}) {
   const routes = {
@@ -73,6 +77,7 @@ export function stubBackend({
     if (!handler && readings && READINGS_PATH.test(path)) handler = readings
     if (!handler && triageEvents && TRIAGE_EVENTS_PATH.test(path)) handler = triageEvents
     if (!handler && suggestions && SUGGESTIONS_PATH.test(path)) handler = suggestions
+    if (!handler && prediction && PREDICTION_PATH.test(path)) handler = prediction
     if (!handler && patient && PATIENT_PATH.test(path)) handler = patient
     return handler ? handler(url, options) : jsonResponse({}, 404)
   })
