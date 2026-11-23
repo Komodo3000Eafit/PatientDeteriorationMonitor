@@ -10,7 +10,7 @@ On the patient detail page, a new chart section (one mounted line) shows how one
 the stored NEWS2 score by default, or respiratory rate, SpO2, systolic BP, heart rate, temperature —
 evolved over the last (up to) 50 readings, oldest to newest, evenly spaced with `HH:MM:SS` labels.
 Data comes from the existing US-03 readings history; no backend change. Built with `chart.js` 4.6.1 +
-`react-chartjs-2` 5.3.1 (pinned, MIT, D-53), colors read from tokens at run time, an accessible name
+`react-chartjs-2` 5.3.1 (pinned, MIT, D-54), colors read from tokens at run time, an accessible name
 and a hidden table as text alternative, refreshed every 15 s (paused in a hidden tab) with a
 "En vivo · Actualizado: HH:MM:SS" line. No NEWS2 thresholds or zones.
 
@@ -28,7 +28,7 @@ and a hidden table as text alternative, refreshed every 15 s (paused in a hidden
 
 **Project Type**: web application; this story touches `frontend/` and docs only
 
-**Performance Goals**: ≤ 50 points per chart; one request every 15 s per open, visible detail page; bundle impact measured and recorded (D-53)
+**Performance Goals**: ≤ 50 points per chart; one request every 15 s per open, visible detail page; bundle impact measured and recorded (D-54)
 
 **Constraints**: exactly two new runtime dependencies, pinned; no raw colors (guard test); no NEWS2 rules outside `app.scoring` (no thresholds, zones or fixed NEWS2 scale); US-03/US-05/US-02 code only imported or mounted (D-52); Spanish default + English
 
@@ -41,7 +41,7 @@ and a hidden table as text alternative, refreshed every 15 s (paused in a hidden
 - [x] I. Spec-driven and traceable: every file maps to AC1–AC12; tests name the AC they verify
 - [x] II. Small Scrum story: one story (US-06), frontend only
 - [x] III. Independence: depends on US-03 and US-05 (merged), as in `docs/BACKLOG.md`; US-05's page gets one mount line (allowed); US-03's API and helpers (`formatDecimal`), US-02's `formatClockSeconds` and `REFRESH_MS` are imported unchanged (D-52); no team-session story (US-07–US-10) is touched or depended on
-- [x] IV. Multi-agent: frontend-dev (chart, hook, texts, dependency), qa-tester (tests, audit, bundle size), security-reviewer (dependency risk, no server text), orchestrator (D-53, glossary, log)
+- [x] IV. Multi-agent: frontend-dev (chart, hook, texts, dependency), qa-tester (tests, audit, bundle size), security-reviewer (dependency risk, no server text), orchestrator (D-54, glossary, log)
 - [x] V. Clinical logic: stored NEWS2 totals are only plotted; no thresholds, risk zones, fixed NEWS2 scale or risk coloring; no re-triage logic
 - [x] VI. Data privacy: synthetic data only; no secrets
 - [x] VII. Tests: no new API endpoint; the new view and its failure/refresh behavior are covered by automated tests; the dependency check runs in CI
@@ -87,16 +87,19 @@ frontend/
     └── i18n/translations.js                 # EDIT: vitalsChart.* (es, en)
 
 docs/
-├── DECISIONS.md       # EDIT: D-53
+├── DECISIONS.md       # EDIT: D-54
 ├── GLOSSARY.md        # EDIT: vital signs chart, live update line
 ├── BACKLOG.md         # EDIT: US-06 done, spec link
 └── PROJECT_STATUS.md  # EDIT: US-06 done
 ```
 
 **Structure Decision**: frontend only. All new code lives in `pages/vital-signs-chart/` (owned by
-US-06); the US-05 page gets one import and one mount line; no backend file changes.
+US-06); the US-05 page gets one import (after the US-08 `DeteriorationPrediction` import) and one
+mount line right after the loaded-state block (before `</main>`), so the chart stays below the two
+columns; in page order it is still after `<DeteriorationPrediction identifier={identifier} />` (US-08,
+merged, unchanged); no backend file changes.
 
-## D-53 (to record in `docs/DECISIONS.md`)
+## D-54 (to record in `docs/DECISIONS.md`)
 
 Vital signs chart (US-06): `chart.js` 4.6.1 and `react-chartjs-2` 5.3.1, pinned exactly, MIT
 (transitive `@kurkle/color` 0.3.4, MIT); only `LineController`, `LineElement`, `PointElement`,
@@ -105,7 +108,8 @@ labels), no date adapter; colors read from tokens at run time (`--color-primary`
 `--color-border`); no legend, fill, annotations, thresholds or zones (Principle V); accessible name on
 the canvas and a visually hidden table as text alternative; data from the US-03 readings history
 (limit 50), refreshed every 15 s like D-49. `npm audit --audit-level=high` clean. Static import;
-bundle grows about 56 kB gzipped (JS 98.85 → 154.96 kB, practice run; confirmed at T011). Test setup:
+bundle grows about 56 kB gzipped (JS 98.85 → 154.96 kB, practice run before US-08; re-measured at
+T001/T011 after merging `origin/main`, and the new figures go here and in D-54). Test setup:
 jsdom has no canvas and no `ResizeObserver`, so `src/setupTests.js` stubs
 `HTMLCanvasElement.prototype.getContext` and `ResizeObserver` with no-ops (already committed);
 component tests mock `react-chartjs-2`.

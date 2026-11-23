@@ -5,13 +5,17 @@ No API contract: the chart only reads `GET /api/patients/{code}/readings` (US-03
 
 ## Mount (US-05 page, one line)
 
-In `PatientDetailPage.jsx`, after the loaded-state block:
+In `PatientDetailPage.jsx`, after the loaded-state block (before `</main>`), so the chart is full
+width below the two columns:
 
 ```jsx
 {view === VIEW.loaded && <VitalSignsChart identifier={identifier} />}
 ```
 
-plus `import VitalSignsChart from '../vital-signs-chart/VitalSignsChart.jsx'`. Nothing else on the page
+plus `import VitalSignsChart from '../vital-signs-chart/VitalSignsChart.jsx'` after the US-08
+`DeteriorationPrediction` import. In page order the chart comes after `<DeteriorationPrediction
+identifier={identifier} />` (US-08, mounted after the re-triage suggestion section), which is not
+moved or changed. Nothing else on the page
 changes. Any signed-in clinician (the page is inside `<RequireAuth>`); read-only.
 
 ## Section `VitalSignsChart` (`pages/vital-signs-chart/`)

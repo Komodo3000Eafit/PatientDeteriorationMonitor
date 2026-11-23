@@ -33,7 +33,7 @@
 
 - By project convention (D-24, as in US-01 to US-05), the spec names the existing endpoint, the
   contract file, the decision number and the chart library the user already chose (`chart.js`,
-  `react-chartjs-2`, D-53). These are agreed decisions from the story input, not leaked
+  `react-chartjs-2`, D-54). These are agreed decisions from the story input, not leaked
   implementation choices; the plan picks the exact versions, mount point and component structure.
 - SC-005 names "2 dependencies, pinned, MIT" because the user fixed that constraint; it stays
   measurable from the package diff.

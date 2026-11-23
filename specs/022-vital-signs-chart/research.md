@@ -13,7 +13,7 @@ Decision / Rationale / Alternatives.
   (only the registered controllers, elements and scales are bundled).
 - **Verified in the practice run**: installing `chart.js` 4.6.1 + `react-chartjs-2` 5.3.1 (pinned)
   pulls only `@kurkle/color` 0.3.4; all three MIT, no install scripts; `npm audit --audit-level=high`
-  clean. Bundle impact = size of the built JS before vs after (`npm run build`), recorded in D-53.
+  clean. Bundle impact = size of the built JS before vs after (`npm run build`), recorded in D-54.
 - **Alternatives**: Recharts (SVG, larger, more dependencies); hand-drawn SVG (re-implements axes,
   ticks and tooltips; Principle XII); a time scale with a date adapter (third dependency, rejected in
   clarify Q1).
@@ -99,7 +99,8 @@ Decision / Rationale / Alternatives.
 ## R10. Bundle
 
 - **Decision**: static import (no `React.lazy`); measure `dist/assets/*.js` total before/after and
-  record it in D-53. Practice run: the bundle grows about 56 kB gzipped (98.85 → 154.96 kB;
-  319549 → 480180 bytes), accepted for the academic scope.
+  record it in D-54. Practice run: the bundle grows about 56 kB gzipped (98.85 → 154.96 kB;
+  319549 → 480180 bytes), accepted for the academic scope. These numbers predate US-08; they are
+  re-measured at T001/T011 after merging `origin/main`, and D-54 records the new figures.
 - **Rationale**: Principle XII; one dependency pair, measured; lazy loading can be a later decision if
   the size matters.

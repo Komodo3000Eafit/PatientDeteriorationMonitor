@@ -9,7 +9,7 @@ Local setup from [DEVELOPMENT.md](../../DEVELOPMENT.md). For the manual check: N
 
 ```bash
 cd frontend && npm ci && npm test        # new: vital-signs-chart tests (AC1–AC11)
-cd frontend && npm run build              # note the JS bundle size before/after (D-53)
+cd frontend && npm run build              # note the JS bundle size before/after (D-54)
 cd frontend && npm audit --audit-level=high
 cd backend && python -m pytest -q         # unchanged backend still green
 ```
