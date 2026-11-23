@@ -15,7 +15,7 @@ The browser turns that JSON into CSV with a pure function (fixed English header,
 RFC 4180 quoting, CSV-injection guard) and saves it with a Blob as
 `<code>-vital-signs-<YYYY-MM-DD>.csv`. A new `ExportReadingsButton` (shared `Button`, lucide
 `Download` icon) is mounted with one line on `PatientDetailPage`. No migration and no new
-dependency. Decision: **D-53** ([research R1, R2](research.md)).
+dependency. Decision: **D-54** ([research R1, R2](research.md)).
 
 ## Technical Context
 
@@ -182,7 +182,7 @@ Existing guards must stay green: `styles/noRawColors.test.js`, `styles/contrast.
 | `export-readings/*`, mount line, translations, glossary row | frontend-dev |
 | Writing and running the full test plan, AC-by-AC check | qa-tester |
 | Review: auth, code validation, injection guard, filename, logging | security-reviewer |
-| BACKLOG/PROJECT_STATUS update, DECISIONS D-53 check, agent log, PR | orchestrator |
+| BACKLOG/PROJECT_STATUS update, DECISIONS D-54 check, agent log, PR | orchestrator |
 
 DevOps has no work: there is no CI, deploy or environment change.
 
@@ -227,7 +227,7 @@ frontend/src/
     └── patient-detail/PatientDetailPage.jsx   # + import and one mount line
 
 docs/
-├── DECISIONS.md      # D-53 (added with this plan)
+├── DECISIONS.md      # D-54 (added with this plan)
 ├── GLOSSARY.md       # + "vital signs CSV export" row
 ├── BACKLOG.md        # US-10 → done (at the end)
 └── PROJECT_STATUS.md # US-10 done (at the end)
@@ -241,6 +241,6 @@ so `pages/export-readings/` holds US-10's).
 
 No violations. Nothing to justify.
 
-Note for merging: D-53 is the next free decision number on `main` and on
-`origin/025-patient-list-filter-sort` as of 2026-11-22. If another team-session story merges a D-53
+Note for merging: D-54 is the next free decision number on `main` and on
+`origin/025-patient-list-filter-sort` as of 2026-11-22. If another team-session story merges a D-54
 first, renumber this entry when rebasing.

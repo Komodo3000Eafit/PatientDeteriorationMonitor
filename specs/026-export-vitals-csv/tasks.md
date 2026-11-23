@@ -21,7 +21,7 @@ description: "Task list for US-10 vital signs CSV export"
 - Edit files with the file tools, not PowerShell (non-ASCII text such as accents, `…`, `—`). Keep files UTF-8.
 - **Only these paths change**:
   - New: `backend/app/readings_export_api.py`, `backend/tests/test_readings_export_api.py`, everything under `frontend/src/pages/export-readings/`.
-  - Edited: `backend/app/main.py` (import + `include_router` only), `frontend/src/pages/patient-detail/PatientDetailPage.jsx` (one import + one mount line only), `frontend/src/i18n/translations.js` (`exportReadings.*` keys), `docs/GLOSSARY.md`, `docs/DECISIONS.md` (D-53 already added by the plan; check only), `docs/BACKLOG.md`, `docs/PROJECT_STATUS.md`, and this story's `agent-log.csv`.
+  - Edited: `backend/app/main.py` (import + `include_router` only), `frontend/src/pages/patient-detail/PatientDetailPage.jsx` (one import + one mount line only), `frontend/src/i18n/translations.js` (`exportReadings.*` keys), `docs/GLOSSARY.md`, `docs/DECISIONS.md` (D-54 already added by the plan; check only), `docs/BACKLOG.md`, `docs/PROJECT_STATUS.md`, and this story's `agent-log.csv`.
 - **Not changed**: `backend/app/readings_api.py`, `backend/app/patients.py` (both reused by import only), `backend/app/readings.py`, `backend/app/scoring/*`, `backend/app/models.py`, `backend/migrations/*` (no migration), `frontend/src/api/client.js`, `frontend/src/components/*` (reused `Button`), `frontend/src/utils/*` (reused `isPatientCode`), `frontend/src/testing/*`, `frontend/src/styles/tokens.css`, `frontend/src/App.jsx`, the rest of `PatientDetailPage.jsx` and its CSS and tests, every US-01 to US-05 file not listed above, `.github/`, `.specify/`, `frontend/package.json`, `frontend/package-lock.json`, `backend/requirements.txt` (no new dependency).
 - Agents log each step with `pwsh -NoProfile -File scripts/log-agent.ps1 -Agent <agent> -Task <Txxx> -Action <action> -Details "<text>"` (on Windows: `powershell -NoProfile -ExecutionPolicy Bypass -File ...`). Action is one of `assigned`, `started`, `done`, `failed`, `finding`, `verified`, `rework`; the script writes to `specs/026-export-vitals-csv/agent-log.csv`.
 - Synthetic data only: fictitious patients, synthetic users, made-up vital signs; no real data.
@@ -142,8 +142,8 @@ None. Everything needed is merged and reused without changes: TS-03 (tables `pat
 
 ### Docs (orchestrator)
 
-- [ ] T012 [P] [US-10] In `docs/GLOSSARY.md` §4, add the "vital signs CSV export" row from contracts/ui.md "Glossary" next to the "record vital signs button" row. In `docs/DECISIONS.md` check that **D-53** (added with the plan) matches what was built; if another story merged a D-53 first, renumber it and its references in `plan.md`, `contracts/ui.md` and the glossary row. Depends on T001 (FR-013, FR-016) (orchestrator)
-- [ ] T013 [US-10] When T009–T011 pass: in `docs/BACKLOG.md` set US-10 to ✅ with a link to `specs/026-export-vitals-csv/spec.md`; in `docs/PROJECT_STATUS.md` add US-10 ✅ under Step 12 (endpoint `GET /api/patients/{identifier}/readings/export`, every reading oldest first, CSV built in the browser with the injection guard, `ExportReadingsButton` mounted on the detail page, no migration and no new dependency, D-53) and update "Last updated". Depends on T009, T010, T011 (FR-016) (orchestrator)
+- [ ] T012 [P] [US-10] In `docs/GLOSSARY.md` §4, add the "vital signs CSV export" row from contracts/ui.md "Glossary" next to the "record vital signs button" row. In `docs/DECISIONS.md` check that **D-54** (added with the plan) matches what was built; if another story merged a D-54 first, renumber it and its references in `plan.md`, `contracts/ui.md` and the glossary row. Depends on T001 (FR-013, FR-016) (orchestrator)
+- [ ] T013 [US-10] When T009–T011 pass: in `docs/BACKLOG.md` set US-10 to ✅ with a link to `specs/026-export-vitals-csv/spec.md`; in `docs/PROJECT_STATUS.md` add US-10 ✅ under Step 12 (endpoint `GET /api/patients/{identifier}/readings/export`, every reading oldest first, CSV built in the browser with the injection guard, `ExportReadingsButton` mounted on the detail page, no migration and no new dependency, D-54) and update "Last updated". Depends on T009, T010, T011 (FR-016) (orchestrator)
 
 ### Manual validation (qa-tester, with a team member for the browser and spreadsheet steps)
 
@@ -197,7 +197,7 @@ Task T002 → T003: export endpoint + router registration          (backend-dev)
 Task T004: exportReadings.* keys in frontend/src/i18n/translations.js   (frontend-dev)
 Task T005: frontend/src/pages/export-readings/readingsCsv.js             (frontend-dev)
 Task T006: frontend/src/pages/export-readings/downloadCsv.js             (frontend-dev)
-Task T012: glossary row + D-53 check                                     (orchestrator)
+Task T012: glossary row + D-54 check                                     (orchestrator)
 # Then: T007 → T008 (frontend), T010 (as soon as T005 is done), T009, T011, T013, T014, T015
 ```
 
@@ -217,6 +217,6 @@ Then validate with [quickstart.md](quickstart.md) and open the PR with both suit
 
 - One story per feature: every task carries `[US-10]`.
 - No new table, no migration, no new dependency (plan.md Constitution Check XII).
-- US-03's `GET .../readings` (`limit` ≤ 200, newest first) is deliberately unchanged. The new endpoint exists because that one cannot be paged (research R1, D-53).
+- US-03's `GET .../readings` (`limit` ≤ 200, newest first) is deliberately unchanged. The new endpoint exists because that one cannot be paged (research R1, D-54).
 - The CSV is built in the browser because the shared client only reads JSON, and because "news2" must stay out of backend `app/` (research R2).
 - Keep files UTF-8; edit with the file tools, not PowerShell.
