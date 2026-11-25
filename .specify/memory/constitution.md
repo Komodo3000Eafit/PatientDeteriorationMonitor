@@ -1,6 +1,35 @@
 <!--
 Sync Impact Report
 ==================
+Version change: 1.3.0 → 1.4.0 (MINOR)
+Bump rationale: Principle III materially expanded with one new exception (DECISIONS D-58); no
+principle removed or redefined incompatibly:
+- New page-extension exception: a team-session functional story whose backlog text extends a page
+  built by a baseline story it depends on (first case: US-09 on US-02's patient list) MAY edit that
+  page's own components, if the baseline behavior is unchanged when the new feature is not used and
+  the baseline story's tests keep passing; every such edit MUST be named in the story's decision and
+  PR notes. Edits to any other story's code stay forbidden.
+- Rationale extended: US-02's `PatientTable` loads its own data and takes no props, so US-09 could
+  otherwise only add filter/sort by duplicating the table (Principle XII).
+
+Modified principles: III. Story Types and Independence (one new rule + rationale). No renames.
+Added sections: none. Removed sections: none.
+
+Templates:
+- ⚠ .specify/templates/plan-template.md — its Principle III check line lists only "registering a
+  route or mounting a component"; read it with the v1.3.0 test-assertion exceptions and the new
+  v1.4.0 page-extension exception (not edited by this command; follow-up).
+- ⚠ .specify/templates/spec-template.md — comment still predates v1.3.0 (see previous report).
+- ✅ tasks-template.md, checklist-template.md — no change needed.
+
+Runtime guidance flagged (not modified by this command; follow-up):
+- ⚠ CLAUDE.md "never on each other" wording (see previous report); also does not mention the
+  page-extension exception.
+- docs/DECISIONS.md D-58 records this amendment (same change).
+
+Follow-up TODOs: none.
+
+Previous report (1.3.0):
 Version change: 1.2.0 → 1.3.0 (MINOR)
 Bump rationale: Principle III materially expanded (DECISIONS D-52); no principle removed or
 redefined incompatibly:
@@ -180,13 +209,23 @@ feasible and keep reviews focused.
   content the story replaces, or narrow an assertion in another story's test when the new story's
   legitimate behavior makes it ambiguous, keeping the test's intent unchanged. A shared need that requires changing another story's code MUST be
   moved into a technical story first.
+- **Page-extension exception:** a team-session functional story whose backlog text extends a page
+  built by a baseline story it depends on (for example US-09 "filter and sort the patient list" on
+  US-02's patient list) MAY edit that page's own components, provided that (1) the baseline
+  behavior stays unchanged when the new feature is not used, and (2) the baseline story's tests
+  keep passing. Every such edit MUST be named in the story's decision (`docs/DECISIONS.md`) and in
+  its PR notes. It does not allow edits to any other story's code.
 - The backlog and each story's dependencies are kept in `docs/BACKLOG.md`.
 
 **Rationale:** functional stories must be buildable concurrently by different students without
 merge conflicts. Baseline stories are merged into `main` one by one, and some need the result of
 an earlier one: US-02, US-04 and US-05 need the stored scores from US-03, because NEWS2 MUST NOT be
 recomputed outside the scoring flow (DECISIONS D-50). Depending only on merged work, and reusing it
-without changing it, keeps that safe.
+without changing it, keeps that safe. The page-extension exception exists because some baseline
+components load their own data and take no props (US-02's `PatientTable`), so a story that extends
+that page could otherwise only add its feature by duplicating the component, which Principle XII
+rejects (never copy and paste UI); the two conditions and the named edits keep the baseline story
+safe and reviewable (DECISIONS D-58).
 
 ### IV. Multi-Agent Collaboration
 
@@ -337,4 +376,4 @@ risk to delivery.
   run before implementation, and every pull request review MUST verify compliance with these
   principles.
 
-**Version**: 1.3.0 | **Ratified**: 2026-11-10 | **Last Amended**: 2026-11-21
+**Version**: 1.4.0 | **Ratified**: 2026-11-10 | **Last Amended**: 2026-11-24

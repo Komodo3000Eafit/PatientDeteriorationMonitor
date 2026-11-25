@@ -48,5 +48,5 @@ These must be **independent of each other**: each one adds its own files (endpoi
 | US-06 | As a doctor, I want a chart of a patient's vital signs history, so that I can see how they evolve | US-03, US-05 | | ⬜ |
 | US-07 | As a nurse, I want to mark an alert as acknowledged, so that the team knows it has been handled | US-04 | [023-alert-acknowledgement](../specs/023-alert-acknowledgement/spec.md) | ✅ |
 | US-08 | As a doctor, I want a deterioration prediction warning when the NEWS2 score rises across the last 3 readings, so that I can act before the risk band crosses the re-triage threshold | US-03 | [024-deterioration-prediction](../specs/024-deterioration-prediction/spec.md) | ✅ |
-| US-09 | As a nurse, I want to filter and sort the patient list by triage level, so that I find the most urgent patients faster | US-02 | | ⬜ |
+| US-09 | As a nurse, I want to filter and sort the patient list by triage level, so that I find the most urgent patients faster | US-02 | [025-patient-list-filter-sort](../specs/025-patient-list-filter-sort/spec.md) | ✅ |
 | US-10 | As a doctor, I want to export a patient's vital signs to CSV, so that I can share or analyze them | US-03 | | ⬜ |
