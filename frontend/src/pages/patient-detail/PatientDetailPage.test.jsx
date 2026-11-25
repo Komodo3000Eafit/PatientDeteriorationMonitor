@@ -162,11 +162,11 @@ async function openPage({
   return fetchMock
 }
 
-// The data rows of the triage-history table. Two tables may be on the page (the reading result
-// table and the history table); the history table is the last one.
+// The data rows of the triage-history table, found inside the "Historial de triage" card (other
+// tables are on the page: the reading result table and, since US-06, the chart's hidden table).
 function historyRows() {
-  const tables = screen.getAllByRole('table')
-  const table = tables[tables.length - 1]
+  const historyCard = screen.getByRole('heading', { name: ES_SECTION_HISTORY }).parentElement
+  const table = within(historyCard).getByRole('table')
   const [, body] = within(table).getAllByRole('rowgroup')
   return within(body).getAllByRole('row')
 }
@@ -219,7 +219,7 @@ describe('US-05 AC1/AC2/AC3/AC4/AC10/AC12 loaded patient with a reading', () => 
     // The risk band via RiskBandBadge (band label 'Media'), not a StatusBadge.
     expect(screen.getByText(ES_BAND_MEDIUM)).toBeTruthy()
     // At least one per-parameter reason row (the seven vitals table from ReadingResult).
-    expect(screen.getByText('Frecuencia respiratoria (resp/min)')).toBeTruthy()
+    expect(within(screen.getByRole('region', { name: ES_SECTION_READING })).getByText('Frecuencia respiratoria (resp/min)')).toBeTruthy()
     expect(screen.getByText('21–24')).toBeTruthy()
   })
 
@@ -262,7 +262,7 @@ describe('US-05 AC1/AC2/AC3/AC4/AC10/AC12 loaded patient with a reading', () => 
 
     await screen.findByText(ES_SECTION_PATIENT)
     expect(callsTo(fetchMock, PATIENT_PATH)).toHaveLength(1)
-    expect(callsTo(fetchMock, READINGS_PATH)).toHaveLength(1)
+    expect(callsTo(fetchMock, READINGS_PATH).filter(([url]) => new URL(url).searchParams.get('limit') === '1')).toHaveLength(1)
     expect(callsTo(fetchMock, TRIAGE_EVENTS_PATH)).toHaveLength(1)
   })
 })

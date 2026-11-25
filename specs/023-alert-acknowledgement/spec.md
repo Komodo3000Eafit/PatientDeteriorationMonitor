@@ -76,6 +76,7 @@
 - **An acknowledged alert from before this story** (handled by a doctor in US-04): it is shown as "Atendida por <doctor>"; no data change is needed.
 - **The stored person no longer exists or has no full name**: not possible (`users.full_name` is required and users are never deleted); no special handling.
 - **Session expires while the page is open**: the next request gets 401 and the existing session-expiry handling sends the clinician to the login page.
+- After a doctor accepts or dismisses the suggestion in the US-04 section, the follow-up line changes to "Atendida por …" on the next page load, not instantly: the two components don't share state, and changing US-04's component is out of scope (Principle III). A shared refresh signal is a possible follow-up technical story.
 
 ## Requirements *(mandatory)*
 

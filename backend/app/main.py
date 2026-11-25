@@ -16,6 +16,7 @@ from app import readings_api
 from app import readings_export_api
 from app import retriage_api
 from app import prediction_api
+from app import alert_ack_api
 from app.db import check_database
 from app.security_headers import SecurityHeadersMiddleware
 from app.static_serving import build_present, build_spa_handler, mount_assets
@@ -68,6 +69,7 @@ app.include_router(readings_api.router, prefix="/api")
 app.include_router(readings_export_api.router, prefix="/api")
 app.include_router(retriage_api.router, prefix="/api")
 app.include_router(prediction_api.router, prefix="/api")
+app.include_router(alert_ack_api.router, prefix="/api")
 # Security headers run on every response, including CORS preflight and errors
 # (TS-10 FR-010, AC9).
 app.add_middleware(SecurityHeadersMiddleware)

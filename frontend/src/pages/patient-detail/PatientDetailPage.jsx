@@ -18,6 +18,7 @@ import RecordReadingButton from "../record-reading/RecordReadingButton.jsx";
 import ExportReadingsButton from "../export-readings/ExportReadingsButton.jsx";
 import RetriageSuggestion from "./RetriageSuggestion.jsx";
 import DeteriorationPrediction from "./DeteriorationPrediction.jsx";
+import AlertAcknowledgement from "./AlertAcknowledgement.jsx";
 import styles from "./PatientDetailPage.module.css";
 
 // The four display states of the page.
@@ -112,6 +113,7 @@ export default function PatientDetailPage() {
       >
         <RetriageSuggestion identifier={identifier} />
       </section>
+      <AlertAcknowledgement identifier={identifier} />
       <DeteriorationPrediction identifier={identifier} />
 
       {view === VIEW.loading && (

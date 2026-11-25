@@ -1,0 +1,39 @@
+/* Vital signs chart (US-06). Tokens only; no raw color. The chart container has a fixed height so
+   Chart.js can size a responsive canvas with maintainAspectRatio: false. */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.count {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text);
+}
+
+.chart {
+  position: relative;
+  height: 18rem;
+  max-width: 100%;
+}
+
+.live {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text);
+}
+
+/* Visually hidden text alternative (clip technique): off-screen but read by screen readers. */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
