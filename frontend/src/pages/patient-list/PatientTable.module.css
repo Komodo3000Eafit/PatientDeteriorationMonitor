@@ -62,3 +62,44 @@
   border: 2px solid var(--color-triage-5);
   color: var(--color-text);
 }
+
+/* US-09 (added rules only, D-58): triage filter row, result count and header sort buttons. */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.resultCount {
+  margin: 0;
+}
+
+/* The header button looks like the header text; the chevron marks the active sort. */
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--size-target);
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sortButton:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.sortIcon {
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+}
