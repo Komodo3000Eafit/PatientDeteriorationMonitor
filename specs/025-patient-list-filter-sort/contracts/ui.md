@@ -22,7 +22,7 @@ Unchanged (US-02, AC13): the patient-code link, `ScoreBadge`, D-48 triage colors
 
 ## Sortable column headers
 
-- Each sortable `<th>` contains a `<button>` whose accessible name states the column and that it sorts (e.g. `patientList.sortByTriage` = "Ordenar por nivel de triage").
+- Each sortable `<th>` contains a `<button>` whose **visible text is the existing column label, unchanged** (`patientList.colTriage`, `colScore`, `colCode`, `colLatest`) and whose accessible name (`aria-label`) states the column and that it sorts (e.g. `patientList.sortByTriage` = "Ordenar por nivel de triage"). The header's text content therefore stays exactly as in US-02, so US-02's header assertions (`PatientTable.test.jsx`) pass unchanged (constitution v1.4.0 page-extension exception, D-58).
 - First activation of a column uses its default direction (triage asc / score desc / code asc / latest desc, see data-model R6). Activating the already-active column flips the direction.
 - Exactly one column is active at a time. The active `<th>` has `aria-sort="ascending"` or `"descending"`; all other sortable `<th>` have `aria-sort="none"` (or no active state). A visible, decorative `lucide-react` chevron (e.g. `ChevronUp`/`ChevronDown`, `aria-hidden`) indicates direction; the state is conveyed to assistive technology by `aria-sort`, so color/icon is never the only cue.
 - Sorting reorders the already-loaded rows in the browser; it MUST NOT trigger a `GET /api/patients`.
