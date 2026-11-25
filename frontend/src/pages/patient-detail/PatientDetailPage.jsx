@@ -15,6 +15,7 @@ import { isPatientCode } from "../../utils/patientCode.js";
 import NotFoundPage from "../not-found/NotFoundPage.jsx";
 import ReadingResult from "../record-reading/ReadingResult.jsx";
 import RecordReadingButton from "../record-reading/RecordReadingButton.jsx";
+import ExportReadingsButton from "../export-readings/ExportReadingsButton.jsx";
 import RetriageSuggestion from "./RetriageSuggestion.jsx";
 import DeteriorationPrediction from "./DeteriorationPrediction.jsx";
 import AlertAcknowledgement from "./AlertAcknowledgement.jsx";
@@ -98,6 +99,7 @@ export default function PatientDetailPage() {
           {t("patientDetail.title", { code: identifier })}
         </h1>
         <RecordReadingButton identifier={identifier} />
+        <ExportReadingsButton identifier={identifier} />
       </div>
 
       {/* US-04 suggestion stays mounted in every page state (it manages its own visibility); only

@@ -13,6 +13,7 @@ from app import auth  # importing app.auth runs the AUTH_SECRET startup check
 from app import patient_list
 from app import patients
 from app import readings_api
+from app import readings_export_api
 from app import retriage_api
 from app import prediction_api
 from app import alert_ack_api
@@ -65,6 +66,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(patients.router, prefix="/api")
 app.include_router(patient_list.router, prefix="/api")
 app.include_router(readings_api.router, prefix="/api")
+app.include_router(readings_export_api.router, prefix="/api")
 app.include_router(retriage_api.router, prefix="/api")
 app.include_router(prediction_api.router, prefix="/api")
 app.include_router(alert_ack_api.router, prefix="/api")
