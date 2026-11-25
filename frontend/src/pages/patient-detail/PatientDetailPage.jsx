@@ -17,6 +17,7 @@ import ReadingResult from "../record-reading/ReadingResult.jsx";
 import RecordReadingButton from "../record-reading/RecordReadingButton.jsx";
 import RetriageSuggestion from "./RetriageSuggestion.jsx";
 import DeteriorationPrediction from "./DeteriorationPrediction.jsx";
+import VitalSignsChart from "../vital-signs-chart/VitalSignsChart.jsx";
 import AlertAcknowledgement from "./AlertAcknowledgement.jsx";
 import styles from "./PatientDetailPage.module.css";
 
@@ -268,6 +269,7 @@ export default function PatientDetailPage() {
           </div>
         </div>
       )}
+      {view === VIEW.loaded && <VitalSignsChart identifier={identifier} />}
     </main>
   );
 }

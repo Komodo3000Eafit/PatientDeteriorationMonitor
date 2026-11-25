@@ -60,3 +60,5 @@
 "2026-11-24 19:44:58","022-vital-signs-chart","orchestrator","T015","done","BACKLOG US-06 row set to done with spec link, PROJECT_STATUS updated, US-10 import note added"
 "2026-11-24 19:50:28","022-vital-signs-chart","orchestrator","T016","assigned","Orchestrator: review agent-log and prepare PR record"
 "2026-11-24 19:50:33","022-vital-signs-chart","orchestrator","T016","done","Log complete for all tasks; PR record written to specs/022-vital-signs-chart/PR-RECORD.md"
+"2026-11-24 19:56:36","022-vital-signs-chart","orchestrator","T002","rework","After merge of main, deps/translations/mount were lost; CI red (chart.js unresolved). Re-apply deps, vitalsChart keys, mount"
+"2026-11-24 19:57:04","022-vital-signs-chart","frontend-dev","T002","started","re-applying lost deps, translations, mount for US-06 vital signs chart"
