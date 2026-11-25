@@ -31,7 +31,7 @@ description: "Task list for US-10 vital signs CSV export"
 
 ## Phase 1: Setup
 
-- [ ] T001 [US-10] Baseline before any change: in `backend/` run `python -m pytest -q`; in `frontend/` run `npm ci`, `npm test` and `npm run build`. Record both passing test counts and that the build succeeds, for the PR description. Do not edit files (qa-tester)
+- [X] T001 [US-10] Baseline before any change: in `backend/` run `python -m pytest -q`; in `frontend/` run `npm ci`, `npm test` and `npm run build`. Record both passing test counts and that the build succeeds, for the PR description. Do not edit files (qa-tester)
 
 ---
 
@@ -49,7 +49,7 @@ None. Everything needed is merged and reused without changes: TS-03 (tables `pat
 
 ### Backend implementation (backend-dev)
 
-- [ ] T002 [US-10] Create `backend/app/readings_export_api.py` (contracts/readings-export-api.md; research R1, R6). Module docstring: `"""Export every reading of one patient with its stored score, oldest first (US-10). See specs/026-export-vitals-csv/contracts/readings-export-api.md."""`. Contents:
+- [X] T002 [US-10] Create `backend/app/readings_export_api.py` (contracts/readings-export-api.md; research R1, R6). Module docstring: `"""Export every reading of one patient with its stored score, oldest first (US-10). See specs/026-export-vitals-csv/contracts/readings-export-api.md."""`. Contents:
   - `logger = logging.getLogger(__name__)`.
   - Imports: `APIRouter, Depends, HTTPException` (fastapi), `BaseModel` (pydantic), `select` (sqlalchemy), `SQLAlchemyError`, `Session`, `get_current_user` (`app.auth`), `ReadingScore, User, VitalSign` (`app.models`), `find_patient, get_session` (`app.patients`), `ReadingResponse, to_response` (`app.readings_api`). Import only; change none of those modules.
   - `class ReadingExportResponse(BaseModel)` with the docstring "Every reading of a patient, oldest first." and the field `readings: list[ReadingResponse]`.
@@ -57,27 +57,27 @@ None. Everything needed is merged and reused without changes: TS-03 (tables `pat
   - Body: `try:` `patient = find_patient(session, identifier)`, then `rows = session.execute(select(VitalSign, ReadingScore).join(ReadingScore, ReadingScore.vital_sign_id == VitalSign.id).where(VitalSign.patient_id == patient.id).order_by(VitalSign.recorded_at.asc(), VitalSign.id.asc())).all()` with **no `.limit()`**, and return `ReadingExportResponse(readings=[to_response(v, s) for v, s in rows])`. `except SQLAlchemyError as exc:` → `session.rollback()`, `logger.warning("Reading export failed (%s)", type(exc).__name__)`, `raise HTTPException(503, "Service unavailable")`.
   - No role check, no query parameters, and no logging of values, the patient code or the user. **No "news2" text anywhere in the file.**
   Depends on T001 (AC1, AC2, AC4, AC5, AC7, FR-002, FR-003, FR-004, FR-008, FR-009, FR-011) (backend-dev)
-- [ ] T003 [US-10] In `backend/app/main.py` register the router, following the existing pattern: add `from app import readings_export_api` next to the other `from app import ...` lines, and `app.include_router(readings_export_api.router, prefix="/api")` right after `app.include_router(readings_api.router, prefix="/api")`. Change nothing else. Depends on T002 (FR-009, AC10) (backend-dev)
+- [X] T003 [US-10] In `backend/app/main.py` register the router, following the existing pattern: add `from app import readings_export_api` next to the other `from app import ...` lines, and `app.include_router(readings_export_api.router, prefix="/api")` right after `app.include_router(readings_api.router, prefix="/api")`. Change nothing else. Depends on T002 (FR-009, AC10) (backend-dev)
 
 ### Frontend implementation (frontend-dev)
 
-- [ ] T004 [P] [US-10] In `frontend/src/i18n/translations.js` add three keys to **both** `es` and `en`, next to the `recordReading.*` keys (contracts/ui.md "Translations"):
+- [X] T004 [P] [US-10] In `frontend/src/i18n/translations.js` add three keys to **both** `es` and `en`, next to the `recordReading.*` keys (contracts/ui.md "Translations"):
   - `exportReadings.button`: `'Exportar CSV'` / `'Export CSV'`
   - `exportReadings.busy`: `'Exportando…'` / `'Exporting…'`
   - `exportReadings.error`: `'No se pudo exportar el CSV. Inténtalo de nuevo.'` / `'Could not export the CSV. Please try again.'`
   Change no other key. Depends on T001 (AC8, FR-013) (frontend-dev)
-- [ ] T005 [P] [US-10] Create `frontend/src/pages/export-readings/readingsCsv.js`, pure with no React, network, DOM or logging (contracts/ui.md "readingsCsv.js"; data-model.md; research R3, R4, R7). Header comment: `// Builds the vital signs CSV from stored readings (US-10). Pure: no scoring, no sorting, no network.` Exports:
+- [X] T005 [P] [US-10] Create `frontend/src/pages/export-readings/readingsCsv.js`, pure with no React, network, DOM or logging (contracts/ui.md "readingsCsv.js"; data-model.md; research R3, R4, R7). Header comment: `// Builds the vital signs CSV from stored readings (US-10). Pure: no scoring, no sorting, no network.` Exports:
   - `CSV_COLUMNS = ['recorded_at','respiratory_rate','spo2','on_oxygen','systolic_bp','heart_rate','consciousness','temperature','news2_total','risk_band']`.
   - `csvField(value)`: `let text = String(value)`. If `/^[=+\-@\t\r]/.test(text)`, set `text = "'" + text`. Then, if `/[",\r\n]/.test(text)`, return `'"' + text.replaceAll('"', '""') + '"'`. Otherwise return `text`.
   - `buildReadingsCsv(readings)`: a record is `fields.map(csvField).join(',') + '\r\n'`. The header record is `CSV_COLUMNS`. Then one record per reading **in the given order**, with `[r.recorded_at, r.respiratory_rate, r.spo2, r.on_oxygen, r.systolic_bp, r.heart_rate, r.consciousness, r.temperature, r.score.total, r.score.band]`. Every value is written as received (temperature as the one-decimal string, `recorded_at` unconverted, booleans as `true`/`false`). Return the concatenation; `[]` gives the header record only. No BOM.
   - `exportFileName(identifier, date = new Date())`: return `null` when `!isPatientCode(identifier)` (import from `../../utils/patientCode.js`). Otherwise return `` `${identifier}-vital-signs-${yyyy}-${mm}-${dd}.csv` `` from `date.getFullYear()`, `String(date.getMonth() + 1).padStart(2, '0')` and `String(date.getDate()).padStart(2, '0')` (local date).
   Depends on T001 (AC1, AC2, AC3, AC4, AC6, FR-003–FR-008) (frontend-dev)
-- [ ] T006 [P] [US-10] Create `frontend/src/pages/export-readings/downloadCsv.js` (contracts/ui.md "downloadCsv.js"; research R5). `export function downloadCsv(text, filename)`:
+- [X] T006 [P] [US-10] Create `frontend/src/pages/export-readings/downloadCsv.js` (contracts/ui.md "downloadCsv.js"; research R5). `export function downloadCsv(text, filename)`:
   1. Create `blob = new Blob([text], { type: 'text/csv;charset=utf-8' })` and `url = URL.createObjectURL(blob)`.
   2. Create an `a` element with `href = url`, `download = filename` and `hidden = true`, append it to `document.body` and call `a.click()`.
   3. In a `finally` block, remove the element and call `URL.revokeObjectURL(url)`.
   No return value, no logging and no dependency. Depends on T001 (AC1, FR-002) (frontend-dev)
-- [ ] T007 [US-10] Create `frontend/src/pages/export-readings/ExportReadingsButton.jsx` and `ExportReadingsButton.module.css` (contracts/ui.md "ExportReadingsButton.jsx"; research R8–R10).
+- [X] T007 [US-10] Create `frontend/src/pages/export-readings/ExportReadingsButton.jsx` and `ExportReadingsButton.module.css` (contracts/ui.md "ExportReadingsButton.jsx"; research R8–R10).
   - Header comment: `// Button on the patient detail page that downloads every stored reading as CSV (US-10). Any signed-in role. Mounted on the patient detail page.`
   - `export default function ExportReadingsButton({ identifier })`. Use `useLanguage()` for `t`, and the state `busy` (false) and `failed` (false).
   - Render `null` when `!isPatientCode(identifier)`.
@@ -92,14 +92,14 @@ None. Everything needed is merged and reused without changes: TS-03 (tables `pat
   - Make no request on render. Don't log or sort.
   - CSS (tokens only, no raw colors): `.wrapper` and `.content`, an inline-flex row with `gap: var(--space-2)` and centered items, like `RecordReadingButton.module.css`. `.error` uses `color: var(--color-text)` and `font-size: var(--font-size-base)`. Set no other font size; the button inherits the shared `Button` styles. Use only tokens that exist in `frontend/src/styles/tokens.css`.
   Depends on T004, T005, T006 (AC1, AC3, AC4, AC7, AC8, AC9, FR-001, FR-007, FR-010, FR-011, FR-012) (frontend-dev)
-- [ ] T008 [US-10] Mount the control in `frontend/src/pages/patient-detail/PatientDetailPage.jsx` (research R9; Principle III mount exception):
+- [X] T008 [US-10] Mount the control in `frontend/src/pages/patient-detail/PatientDetailPage.jsx` (research R9; Principle III mount exception):
   - Add `import ExportReadingsButton from "../export-readings/ExportReadingsButton.jsx";` right after the `RecordReadingButton` import.
   - Add `<ExportReadingsButton identifier={identifier} />` on the line right after `<RecordReadingButton identifier={identifier} />` inside the `.topRow` div.
   Change **nothing else** in the file or in its CSS or tests. Depends on T007 (AC10, FR-001) (frontend-dev)
 
 ### Tests (qa-tester)
 
-- [ ] T009 [US-10] Create `backend/tests/test_readings_export_api.py` (contracts/readings-export-api.md; plan.md "Test plan"). Use the in-memory SQLite + `StaticPool` + `dependency_overrides` pattern from `test_readings_api.py` and `test_patient_detail.py`: override `app.patients.get_session` and `app.auth.get_current_user`, seed synthetic patients and users, and create readings with `app.readings.record_reading` so each has its stored score. Module docstring: list the ACs covered. At least:
+- [X] T009 [US-10] Create `backend/tests/test_readings_export_api.py` (contracts/readings-export-api.md; plan.md "Test plan"). Use the in-memory SQLite + `StaticPool` + `dependency_overrides` pattern from `test_readings_api.py` and `test_patient_detail.py`: override `app.patients.get_session` and `app.auth.get_current_user`, seed synthetic patients and users, and create readings with `app.readings.record_reading` so each has its stored score. Module docstring: list the ACs covered. At least:
   - Doctor → 200. With **205 readings**, all 205 are returned (more than the US-03 cap of 200) (AC1, FR-002).
   - Order is `recorded_at` ascending. Give two readings the **same `recorded_at`** (set the column directly) and check they come back in save (`id`) order (AC1, FR-002).
   - Values are as stored: `temperature` is the string `"37.0"` for 37 and `"38.4"` for 38.4; `on_oxygen` is a JSON boolean; `consciousness` is the ACVPU letter (AC2, FR-003, FR-004).
@@ -112,7 +112,7 @@ None. Everything needed is merged and reused without changes: TS-03 (tables `pat
   - No item has `id`, `patient_id`, `vital_sign_id` or `identifier` (contract).
   - Regression: `GET /api/patients/{code}/readings?limit=200` with 205 readings still returns 200 items, newest first, and `limit=201` → 422 (AC10).
   Depends on T003. Run `python -m pytest` (the existing `test_news2_confined` must stay green) and record the new total (qa-tester)
-- [ ] T010 [P] [US-10] Create `frontend/src/pages/export-readings/readingsCsv.test.js` (pure, no DOM; contracts/ui.md examples). At least:
+- [X] T010 [P] [US-10] Create `frontend/src/pages/export-readings/readingsCsv.test.js` (pure, no DOM; contracts/ui.md examples). At least:
   - `buildReadingsCsv([])` equals exactly `'recorded_at,respiratory_rate,spo2,on_oxygen,systolic_bp,heart_rate,consciousness,temperature,news2_total,risk_band\r\n'` (AC2, AC4, FR-008).
   - Two synthetic readings give 3 records, each ending with `\r\n`, in the **given** order. Pass them newest-first and check the output keeps that order, which proves the util does not sort (AC1, FR-002).
   - Values: `temperature: "37.0"` is written as `37.0`; `on_oxygen` `false`/`true` as `false`/`true`; `recorded_at` byte-identical; `score.total`/`score.band` used. Use `total: 19, band: 'low'` with vitals that would score otherwise, to show nothing is recomputed (AC2, FR-003, FR-004).
@@ -120,7 +120,7 @@ None. Everything needed is merged and reused without changes: TS-03 (tables `pat
   - Injection guard: each of `'=1'`, `'+1'`, `'-1'`, `'@x'`, `'\tx'`, `'\rx'` gets a leading `'`; `'a=b'` and `'a-b'` are unchanged; `'=1,2'` → `"'=1,2"`; a crafted reading with `consciousness: '=HYPERLINK("x")'` appears neutralized and quoted in the full CSV (AC6, FR-006).
   - `exportFileName('PAT-001', new Date(2026, 10, 22))` → `'PAT-001-vital-signs-2026-11-22.csv'`; `new Date(2026, 0, 5)` gives `-2026-01-05`. `'../x'`, `'PAT 1'`, `'pat-1'`, `''`, `'A'.repeat(21)`, `'PAT-1/..'`, `undefined` and `null` each give `null` (AC3, FR-007).
   Depends on T005. Run `npm test` (qa-tester)
-- [ ] T011 [US-10] Create `frontend/src/pages/export-readings/ExportReadingsButton.test.jsx`. **Do not change `frontend/src/testing/*`.**
+- [X] T011 [US-10] Create `frontend/src/pages/export-readings/ExportReadingsButton.test.jsx`. **Do not change `frontend/src/testing/*`.**
   - **Setup**:
     - `vi.mock('./downloadCsv.js', () => ({ downloadCsv: vi.fn() }))`.
     - Sign in with `signInForTest(user)`.
@@ -142,8 +142,8 @@ None. Everything needed is merged and reused without changes: TS-03 (tables `pat
 
 ### Docs (orchestrator)
 
-- [ ] T012 [P] [US-10] In `docs/GLOSSARY.md` §4, add the "vital signs CSV export" row from contracts/ui.md "Glossary" next to the "record vital signs button" row. In `docs/DECISIONS.md` check that **D-54** (added with the plan) matches what was built; if another story merged a D-54 first, renumber it and its references in `plan.md`, `contracts/ui.md` and the glossary row. Depends on T001 (FR-013, FR-016) (orchestrator)
-- [ ] T013 [US-10] When T009–T011 pass: in `docs/BACKLOG.md` set US-10 to ✅ with a link to `specs/026-export-vitals-csv/spec.md`; in `docs/PROJECT_STATUS.md` add US-10 ✅ under Step 12 (endpoint `GET /api/patients/{identifier}/readings/export`, every reading oldest first, CSV built in the browser with the injection guard, `ExportReadingsButton` mounted on the detail page, no migration and no new dependency, D-54) and update "Last updated". Depends on T009, T010, T011 (FR-016) (orchestrator)
+- [X] T012 [P] [US-10] In `docs/GLOSSARY.md` §4, add the "vital signs CSV export" row from contracts/ui.md "Glossary" next to the "record vital signs button" row. In `docs/DECISIONS.md` check that **D-54** (added with the plan) matches what was built; if another story merged a D-54 first, renumber it and its references in `plan.md`, `contracts/ui.md` and the glossary row. Depends on T001 (FR-013, FR-016) (orchestrator)
+- [X] T013 [US-10] When T009–T011 pass: in `docs/BACKLOG.md` set US-10 to ✅ with a link to `specs/026-export-vitals-csv/spec.md`; in `docs/PROJECT_STATUS.md` add US-10 ✅ under Step 12 (endpoint `GET /api/patients/{identifier}/readings/export`, every reading oldest first, CSV built in the browser with the injection guard, `ExportReadingsButton` mounted on the detail page, no migration and no new dependency, D-54) and update "Last updated". Depends on T009, T010, T011 (FR-016) (orchestrator)
 
 ### Manual validation (qa-tester, with a team member for the browser and spreadsheet steps)
 
@@ -156,7 +156,7 @@ None. Everything needed is merged and reused without changes: TS-03 (tables `pat
 
 ### Review (security-reviewer)
 
-- [ ] T015 [US-10] Read-only security review (no code changes; report findings and how they were resolved). Verify:
+- [X] T015 [US-10] Read-only security review (no code changes; report findings and how they were resolved). Verify:
   - The endpoint uses `Depends(get_current_user)`, answers 401 without a valid token, validates the code through `find_patient` before any query (404, no echo), returns the fixed 503 message logged by error type only, returns no internal ids, and mutates nothing.
   - `csvField` neutralizes `=` `+` `-` `@` tab and CR on every field before quoting, and quoting doubles inner quotes.
   - The filename comes only from a code matching `^[A-Z0-9-]{1,20}$`.
