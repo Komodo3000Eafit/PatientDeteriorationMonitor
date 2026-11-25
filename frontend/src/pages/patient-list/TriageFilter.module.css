@@ -1,0 +1,20 @@
+/* Triage-level filter (US-09). Design tokens only; see src/styles/tokens.css. */
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.label {
+  font-weight: 600;
+}
+
+.select {
+  cursor: pointer;
+}
+
+.select:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}

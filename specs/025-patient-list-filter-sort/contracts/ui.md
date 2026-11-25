@@ -58,7 +58,7 @@ Unchanged (US-02, AC13): the patient-code link, `ScoreBadge`, D-48 triage colors
 | `patientList.filterLabel` | Filtrar por nivel de triage | Filter by triage level |
 | `patientList.filterAll` | Todos | All |
 | `patientList.sortByTriage` | Ordenar por nivel de triage | Sort by triage level |
-| `patientList.sortByScore` | Ordenar por puntaje NEWS2 | Sort by NEWS2 score |
+| `patientList.sortByScore` | Ordenar por puntaje NEWS2 (0–20) | Sort by NEWS2 score (0–20) |
 | `patientList.sortByCode` | Ordenar por código de paciente | Sort by patient code |
 | `patientList.sortByLatest` | Ordenar por última lectura | Sort by latest reading |
 | `patientList.resultCount` | {shown} de {total} pacientes | {shown} of {total} patients |
